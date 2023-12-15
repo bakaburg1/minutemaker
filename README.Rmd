@@ -13,18 +13,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-# minuteMaker
+# minutemaker
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![CRAN status](https://www.r-pkg.org/badges/version/minuteMaker)](https://CRAN.R-project.org/package=minuteMaker)
+[![CRAN status](https://www.r-pkg.org/badges/version/minutemaker)](https://CRAN.R-project.org/package=minutemaker)
 <!-- badges: end -->
 
-The goal of minuteMaker is to ...
+The goal of minutemaker is to ...
 
 ## Installation
 
-You can install the development version of minuteMaker like so:
+You can install the development version of minutemaker like so:
 
 ``` r
 # FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
@@ -35,7 +35,7 @@ You can install the development version of minuteMaker like so:
 This is a basic example which shows you how to solve a common problem:
 
 ```{r example}
-library(minuteMaker)
+library(minutemaker)
 ## basic example code
 ```
 
