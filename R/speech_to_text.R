@@ -381,16 +381,22 @@ use_azure_whisper_model <- function(
     language = "en",
     initial_prompt = "",
     temperature = 0,
-    resource_name = getOption("minutemaker_azure_resource_name"),
+    resource_name = getOption("minutemaker_azure_resource_whisper"),
     deployment_id = getOption("minutemaker_azure_deployment_whisper"),
-    api_key = getOption("minutemaker_azure_api_key"),
+    api_key = getOption("minutemaker_azure_api_key_whisper"),
     api_version = getOption("minutemaker_azure_api_version")
 ) {
 
   if (is.null(resource_name) || is.null(deployment_id) ||
       is.null(api_key) || is.null(api_version)) {
-    stop("Environment variables for Azure resource name, deployment name,",
-         ", API key, or API version are not set.")
+    stop("Resource name, deployment name,",
+         ", API key, or API version are not set. ",
+         "Use the following options to set them:\n",
+         "minutemaker_azure_resource_whisper, ",
+         "minutemaker_azure_deployment_whisper, ",
+         "minutemaker_azure_api_key_whisper, ",
+         "minutemaker_azure_api_version."
+         )
   }
 
   # Prepare the URL
