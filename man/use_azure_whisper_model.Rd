@@ -9,9 +9,9 @@ use_azure_whisper_model(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  resource_name = getOption("minutemaker_azure_resource_name"),
+  resource_name = getOption("minutemaker_azure_resource_whisper"),
   deployment_id = getOption("minutemaker_azure_deployment_whisper"),
-  api_key = getOption("minutemaker_azure_api_key"),
+  api_key = getOption("minutemaker_azure_api_key_whisper"),
   api_version = getOption("minutemaker_azure_api_version")
 )
 }
