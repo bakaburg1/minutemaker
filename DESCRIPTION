@@ -1,10 +1,10 @@
 Package: minutemaker
-Title: Generate meeting minutes starting from an audio recording or a transcripts using speech-to-text and LLMs.
-Version: 0.0.0.9000
+Title: GenAI-based meeting and conferences minutes generator
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Angelo", "D'Ambrosio", , "a.dambrosioMD@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-2045-5155"))
+Description: Generate meeting minutes starting from an audio recording or a transcripts using speech-to-text and LLMs.
 License: MIT + file LICENSE
 Suggests: 
     av (>= 0.9.0),
@@ -19,4 +19,7 @@ Imports:
     httr (>= 1.4.7),
     jsonlite (>= 1.8.8),
     purrr (>= 1.0.2),
-    stringr (>= 1.5.1)
+    readr (>= 2.1.4),
+    rlang (>= 1.1.2),
+    stringr (>= 1.5.1),
+    vctrs (>= 0.6.5)

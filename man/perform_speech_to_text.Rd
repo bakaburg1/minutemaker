@@ -7,10 +7,10 @@
 perform_speech_to_text(
   audio_path,
   output_dir = file.path(dirname(audio_path), "transcripts"),
+  model,
   initial_prompt = "",
   overwrite = FALSE,
   language = "en",
-  model = "azure_whisper",
   ...
 )
 }
@@ -22,6 +22,11 @@ files. Tested with .mp3 and .wav files.}
 it will be created in the same directory as the audio file and will be
 named "transcripts".}
 
+\item{model}{Name of the model to use. The models available in the package
+are: "azure_whisper" (online API), "openai_whisper" (online API),
+"whisper_ctranslate2" (offline local model). Users can provide their own
+models.}
+
 \item{initial_prompt}{Text to prepend to the beginning of each transcript.
 This is useful for adding hard to parse words like acronyms.}
 
@@ -29,11 +34,10 @@ This is useful for adding hard to parse words like acronyms.}
 the transcription of audio files whose output already exist in the output
 directory.}
 
-\item{language}{Language in which the audio is spoken. If null, the model will
-try to detect the language automatically.}
+\item{language}{Language in which the audio is spoken. If null, the model
+will try to detect the language automatically.}
 
-\item{model}{Name of the model to use. Can be one "azure_whisper" (online API) or
-"whisper_ctranslate2" (offline local model).}
+\item{...}{Additional arguments to pass to the model function.}
 }
 \value{
 A data frame with the text and time of each segment.
@@ -41,4 +45,9 @@ A data frame with the text and time of each segment.
 \description{
 Loops through audio files, runs a speech-to-text model on each, parses the
 generated .srt files into a transcript data frame.
+}
+\details{
+Users can provide your own model by writing a function with the following
+name pattern: \verb{use_<model_name>_stt}. See the existing functions using the
+::: operator for examples.
 }

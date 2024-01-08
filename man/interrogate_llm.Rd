@@ -36,6 +36,11 @@ Azure, or a locally running LLM server) and returns the response. It handles
 rate limiting and retries the request if necessary, and also processes errors
 in the response.
 }
+\details{
+Users can provide your own model by writing a function with the following
+name pattern: \verb{use_<model_name>_llm}. See the existing functions using the
+::: operator for examples.
+}
 \examples{
 \dontrun{
 response <- interrogate_llm(
