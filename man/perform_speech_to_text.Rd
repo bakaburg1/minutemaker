@@ -47,7 +47,7 @@ Loops through audio files, runs a speech-to-text model on each, parses the
 generated .srt files into a transcript data frame.
 }
 \details{
-Users can provide your own model by writing a function with the following
+Users can provide their own models by writing a function with the following
 name pattern: \verb{use_<model_name>_stt}. See the existing functions using the
 ::: operator for examples.
 }
