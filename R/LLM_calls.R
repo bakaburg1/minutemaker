@@ -31,6 +31,8 @@
 #'
 #' @return A list of chat messages in standard format.
 #'
+#' @importFrom utils hasName
+#'
 process_messages <- function(messages) {
 
   if (missing(messages) || is.null(messages)) {
@@ -118,6 +120,10 @@ process_messages <- function(messages) {
 #' rate limiting and retries the request if necessary, and also processes errors
 #' in the response.
 #'
+#' Users can provide their own models by writing a function with the following
+#' name pattern: `use_<model_name>_llm`. See the existing functions using the
+#' ::: operator for examples.
+#'
 #' @param messages Messages to be sent to the language model.
 #' @param provider The provider of the language model. Defaults to "openai".
 #'   Other options are "azure" and "local".
@@ -129,6 +135,8 @@ process_messages <- function(messages) {
 #'   functions.
 #'
 #' @return Returns the content of the message from the language model response.
+#'
+#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -207,12 +215,20 @@ interrogate_llm <- function(
   }
 
   # Return the response
-  answer <- jsonlite::fromJSON(
-    httr::content(response, as = "text", encoding = "UTF-8")
-  )$choices
+  parsed <- httr::content(response, as = "parsed", encoding = "UTF-8")
+
+  with(parsed$usage,
+       paste(
+         "Prompt tokens:", prompt_tokens,
+         "\nResponse tokens:", completion_tokens,
+         "\nTotal tokens:", total_tokens
+       )
+  ) |> message()
+
+  answer <- parsed$choices[[1]]
 
   if (answer$finish_reason == "length") {
-    stop("Answer exhausted the context window!.")
+    stop("Answer exhausted the context window!")
   }
 
   answer$message$content
