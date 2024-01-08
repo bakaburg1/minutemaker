@@ -3,33 +3,45 @@
 #' Loops through audio files, runs a speech-to-text model on each, parses the
 #' generated .srt files into a transcript data frame.
 #'
+#' Users can provide their own models by writing a function with the following
+#' name pattern: `use_<model_name>_stt`. See the existing functions using the
+#' ::: operator for examples.
+#'
 #' @param audio_path Path to one or more audio files or to a folder of audio
 #'   files. Tested with .mp3 and .wav files.
 #' @param output_dir Path to output directory. If the directory doesn't exist,
 #'   it will be created in the same directory as the audio file and will be
 #'   named "transcripts".
+#' @param model Name of the model to use. The models available in the package
+#'   are: "azure_whisper" (online API), "openai_whisper" (online API),
+#'   "whisper_ctranslate2" (offline local model). Users can provide their own
+#'   models.
 #' @param initial_prompt Text to prepend to the beginning of each transcript.
 #'   This is useful for adding hard to parse words like acronyms.
 #' @param overwrite If TRUE, will overwrite existing files. If FALSE, will skip
 #'   the transcription of audio files whose output already exist in the output
 #'   directory.
-#' @param language Language in which the audio is spoken. If null, the model will
-#'  try to detect the language automatically.
-#' @param model Name of the model to use. Can be one "azure_whisper" (online API) or
-#'   "whisper_ctranslate2" (offline local model).
+#' @param language Language in which the audio is spoken. If null, the model
+#'   will try to detect the language automatically.
+#' @param ... Additional arguments to pass to the model function.
 #'
 #' @return A data frame with the text and time of each segment.
+#'
+#' @export
+#'
+#' @importFrom utils tail
 #'
 perform_speech_to_text <- function(
     audio_path,
     output_dir = file.path(dirname(audio_path), "transcripts"),
+    model,
     initial_prompt = "", overwrite = FALSE,
     language = "en",
-    model = "azure_whisper",
     ...
 ) {
 
   audio_files <- character()
+  model <- match.arg(model)
 
   # Check if file_path is a folder
   if (dir.exists(audio_path)) {
@@ -61,7 +73,7 @@ perform_speech_to_text <- function(
   last_time <- 0
 
   # Get the model function
-  model_fun <- get(paste0("use_", model, "_model"))
+  model_fun <- get(paste0("use_", model, "_stt"))
 
   # Loop through each audio file
   for (i in seq_along(audio_files)) {
@@ -140,6 +152,8 @@ perform_speech_to_text <- function(
 #'
 #' @return The terminal/command line window ID.
 #'
+#' @export
+#'
 #' @examples
 #'
 #' # Run a command in a terminal window
@@ -191,58 +205,6 @@ run_in_terminal <- function(cmd, args) {
   }
 }
 
-# split_audio <- function(
-    #     audio_file,
-#     segment_duration = 60,
-#     output_folder = file.path(dirname(audio_file_path), "recorded_segments")
-# ) {
-#
-#   check_and_install_dependencies(c("tuneR"))
-#
-#   # Extract the file extension
-#   file_ext <- stringr::str_extract(audio_file, "(?<=\\.)[^.]+$")
-#
-#   if (file_ext == "mp4") {
-#     check_and_install_dependencies("av")
-#     # Extract audio from MP4
-#     temp_audio <- tempfile(fileext = ".wav")
-#     av::av_audio_convert(audio = audio_file, temp_audio)
-#     audio <- tuneR::readWave(temp_audio)
-#   } else if (file_ext == "mp3") {
-#     # Read MP3 file
-#     audio <- tuneR::readMP3(audio_file)
-#   } else {
-#     stop("Unsupported file format")
-#   }
-# browser()
-#   # Handle output folder
-#   if (!dir.exists(output_folder)) {
-#     dir.create(output_folder)
-#   }
-#
-#   # Calculate segment length in samples
-#   segment_length_samples <- segment_duration * 60 * audio@samp.rate
-#
-#   # Split the audio and 4. Write segments to files
-#   num_segments <- ceiling(length(audio@left) / segment_length_samples)
-#
-#   # Loop over the segments to write them to files
-#   purrr::walk(1:num_segments, \(i) {
-#     # Extract the segment time range
-#     start_sample <- (i - 1) * segment_length_samples + 1
-#     end_sample <- min(i * segment_length_samples, length(audio@left))
-#
-#     # Extract the segment
-#     segment <- audio[start_sample:end_sample, ]
-#
-#     # Generate the output file path
-#     output_file_path <- file.path(output_folder, paste0("segment_", i, ".wav"))
-#
-#     # Write the segment to a file using tuneR::writeWave
-#     tuneR::writeWave(segment, output_file_path)
-#   }, .progress = TRUE)
-# }
-
 #' Split an audio file into segments of a specified duration
 #'
 #' @param audio_file The path to the audio file to split.
@@ -250,6 +212,8 @@ run_in_terminal <- function(cmd, args) {
 #' @param output_folder The folder to save the segments in.
 #'
 #' @return Nothing, but saves the segments to files.
+#'
+#' @export
 #'
 split_audio <- function(
     audio_file,
@@ -308,15 +272,17 @@ split_audio <- function(
 #'
 #' @param audio_file Path to the audio file to transcribe.
 #' @param initial_prompt Initial prompt to use for the transcription.
-#' @param model_size Size of the model to use. Can be one of "tiny", "medium",
+#' @param model_version Version of the model to use. Can be one of "tiny", "medium",
 #'   "medium.en" "large-v1", "large-v2", "large-v3",
+#' @param language Language of the recording. E.g. "en" for English, "es" for
+#'   Spanish, etc.
 #' @param n_threads Number of CPU threads to use for the transcription.
 #'
 #' @return A list with the full transcript and the transcription by segments.
-use_whisper_ctranslate2_model <- function(
+use_whisper_ctranslate2_stt <- function(
     audio_file, initial_prompt,
-    model_size = "large-v3",
-    language = language,
+    model_version = "large-v3",
+    language = NULL,
     n_threads = parallel::detectCores()
 ) {
 
@@ -326,7 +292,7 @@ use_whisper_ctranslate2_model <- function(
 
   args <- c(
     audio_file,
-    "--model", model,
+    "--model", model_version,
     "--threads", n_threads,
     "--compute_type", "auto",
     "--output_format", "json",
@@ -336,8 +302,8 @@ use_whisper_ctranslate2_model <- function(
     "--vad_filter", "True",
     "--repetition_penalty", "1",
     "--patience", "10",
-    if (prompt != "") {
-      c("--initial_prompt", prompt)
+    if (initial_prompt != "") {
+      c("--initial_prompt", initial_prompt)
     }
   )
 
@@ -366,7 +332,8 @@ use_whisper_ctranslate2_model <- function(
 #' @param audio_file The path to the audio file to transcribe.
 #' @param language The language of the input audio in mp3/wav format. Should be
 #'   less than 25 MB.
-#' @param prompt Text to guide the model's style or continue a previous segment.
+#' @param initial_prompt Text to guide the model's style or continue a previous
+#'   segment.
 #' @param temperature number (optional) The sampling temperature between 0 and
 #'   1. Defaults to 0.
 #' @param resource_name The name of the Azure resource to use.
@@ -376,7 +343,7 @@ use_whisper_ctranslate2_model <- function(
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
-use_azure_whisper_model <- function(
+use_azure_whisper_stt <- function(
     audio_file,
     language = "en",
     initial_prompt = "",
@@ -427,8 +394,9 @@ use_azure_whisper_model <- function(
     if (response$status_code == 429 ||
         grepl("temporarily unable to process", httr::content(response, "text"))
     ) {
+      message("Retrying in 30 seconds...")
       Sys.sleep(30)
-      use_azure_whisper_model(
+      use_azure_whisper_stt(
         audio_file = audio_file,
         language = language,
         initial_prompt = initial_prompt,
@@ -449,15 +417,16 @@ use_azure_whisper_model <- function(
 #' @param audio_file The path to the audio file to transcribe.
 #' @param language The language of the input audio in mp3/wav format. Should be
 #'   less than 25 MB.
-#' @param prompt Text to guide the model's style or continue a previous segment.
+#' @param initial_prompt Text to guide the model's style or continue a previous
+#'   segment.
 #' @param temperature number (optional) The sampling temperature between 0 and
 #'   1. Defaults to 0.
-#' @param api_key The OpenAI API key. If not provided, it will be retrieved
-#'  from the global options.
+#' @param api_key The OpenAI API key. If not provided, it will be retrieved from
+#'   the global options.
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
-use_openai_whisper_model <- function(
+use_openai_whisper_stt <- function(
     audio_file,
     language = "en",
     initial_prompt = "",
@@ -495,8 +464,9 @@ use_openai_whisper_model <- function(
     if (response$status_code == 429 ||
         grepl("temporarily unable to process", httr::content(response, "text"))
     ) {
+      message("Retrying in 30 seconds...")
       Sys.sleep(30)
-      use_openai_whisper_model(
+      use_openai_whisper_stt(
         audio_file = audio_file,
         language = language,
         initial_prompt = initial_prompt,
