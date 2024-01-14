@@ -219,11 +219,13 @@ generate_recording_details <- function(
 #'   summarisation.
 #' @param vocabulary A character vector of specific vocabulary words, names,
 #'   definitions, to help the LLM recognise misspellings and abbreviations.
-#' @param is_diarized A logical indicating whether the transcript is diarized.
-#'   Default is FALSE.
+#' @param consider_diarization A logical indicating whether the summarisation should take
+#'  into account the diarization (e.g. the speakers) of the transcript. Default is TRUE
 #' @param extra_diarization_instructions Additional diarization instructions,
 #'   e.g., "Do not report the name of the speaker", "Use only the second name of
 #'   the speaker", etc...
+#' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
+#'   interrogated. Default is FALSE.
 #' @param ... Additional arguments passed to the `interrogate_llm` function,
 #'   such as the LLM provider.
 #'
@@ -237,8 +239,10 @@ summarise_transcript <- function(
     event_details = NULL,
     audience = NULL,
     vocabulary = NULL,
-    is_diarized = FALSE,
+    consider_diarization = TRUE,
     extra_diarization_instructions = NULL,
+
+    prompt_only = FALSE,
     ...
 ) {
 
@@ -251,9 +255,14 @@ summarise_transcript <- function(
     getOption(ops, NULL)
   }
 
+  # Set the prompts if they are not set
+  if (is.null(get_ops("base_task"))) {
+    set_prompts()
+  }
+
   diarization_instructions <- NULL
 
-  if (is_diarized) {
+  if (consider_diarization) {
     diarization_instructions <- get_ops("diarization_instructions")
   }
 
@@ -288,6 +297,10 @@ summarise_transcript <- function(
     stringr::str_replace_all("\n\n+", "\n\n") |> # remove multiple newlines
     stringr::str_glue(.null = NULL) # .null default makes the output character(0) if any of the {vars} is NULL
 
+  if (prompt_only) {
+    return(prompt)
+  }
+
   interrogate_llm(
     c(user = prompt),
     ...
@@ -303,19 +316,19 @@ summarise_transcript <- function(
 #' @param transcript_data The transcript data of the meeting as a data frame.
 #' @param agenda The agenda of the meeting, that is, a list of agenda elements
 #'   each with a session name, a title, speaker and moderator lists, type of
-#'   talk and start and end times.
+#'   talk and start and end times. Alternatively, the path to an R file
+#'   containing such a list.
 #' @param output_file The file to save the results to as a list. Default is
 #'   "event_summary.R".
-#' @param audience The audience of the meeting. See `summarise_transcript` for
-#'   more details.
 #' @param meeting_description The description of the meeting. See
 #'   `summarise_transcript` for more details.
 #' @param meeting_audience The audience of the meeting. See
 #'   `summarise_transcript` for more details.
 #' @param vocabulary The vocabulary used in the meeting. See
 #'   `summarise_transcript` for more details.
-#' @param is_diarized Whether the meeting is diarized. See
-#'   `summarise_transcript` for more details.
+#' @param consider_diarization Whether to take into account the diarization of
+#'   the transcript. Default is TRUE See `summarise_transcript` for more
+#'   details.
 #' @param extra_diarization_instructions Extra instructions for diarization. See
 #'   `summarise_transcript` for more details.
 #' @param overwrite Whether to overwrite existing summaries. Default is FALSE.
@@ -331,16 +344,20 @@ summarise_full_meeting <- function(
     agenda,
     output_file = "event_summary.R",
 
-    audience = NULL,
     meeting_description = NULL,
     meeting_audience = NULL,
     vocabulary = NULL,
-    is_diarized = FALSE,
+    consider_diarization = TRUE,
     extra_diarization_instructions = NULL,
 
     overwrite = FALSE,
     ...
 ) {
+
+  # Import agenda from file
+  if (is.character(agenda)) {
+    agenda <- dget(agenda)
+  }
 
   # Generate the output container if it doesn't exist
   if (!file.exists(output_file)) {
