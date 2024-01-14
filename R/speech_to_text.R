@@ -35,13 +35,13 @@ perform_speech_to_text <- function(
     audio_path,
     output_dir = file.path(dirname(audio_path), "transcripts"),
     model,
-    initial_prompt = "", overwrite = FALSE,
+    initial_prompt = NULL, overwrite = FALSE,
     language = "en",
     ...
 ) {
 
   audio_files <- character()
-  model <- match.arg(model)
+  if (is.null(initial_prompt)) initial_prompt <- ""
 
   # Check if file_path is a folder
   if (dir.exists(audio_path)) {
@@ -53,9 +53,11 @@ perform_speech_to_text <- function(
     file_order <- stringr::str_order(audio_files, numeric = TRUE)
 
     audio_files <- file.path(audio_path, audio_files[file_order])
+  } else if (file.exists(audio_path)){
+    # User the provided file path
+    audio_files <- audio_path
   } else {
-    # Use the provided file path
-    audio_files <- audio_path[file.exists(audio_files)]
+    stop("The provided audio path is not a file or a folder.")
   }
 
   if (length(audio_files) == 0) {
@@ -67,10 +69,8 @@ perform_speech_to_text <- function(
     dir.create(output_dir)
   }
 
-  # Initialize the transcript data frame
-  full_transcript <- data.frame()
+  # Initialize the prompt to link two transcripts
   last_text <- ""
-  last_time <- 0
 
   # Get the model function
   model_fun <- get(paste0("use_", model, "_stt"))
@@ -80,7 +80,8 @@ perform_speech_to_text <- function(
     # Get the current file path
     current_file <- audio_files[i]
 
-    cat("Processing file ", i, " of ", length(audio_files), ": ", basename(current_file), "\n")
+    cat("Processing file ", i, " of ", length(audio_files), ": ",
+        basename(current_file), "\n")
 
     # Generate the output file name by replacing the extension with .json
     output_file_name <- basename(current_file) |>
@@ -118,27 +119,11 @@ perform_speech_to_text <- function(
       jsonlite::write_json(transcript_json, output_file_name)
     }
 
-    # Parse the transcript into a data frame
-    transcript_data <- transcript_json$segments |> purrr::map(\(df) {
-      data.frame(
-        doc = i,
-        file = basename(current_file),
-        start = unlist(df$start) + last_time,
-        end = unlist(df$end) + last_time,
-        text = unlist(df$text)
-      )
-    }) |> dplyr::bind_rows()
-
-    full_transcript <- rbind(full_transcript, transcript_data)
-
-    # Get the last segment info
-    last_time <- transcript_data$end |> tail(1)
-    last_text <- transcript_data$text |> tail(2) |> paste(collapse = " ") |>
-      trimws() |> stringr::word(-10, -1)
+    last_text <- transcript_json$text |> trimws() |> stringr::word(-10, -1)
   }
 
-  # Return the transcript data frame
-  return(full_transcript)
+  # Parse the transcript JSON files into a data frame
+  invisible(parse_transcript_json(output_dir))
 }
 
 #' Run a command in a terminal window
@@ -272,19 +257,27 @@ split_audio <- function(
 #'
 #' @param audio_file Path to the audio file to transcribe.
 #' @param initial_prompt Initial prompt to use for the transcription.
-#' @param model_version Version of the model to use. Can be one of "tiny", "medium",
-#'   "medium.en" "large-v1", "large-v2", "large-v3",
+#' @param model_version Version of the model to use. Can be one of "tiny",
+#'   "medium", "medium.en" "large-v1", "large-v2", "large-v3",
 #' @param language Language of the recording. E.g. "en" for English, "es" for
 #'   Spanish, etc.
-#' @param n_threads Number of CPU threads to use for the transcription.
+#' @param n_threads Number of CPU threads to use for the transcription. Defaults
+#'   to the number of cores in the system, detected with
+#'   `parallel::detectCores()`.
 #'
 #' @return A list with the full transcript and the transcription by segments.
 use_whisper_ctranslate2_stt <- function(
     audio_file, initial_prompt,
     model_version = "large-v3",
     language = NULL,
-    n_threads = parallel::detectCores()
+    n_threads = NULL
 ) {
+
+  check_and_install_dependencies("parallel")
+
+  if (is.null(n_threads)) {
+    n_threads <- parallel::detectCores()
+  }
 
   output_dir <- tempdir()
   output_file <- basename(audio_file) |>
@@ -363,7 +356,7 @@ use_azure_whisper_stt <- function(
          "minutemaker_azure_deployment_whisper, ",
          "minutemaker_azure_api_key_whisper, ",
          "minutemaker_azure_api_version."
-         )
+    )
   }
 
   # Prepare the URL

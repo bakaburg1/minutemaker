@@ -26,3 +26,22 @@ check_and_install_dependencies <- function(deps) {
     if (!is_installed) stop(stop_message)
   }
 }
+
+#' Check if transcript segments are silent
+#'
+#' Check if transcript segments are silent, e.g., [...], NA, or empty strings.
+#'
+#' @param segments A vector of transcript segments.
+#'
+#' @return A logical vector indicating if the segment is silent.
+#'
+is_silent <- function(segments) {
+  segments %in% c("[...]", NA, "")
+}
+
+#' Generate text for silent segments
+#'
+#' @return The "silent" symbol, i.e., "[...]".
+silent <- function(){
+  "[...]"
+}

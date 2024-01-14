@@ -8,7 +8,7 @@ perform_speech_to_text(
   audio_path,
   output_dir = file.path(dirname(audio_path), "transcripts"),
   model,
-  initial_prompt = "",
+  initial_prompt = NULL,
   overwrite = FALSE,
   language = "en",
   ...
