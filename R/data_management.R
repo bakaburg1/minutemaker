@@ -317,6 +317,11 @@ format_summary_tree <- function(
     summary_tree <- dget(summary_tree)
   }
 
+  # Import agenda from file
+  if (is.character(agenda)) {
+    agenda <- dget(agenda)
+  }
+
   # Initialize the output string
   output <- ""
 
