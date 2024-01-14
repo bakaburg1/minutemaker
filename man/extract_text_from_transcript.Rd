@@ -2,13 +2,14 @@
 % Please edit documentation in R/data_management.R
 \name{extract_text_from_transcript}
 \alias{extract_text_from_transcript}
-\title{Extracts a sepecifoc talk text from a given transcript data}
+\title{Extracts a specific talk text from a given transcript data}
 \usage{
 extract_text_from_transcript(
   transcript_data,
   agenda_element = NULL,
   start_time = NULL,
-  end_time = NULL
+  end_time = NULL,
+  import_diarization = TRUE
 )
 }
 \arguments{
@@ -21,6 +22,10 @@ and end times of the agenda element.}
 \item{start_time}{The start time for the extraction.}
 
 \item{end_time}{The end time for the extraction.}
+
+\item{import_diarization}{A boolean indicating whether the speaker should be
+mentioned, if present. Will be ignored if the transcript does not contain
+speaker information or there is only one speaker.}
 }
 \value{
 A string containing the extracted text.

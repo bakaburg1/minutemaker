@@ -9,7 +9,7 @@ use_whisper_ctranslate2_stt(
   initial_prompt,
   model_version = "large-v3",
   language = NULL,
-  n_threads = parallel::detectCores()
+  n_threads = NULL
 )
 }
 \arguments{
@@ -17,13 +17,15 @@ use_whisper_ctranslate2_stt(
 
 \item{initial_prompt}{Initial prompt to use for the transcription.}
 
-\item{model_version}{Version of the model to use. Can be one of "tiny", "medium",
-"medium.en" "large-v1", "large-v2", "large-v3",}
+\item{model_version}{Version of the model to use. Can be one of "tiny",
+"medium", "medium.en" "large-v1", "large-v2", "large-v3",}
 
 \item{language}{Language of the recording. E.g. "en" for English, "es" for
 Spanish, etc.}
 
-\item{n_threads}{Number of CPU threads to use for the transcription.}
+\item{n_threads}{Number of CPU threads to use for the transcription. Defaults
+to the number of cores in the system, detected with
+\code{parallel::detectCores()}.}
 }
 \value{
 A list with the full transcript and the transcription by segments.

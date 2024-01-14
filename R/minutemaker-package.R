@@ -6,7 +6,6 @@
 #' @description Package which uses LLM models to generate minutes from audio recordings or transcriptions of meetings.
 #'
 #' @import dplyr
-#' @import stringr
 "_PACKAGE"
 
 onLoad <- function(libname, pkgname) {
