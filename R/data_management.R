@@ -69,7 +69,13 @@ parse_transcript_json <- function(
   # Extract the data from each JSON file
   for (i in seq_along(transcript_list)) {
 
-    transcript_data <-  transcript_list[[i]]$segments |>
+    # Raise an error if the JSON file does not contain any data
+    if (!"segments" %in% names(transcript_list[[i]])) {
+      stop("File ", basename(json_files[i]), " does not contain any data. ",
+      "Please remove it and try transcription again.")
+    }
+
+    transcript_data <- transcript_list[[i]]$segments |>
       bind_rows() |>
       # Select only the columns to import
       select(any_of(to_import)) |>
