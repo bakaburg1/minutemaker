@@ -108,7 +108,8 @@ parse_transcript_json <- function(
     full_transcript <- full_transcript |>
       mutate(
         across(
-          any_of(c("start", "end")), lubridate::seconds_to_period,
+          any_of(c("start", "end")),
+          ~ lubridate::seconds_to_period(.x) |> round(),
           .names = "{.col}_formatted")
       )
   }
