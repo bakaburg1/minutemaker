@@ -61,9 +61,9 @@ library(minutemaker)
 options(
   
   # OpenAI API Key (for both text-to-speech and text summary)
-  minutemaker_openai_api_key = "***"
+  minutemaker_openai_api_key = "***",
   
-  minutemaker_openai_model_gpt = "gpt-4",
+  minutemaker_openai_model_gpt = "gpt-4"
 )
 
 # Azure example
