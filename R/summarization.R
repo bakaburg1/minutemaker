@@ -187,7 +187,7 @@ generate_recording_details <- function(
     if (!is.null(section)) {
       paste0(
         "- ", stringr::str_flatten_comma(section_name),
-        ": ", section, ";\n")
+        ": ", stringr::str_flatten_comma(section), ";\n")
     }
   }
 
