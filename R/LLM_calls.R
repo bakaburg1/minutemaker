@@ -181,7 +181,7 @@ interrogate_llm <- function(
   # Try to send the request
   retry <- FALSE
 
-  while(!exists("response") || retry) {
+  while(!exists("response", inherits = FALSE) || retry) {
 
     #message("Sending message to Azure GPT API.")
     retry <- FALSE
