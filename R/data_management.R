@@ -142,7 +142,7 @@ clean_transcript <- function(
   transcript_data$text[transcript_data$text %in% c("", NA)] <- silent()
 
   # Set consecutive segments with the same text to "silent" symbol
-  transcript_data$text <- mutate(
+  transcript_data <- mutate(
     transcript_data,
     text = if_else(
       .data$text == lag(.data$text, default = first(.data$text)),
@@ -153,6 +153,7 @@ clean_transcript <- function(
   # likely hallucinations from the speech-to-text model or non-relevant text
   # (e.g. talking outside sessions)
   for (i in 1:nrow(transcript_data)) {
+
     indexes <- pmax(i + c(-4:-1, 1:4), 0) |> unique()
     if (transcript_data$text[i] != silent()) {
       if (all(is_silent(transcript_data$text[indexes]))) {
@@ -165,7 +166,7 @@ clean_transcript <- function(
   # hallucinations
   repetitions <- purrr::map_int(
     transcript_data$text,
-    ~ str_split_1(.x, ", *") |> table() |> max())
+    ~ stringr::str_split_1(.x, ", *") |> table() |> max())
 
   transcript_data$text[repetitions > 10] <- silent()
 
