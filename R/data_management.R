@@ -72,7 +72,7 @@ parse_transcript_json <- function(
     # Raise an error if the JSON file does not contain any data
     if (!"segments" %in% names(transcript_list[[i]])) {
       stop("File ", basename(json_files[i]), " does not contain any data. ",
-      "Please remove it and try transcription again.")
+           "Please remove it and try transcription again.")
     }
 
     transcript_data <- transcript_list[[i]]$segments |>
@@ -188,7 +188,7 @@ clean_transcript <- function(
   }
 
   transcript_data
-  }
+}
 
 #' Extracts a specific talk text from a given transcript data
 #'
@@ -901,52 +901,44 @@ speech_to_summary_workflow <- function(
   }
 
   # Perform summarization
-  if (overwrite_summary_tree ||
-      (is.character(summarization_output_file) &&
-       !file.exists(summarization_output_file))) {
 
-    # Agenda is not provided, ask whether to generate a default agenda
-    if (is.null(agenda) || (is.character(agenda) && !file.exists(agenda))) {
-      choice <- utils::menu(
-        choices = c(
-          "Generate default agenda (i.e., process the transcript as one talk)",
-          "Exit (write your own agenda)"),
-        title = "No valid agenda found. What do you want to do?",
+  # Agenda is not provided, ask whether to generate a default agenda
+  if (is.null(agenda) || (is.character(agenda) && !file.exists(agenda))) {
+    choice <- utils::menu(
+      choices = c(
+        "Generate default agenda (i.e., process the transcript as one talk)",
+        "Exit (write your own agenda)"),
+      title = "No valid agenda found. What do you want to do?",
+    )
+
+    if (choice != 1) stop("Aborted by user.")
+
+    # Generate a default agenda with 1 talk/meeting if none is provided
+    agenda <- list(
+      list(
+        from = min(transcript_data$start),
+        to = max(transcript_data$end)
       )
-
-      if (choice != 1) stop("Aborted by user.")
-
-      # Generate a default agenda with 1 talk/meeting if none is provided
-      agenda <- list(
-        list(
-          from = min(transcript_data$start),
-          to = max(transcript_data$end)
-        )
-      )
-    }
-
-    message("\n### Summarizing transcript...\n")
-
-    summarization_args <- c(list(
-      transcript_data = transcript_data,
-      agenda = agenda,
-      output_file = summarization_output_file,
-      meeting_description = meeting_description,
-      meeting_audience = meeting_audience,
-      vocabulary = vocabulary,
-      consider_diarization = consider_diarization,
-      extra_diarization_instructions = extra_diarization_instructions,
-      provider = llm_provider,
-      overwrite = overwrite_summary_tree
-    ), extra_summarise_args)
-
-
-    summary_tree <- do.call(summarise_full_meeting, summarization_args)
-
-  } else {
-    message("\n### Loading existing summary tree...\n")
-    summary_tree <- dget(summarization_output_file)
+    )
   }
+
+  message("\n### Summarizing transcript...\n")
+
+  summarization_args <- c(list(
+    transcript_data = transcript_data,
+    agenda = agenda,
+    output_file = summarization_output_file,
+    meeting_description = meeting_description,
+    meeting_audience = meeting_audience,
+    vocabulary = vocabulary,
+    consider_diarization = consider_diarization,
+    extra_diarization_instructions = extra_diarization_instructions,
+    provider = llm_provider,
+    overwrite = overwrite_summary_tree
+  ), extra_summarise_args)
+
+
+  summary_tree <- do.call(summarise_full_meeting, summarization_args)
 
   # Format summary tree
 
