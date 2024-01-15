@@ -251,7 +251,7 @@ use_openai_llm <- function(
     api_key = getOption("minutemaker_open_api_key")
     ) {
 
-  if (is.null(api_key)) {
+  if (is.null(api_key) || is.null(model)) {
     stop("OpenAI GPT model and API key are not set. ",
     "Use the following options to set them:\n",
     "minutemaker_openai_model_gpt, ",
