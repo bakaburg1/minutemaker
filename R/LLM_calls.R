@@ -248,7 +248,7 @@ interrogate_llm <- function(
 use_openai_llm <- function(
     body,
     model = getOption("minutemaker_openai_model_gpt"),
-    api_key = getOption("minutemaker_open_api_key")
+    api_key = getOption("minutemaker_openai_api_key")
     ) {
 
   if (is.null(api_key) || is.null(model)) {
