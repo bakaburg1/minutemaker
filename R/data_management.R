@@ -644,12 +644,24 @@ merge_transcripts <- function(
         x_text, y_probes$text, glove_model
       )
 
-      # Select the most likely speaker
-      candidate_pos <- which.max(y_probes$similarity)
-      transcript_x$speaker[i] <- y_probes$speaker[candidate_pos]
+      # Some segments are too short to compute embeddings, so they are removed
+      y_probes <- y_probes |> filter(!is.na(similarity))
+
+      if (nrow(y_probes) == 0) {
+        # No segments in the second transcript are similar to the segment in the
+        # first transcript. Skip the segment.
+        transcript_x$speaker[i] <- NA
+      } else {
+        # Select the most likely speaker
+        candidate_pos <- which.max(y_probes$similarity)
+        transcript_x$speaker[i] <- y_probes$speaker[candidate_pos]
+      }
 
     }
   }
+
+  # Change set empty speakers (e.g. empty, non-NA, strings) to NA
+  transcript_x$speaker[is_silent(transcript_x$speaker)] <- NA
 
   clean_transcript(transcript_x)
 }

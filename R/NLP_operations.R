@@ -154,13 +154,19 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
   # Compute the embedding for the source text
   x_emb <- get_text_embedding(x_text, embedding_matrix)
 
-  # Compute cosine similarity with each comparative text
-  y_emb <- purrr::map(y_texts, function(y_text) {
-    get_text_embedding(y_text, embedding_matrix)
-  }) |> do.call(what = rbind)
+  # Return NA if the source segment embedding is empty (e.g., it was just one
+  # non-informative word, like a salutation)
+  if (length(x_emb) == 0) return(rep(NA, length(y_texts)))
 
-  text2vec::sim2(t(x_emb), y_emb, method = "cosine", norm = "l2") |>
-    as.vector()
+  # Compute cosine similarity with each comparative text
+  purrr::map(y_texts, function(y_text) {
+    emb <- get_text_embedding(y_text, embedding_matrix)
+
+    if (length(emb) == 0) return(NA)
+
+    text2vec::sim2(t(x_emb), t(emb), method = "cosine", norm = "l2") |>
+      as.vector()
+  }) |> unlist()
 }
 
 # Old approach to speaker identification using word2vec. Kept for reference.
