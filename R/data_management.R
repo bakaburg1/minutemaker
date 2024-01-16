@@ -926,7 +926,10 @@ speech_to_summary_workflow <- function(
         title = "No valid agenda found. What do you want to do?",
       )
 
-      if (choice != 1) stop("Aborted by user.")
+      if (choice != 1) {
+        message("Aborted by user. Returning transcript data only (invisibly).")
+        return(invisible(transcript_data))
+      }
 
       # Generate a default agenda with 1 talk/meeting if none is provided
       agenda <- list(
