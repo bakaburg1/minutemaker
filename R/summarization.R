@@ -187,7 +187,7 @@ generate_recording_details <- function(
     if (!is.null(section)) {
       paste0(
         "- ", stringr::str_flatten_comma(section_name),
-        ": ", section, ";\n")
+        ": ", stringr::str_flatten_comma(section), ";\n")
     }
   }
 
@@ -370,10 +370,13 @@ summarise_full_meeting <- function(
   talks_ids <- build_ids_from_agenda(agenda)
 
   for (id in talks_ids) {
+
     # Skip if the talk has already been summarised
-    if (!is.null(result_tree[[id]]) && overwrite) {
+    if (!is.null(result_tree[[id]]) && !overwrite) {
       next
     }
+
+    message("Talk: ", id)
 
     # Get the index of the current talk in the agenda
     i <- which(talks_ids == id)

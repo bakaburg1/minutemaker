@@ -181,7 +181,7 @@ interrogate_llm <- function(
   # Try to send the request
   retry <- FALSE
 
-  while(!exists("response") || retry) {
+  while(!exists("response", inherits = FALSE) || retry) {
 
     #message("Sending message to Azure GPT API.")
     retry <- FALSE
@@ -248,10 +248,10 @@ interrogate_llm <- function(
 use_openai_llm <- function(
     body,
     model = getOption("minutemaker_openai_model_gpt"),
-    api_key = getOption("minutemaker_open_api_key")
+    api_key = getOption("minutemaker_openai_api_key")
     ) {
 
-  if (is.null(api_key)) {
+  if (is.null(api_key) || is.null(model)) {
     stop("OpenAI GPT model and API key are not set. ",
     "Use the following options to set them:\n",
     "minutemaker_openai_model_gpt, ",
