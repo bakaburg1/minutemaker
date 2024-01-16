@@ -65,7 +65,7 @@ set_prompts <- function(
       "<meeting_description>", "{event_description}", "</meeting_description>"
     ),
 
-    vocabulary = "Mind that the transcript is not perfect and the following and other terms and names may have been wrongly transcribed: {vocabulary}. Please correct them.",
+    vocabulary = "Mind that the transcript is not perfect and the following and other terms and names may have been wrongly transcribed: {vocabulary}. Use your knowledge to recognize and correct misspelled versions of these terms.",
 
     transcript = collapse(
       "Here is the transcript:",
@@ -89,16 +89,18 @@ set_prompts <- function(
     extra_diarization_instructions = "; if the speaker label is generic (e.g. Guest 1), try to infer the name from the context",
 
     output_format = collapse(
+      "The following instructions will guide you on how to write the summary. Be sure to adhere to them:",
       "<output_instructions>",
-      "When summarizing, aim to be concise but extremely comprehensive.",
-      "Use only the information provided in the transcript, do not add any details not mentioned in the transcript.",
-      "Speak at the present tense when describing what was said during the talk/meeting.",
-      "The summary must provide a clear and extremely information-dense representation of the transcript, without unnecessary details and formalisms.",
-      "Avoid reporting circumstantial details, jokes, non-content related comments, etc.",
-      "It must allow the reader to internalize most of the information of the original recording without reading the full transcript.",
+      "- When summarizing, aim to be concise but extremely comprehensive.",
+      "- Use only the information provided in the transcript, do not add any details not mentioned in the transcript.",
+      "- Speak at the present tense when describing what was said during the talk/meeting.",
+      "- The summary must provide a clear and extremely information-dense representation of the transcript, without unnecessary details and formalisms.",
+      "- Avoid reporting circumstantial details, jokes, non-content related comments, etc.",
+      "- It must allow the reader to internalize most of the information of the original recording without reading the full transcript.",
       "Remember to maintain the original meaning and context of the presentation/discussion.",
-      "Your summary must be one-two pages long.",
-      "</output_instructions>"
+      "- Your summary must be up to two pages long.",
+      "</output_instructions>",
+      "\nNow provide your summary."
     )
   )
 
@@ -292,7 +294,7 @@ summarise_transcript <- function(
 
     get_ops("output_format"),
 
-    sep = "\n"
+    sep = "\n\n"
   ) |>
     stringr::str_replace_all("\n\n+", "\n\n") |> # remove multiple newlines
     stringr::str_glue(.null = NULL) # .null default makes the output character(0) if any of the {vars} is NULL
