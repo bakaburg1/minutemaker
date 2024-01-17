@@ -61,9 +61,9 @@ library(minutemaker)
 options(
   
   # OpenAI API Key (for both text-to-speech and text summary)
-  minutemaker_openai_api_key = "***",
+  minutemaker_openai_api_key = "***"
   
-  minutemaker_openai_model_gpt = "gpt-4"
+  minutemaker_openai_model_gpt = "gpt-4",
 )
 
 # Azure example
@@ -153,16 +153,64 @@ transcript <- perform_speech_to_text(
   # details.
 )
 
-# Save the transcript to a file
+# Optionally, you can save the transcript to a file
 readr::write_csv(transcript, file.path(work_dir, day, "transcript.csv"))
 ```
 
-### Creation of the “Agenda” object
+### Importation of existing transcript data
 
-The next step is creating the “Agenda” object. This is a list of lists,
-where each element represents a talk in the meeting.
+Since the transcription process is never perfect (for example the
+Whisper model may lose some segments), it may be useful to fill the gaps
+using an existing transcript from another source. For example WebEx
+transcritps are more complete than the Whisper ones, but they are not as
+accurate. Furthermore, these external transcript may contain additional
+information, such as the speaker names or chat messages.
 
-Here’s an example of Agenda object with 2 talks:
+The package provides the function `extract_text_from_transcript()` to
+read a vtt/srt transctipt and `add_chat_transcript()` to import the chat
+messages into a transcript. These functions at the moment only work with
+WebEx outputs.
+
+Then, the `merge_transcripts()` function can be used to merge the
+transcript from different sources, also importing the speaker name if
+present. The merging follows a number of heuristics since two
+transcripts may not be perfectly aligned. Specifically, an imported
+segment is put in place of the closest empty segment in the source
+transcritpt; for speaker importation, a similarity score between
+close-by segments is computed through the GloVe word embedding model to
+associate the speaker name to the most likely segment.
+
+``` r
+
+imported_transcript <- import_transcript_from_file(
+  transcript_file = "path-to-transcript-file.vtt",
+)
+
+merged_transcript <- merge_transcripts(
+  transcript_data = original_transctript,
+  imported_transcript = imported_transcript,
+)
+
+final_transcript <- add_chat_transcript(
+  transcript_data = merged_transcript,
+  chat_file = "path-to-chat-file.txt",
+  # Necessary to align the chat messages with the transcript
+  # can use both HH::MM AM/PM or HH:MM:SS
+  chat_start_time = "12:00 PM"
+)
+
+# Optionally, you can save the transcript to a file
+readr::write_csv(final_transcript, file.path(work_dir, day, "transcript.csv"))
+```
+
+``` r
+
+### Creation of the "Agenda" object
+
+The next step is creating the "Agenda" object. This is a list of lists, where each element represents a talk in the meeting.
+
+Here's an example of Agenda object with 2 talks:
+```
 
 ``` r
 
@@ -230,45 +278,61 @@ transcript_text <- extract_text_from_transcript(
 # You may want to define some other contextual information about the meeting
 # to improve the summary.
 
-  ## A description of the meeting/conference with some background
-  meeting_description <- "***Title of the Conference***
-    
-    Description of the conference."
+## A description of the meeting/conference with some background
+event_description <- "***Title of the Conference***
   
-  ## A vocabulary of terms to keep in mind when summarizing the transcript. Can
-  ## be useful also to make the summarization robust to transcription errors.
-  vocabulary <- c("Term1", "ACRONYM: description", "Jack Black", "etc")
-  
-  ## Specific talk details. Can be built using `generate_recording_details()`
-  ## from an agenda element:
-  
-  meeting_details <- generate_recording_details(
-    agenda[[1]],
-  )
-  
-  ## or manually:
-  
-  meeting_details <- generate_recording_details(
-    session = "Session 1",
-    title = "Opening",
-    type = "Conference introduction",
-    speakers = c("Speaker 1", "Speaker 2"),
-  )
-  
-  ## The audience of the meeting/conference, which helps the summarisation to
-  ## focus on specific topics and helps setting the tone of the summary.
-  
-  meeting_audience <- "An audience with some expertise in the topic
+  Description of the conference."
+
+## A vocabulary of terms to keep in mind when summarizing the transcript. Can
+## be useful also to make the summarization robust to transcription errors.
+vocabulary <- c("Term1", "ACRONYM: description", "Jack Black", "etc")
+
+## Specific talk details, like title and speakers. Can be built using
+## `generate_recording_details()` from an agenda element:
+recording_details <- generate_recording_details(
+  agenda[[1]],
+)
+
+## or manually:
+recording_details <- generate_recording_details(
+  session = "Session 1",
+  title = "Opening",
+  type = "Conference introduction",
+  speakers = c("Speaker 1", "Speaker 2"),
+)
+
+## The audience of the meeting/conference, which helps the summarisation to
+## focus on specific topics and helps setting the tone of the summary.
+event_audience <- "An audience with some expertise in the topic
     of the conference and with a particular interest in this and that."
+
+# Not mandatory but may help, for example with hybrid events where the room
+# speakers are not reported in the transcript. Check
+# get_prompts("diarization_instructions") for the defaults.
+diarization_instructions <- "The event is hybrid, with both online and
+in-presence participants and speakers. Extrapolate the speakers from the
+context if not reported"
+
+# The user can also modify the summary_sections and output_instructions (check
+# them using get_prompts() with the relative option). For example, one can add
+# an extra output instructions with:
+output_instructions <- paste0(
+  get_prompts("output_instructions"),
+  "\n- Focus on and report quantitative details when they are discussed."
+)
 
 # Get the summary
 
 talk_summary <- summarise_transcript(
   transcript = transcript_text,
-  event_description = meeting_description,
-  event_details = meeting_details,
+  
+  event_description = event_description,
+  recording_details = recording_details,
   vocabulary = vocabulary,
-  audience = meeting_audience,
+  audience = event_audience,
+  
+  diarization_instructions = diarization_instructions,
+  output_instructions = output_instructions
   
   provider = "my-LLM-provider-of-choice",
 )
@@ -280,26 +344,32 @@ Use `cat(talk_summary)` to print the summary to the console.
 
 If your transcript covers multiple talks, you can use the
 `summarise_full_meeting()` function to generate a summary for each talk
-in the transcript.
+in the transcript. The various contextual information (e.g. event
+description and audience) and custom prompt instructions will be applied
+to the whole set of talks.
 
 ``` r
 
 conference_summaries <- summarise_full_meeting(
   transcript_data = transcript_data,
   agenda = agenda,
-  meeting_description = meeting_description,
-  meeting_audience = meeting_audience,
-  vocabulary = vocabulary,
   output_file = "path-to-output-file.R",
-  overwrite = TRUE,
+  
+  event_description = event_description,
+  event_audience = event_audience,
+  vocabulary = vocabulary,
+  
+  diarization_instructions = diarization_instructions,
+  output_instructions = output_instructions
   
   provider = "my-LLM-provider-of-choice",
 )
 ```
 
-The output of the `summarise_full_meeting()` function is a
-`summary_tree`, i.e., a list containing the summary and some other
-information about each talk.
+A “summary tree” (a list with each talk summary) will be created at the
+location indicated by `output_file`.
+
+### Formatting the summary
 
 To generate a more human-readable document with all the summaries, you
 can use the `format_summary_tree()` function:
@@ -315,6 +385,68 @@ formatted_summary <- format_summary_tree(
 cat(formatted_summary)
 ```
 
+### Workflow shortcut function
+
+The package is built around a typical workflow that goes from the
+transcription of an audio file, to the summarization of the transcript,
+to the production of a formatted output. The
+`speech_to_summary_workflow()` function implements this workflow and can
+be used to perform all the steps in one go.
+
+``` r
+
+# initial_prompt, event_description, event_audience,
+# vocabulary, diarization_instructions are defined in the previous examples
+
+# Perform the whole audio files to formatted summary workflow. Most arguments are
+# omitted since the defaults are fine but some (e.g. the output paths and the
+# overwrite arguments) are shown for clarity.
+speech_to_summary_workflow(
+  # Arguments for `perform_speech_to_text`
+  audio_path = "recording_parts",
+  
+  stt_intermediate_dir = "transcripts",
+  stt_overwrite_intermediate_files = FALSE,
+  stt_model = getOption("minutemaker_stt_model"),
+  
+  stt_initial_prompt = initial_prompt,
+  
+  # Arguments for `merge_transcripts`
+  # Assumes an existing .vtt transcript file in the working directory
+  transcript_to_merge = list.files(pattern = "\\.vtt")[[1]],
+  
+  # Arguments for `add_chat_transcript`
+  # Assumes an existing Chat.txt file in the name in the working
+  # directory
+  chat_file = list.files(pattern = "Chat")[[1]],
+  chat_start_time = "09:00 AM", # or e.g. 14:00:00
+  
+  transcript_output_file = "transcript.csv",
+  overwrite_transcript = FALSE,
+  
+  # Arguments for `summarise_full_meeting`
+  # Assumes an existing agenda.R file in the working directory
+  agenda = "agenda.R",
+  summarization_output_file = "event_summary.R",
+  
+  event_description = event_description,
+  event_audience = event_audience,
+  vocabulary = vocabulary,
+  
+  # you can pass summary_sections, diarization_instructions, or
+  # output_instructions to override the default prompts
+  diarization_instructions = diarization_instructions,
+  
+  llm_provider = "my-LLM-provider-of-choice",
+  
+  overwrite_summary_tree = FALSE,
+  
+  # Arguments for `format_summary_tree`
+  formatted_output = "event_summary.txt",
+  overwrite_formatted_output = FALSE
+)
+```
+
 ### Changing the default prompts
 
 The summarisation process is built upon a number of “technical prompt”
@@ -327,17 +459,28 @@ You can see the current prompts by running:
 
 ``` r
 
-prompts <- get_prompts()
+prompts <- get_prompts() # get all the prompts in a named vector
+prompt <- get_prompts("output_instructions") # get a specific prompt
 
 # Print one of the prompts, cat() improves the formatting
 cat(prompts[[1]])
 ```
 
-The package exposes the function `set_prompts()` function to edit the
-prompts.
+Or you can use `set_prompts()` function to edit the defaults.
 
-Be careful, changing the prompt will change the output drastically. The
-prompts use the `glue` package syntax to automatically insert some
-relevant variables in the prompts, which are needed for many of the
-package feature to work. `set_promts(force = TRUE)` can be used to
-restore all prompts to their default values.
+``` r
+
+set_prompts(audience = "My custom audience description")
+```
+
+The package uses “structural prompt” (a “base_task” prompt and all the
+prompt ending with “\_template”) which organize the prompt general
+implementation and then uses the “instruction prompt”
+(e.g. “diarization_instructions” or “summarisation_sections”) to
+specifically instruct the LLM.
+
+The user is mostly expected to change the second type, while changing
+the first is an expert option since it can break the prompt generation.
+
+Use `set_promts(force = TRUE)` to restore all prompts to their default
+values.
