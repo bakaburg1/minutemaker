@@ -354,18 +354,24 @@ format_summary_tree <- function(
 
     # Generate a text version of the summary, with session, title, speakers,
     # moderators and summary
-    output_piece <- with(agenda_element, {
-      speakers <- stringr::str_flatten_comma(speakers)
-      moderators <- stringr::str_flatten_comma(moderators)
+    # TODO: streamline this repetitive code
+    agenda_element$speakers <- stringr::str_flatten_comma(
+      agenda_element$speakers)
+    agenda_element$moderators <- stringr::str_flatten_comma(
+      agenda_element$moderators)
+    agenda_element$session <- ifelse(
+      is.null(agenda_element$session), "", agenda_element$session)
+    agenda_element$title <- ifelse(is.null(
+      agenda_element$title), "", agenda_element$title)
 
-      stringr::str_glue("Session: {session};
+    output_piece <- stringr::str_glue_data(agenda_element,
+    "Session: {session};
     Title: {title};
     Speakers: {speakers};
     Moderators: {moderators};
     Summary:
 
-    {talk_summary}")
-    }) |>
+    {talk_summary}") |>
       stringr::str_remove_all("\\n?\\w+:\\s*;") # Remove empty fields
 
     # Append the output piece to the output string
@@ -936,9 +942,9 @@ speech_to_summary_workflow <- function(
     )
 
     if (choice != 1) {
-        message("Aborted by user. Returning transcript data only (invisibly).")
-        return(invisible(transcript_data))
-      }
+      message("Aborted by user. Returning transcript data only (invisibly).")
+      return(invisible(transcript_data))
+    }
 
     # Generate a default agenda with 1 talk/meeting if none is provided
     agenda <- list(
