@@ -173,7 +173,8 @@ clean_transcript <- function(
   # Use the Whisper API results statistics to remove segments with low
   # confidence
   if (all(c("avg_logprob", "no_speech_prob") %in% names(transcript_data))) {
-    condition <- with(transcript_data, avg_logprob < -0.5 & no_speech_prob > 0.9)
+    condition <- with(
+      transcript_data, avg_logprob < -0.5 & no_speech_prob > 0.9)
     transcript_data$text[condition] <- silent()
 
     # Remove "avg_logprob", "no_speech_prob" columns
@@ -216,7 +217,8 @@ extract_text_from_transcript <- function(
     import_diarization = TRUE
 ) {
 
-  # If no parameters are provided, the whole transcript is used and a warning is issued
+  # If no parameters are provided, the whole transcript is used and a warning is
+  # issued
   if (is.null(agenda_element) && is.null(start_time) && is.null(end_time)) {
     warning("The whole transcript will be used (may be very long)."
             , call. = FALSE, immediate. = TRUE)
@@ -310,8 +312,8 @@ build_ids_from_agenda <- function(agenda) {
 #' @param output_file A string with the path to the output file. If NULL, the
 #'   output is returned invisibly and not written to a file.
 #'
-#' @return A string containing the formatted summary tree, invisibly. This is printed to
-#'   the output file if one is provided.
+#' @return A string containing the formatted summary tree, invisibly. This is
+#'   printed to the output file if one is provided.
 
 #' @export
 format_summary_tree <- function(
@@ -343,25 +345,33 @@ format_summary_tree <- function(
     # Extract the agenda element for the current talk
     agenda_element <- agenda[[which(talk_ids == id)]]
 
-    # If no summary is found for the current talk, issue a warning and skip to the next talk
+    # If no summary is found for the current talk, issue a warning and skip to
+    # the next talk
     if (is.null(talk_summary)) {
       warning("No summary found for ", id, ". Skipping.", call. = FALSE)
       next
     }
 
-    # Generate a text version of the summary, with session, title, speakers, moderators and summary
-    output_piece <- with(agenda_element, {
-      speakers <- stringr::str_flatten_comma(speakers)
-      moderators <- stringr::str_flatten_comma(moderators)
+    # Generate a text version of the summary, with session, title, speakers,
+    # moderators and summary
+    # TODO: streamline this repetitive code
+    agenda_element$speakers <- stringr::str_flatten_comma(
+      agenda_element$speakers)
+    agenda_element$moderators <- stringr::str_flatten_comma(
+      agenda_element$moderators)
+    agenda_element$session <- ifelse(
+      is.null(agenda_element$session), "", agenda_element$session)
+    agenda_element$title <- ifelse(is.null(
+      agenda_element$title), "", agenda_element$title)
 
-      stringr::str_glue("Session: {session};
+    output_piece <- stringr::str_glue_data(agenda_element,
+    "Session: {session};
     Title: {title};
     Speakers: {speakers};
     Moderators: {moderators};
     Summary:
 
-    {talk_summary}")
-    }) |>
+    {talk_summary}") |>
       stringr::str_remove_all("\\n?\\w+:\\s*;") # Remove empty fields
 
     # Append the output piece to the output string
@@ -381,10 +391,13 @@ format_summary_tree <- function(
 #' Validates an agenda element
 #'
 #' @param agenda_element A list containing the agenda element.
-#' @param session A boolean indicating whether the `session` item should be present.
+#' @param session A boolean indicating whether the `session` item should be
+#'   present.
 #' @param title A boolean indicating whether the `title` item should be present.
-#' @param speakers A boolean indicating whether the `speakers` item should be present.
-#' @param moderators A boolean indicating whether the `moderators` item should be present.
+#' @param speakers A boolean indicating whether the `speakers` item should be
+#'   present.
+#' @param moderators A boolean indicating whether the `moderators` item should
+#'   be present.
 #' @param type A boolean indicating whether the `type` item should be present.
 #' @param from A boolean indicating whether the `from` item should be present.
 #' @param to A boolean indicating whether the `to` item should be present.
@@ -496,8 +509,8 @@ import_transcript_from_file <- function(
 #' first transcript with the corresponding segments from the second transcript.
 #' Also imports the diarization information if present.
 #'
-#' @param transcript_x A data frame containing the transcript to which the second
-#'   transcript will be merged.
+#' @param transcript_x A data frame containing the transcript to which the
+#'   second transcript will be merged.
 #' @param transcript_y A data frame containing the transcript to be merged in.
 #' @param import_diarization A boolean indicating whether the diarization
 #'   information should be kept from the second transcript.
@@ -929,9 +942,9 @@ speech_to_summary_workflow <- function(
     )
 
     if (choice != 1) {
-        message("Aborted by user. Returning transcript data only (invisibly).")
-        return(invisible(transcript_data))
-      }
+      message("Aborted by user. Returning transcript data only (invisibly).")
+      return(invisible(transcript_data))
+    }
 
     # Generate a default agenda with 1 talk/meeting if none is provided
     agenda <- list(
