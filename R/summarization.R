@@ -500,7 +500,7 @@ summarise_full_meeting <- function(
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
-      audience = meeting_audience,
+      audience = event_audience,
 
       summarisation_sections = summarisation_sections,
       diarization_instructions = diarization_instructions,
