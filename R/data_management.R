@@ -658,7 +658,7 @@ merge_transcripts <- function(
       )
 
       # Some segments are too short to compute embeddings, so they are removed
-      y_probes <- y_probes |> filter(!is.na(similarity))
+      y_probes <- y_probes |> filter(!is.na(.data$similarity))
 
       if (nrow(y_probes) == 0) {
         # No segments in the second transcript are similar to the segment in the
@@ -795,9 +795,9 @@ add_chat_transcript <- function(
 #'   output file should be overwritten if it already exists.
 #' @param agenda A list containing the agenda items or a path to an R file
 #'   containing such list. See `summarise_full_meeting` for more details.
-#' @param meeting_description A string containing a description of the meeting.
+#' @param event_description A string containing a description of the meeting.
 #'   See `summarise_transcript` for more details.
-#' @param meeting_audience A string containing a description of the audience of
+#' @param event_audience A string containing a description of the audience of
 #'   the meeting and what to focus on in the summary. See `summarise_transcript`
 #'   for more details.
 #' @param vocabulary A character vector of specific vocabulary words, names,
@@ -962,8 +962,8 @@ speech_to_summary_workflow <- function(
     agenda = agenda,
     output_file = summarization_output_file,
 
-    event_description = meeting_description,
-    event_audience = meeting_audience,
+    event_description = event_description,
+    event_audience = event_audience,
     vocabulary = vocabulary,
     consider_diarization = consider_diarization,
 

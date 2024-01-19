@@ -7,8 +7,8 @@
 merge_transcripts(transcript_x, transcript_y, import_diarization = TRUE)
 }
 \arguments{
-\item{transcript_x}{A data frame containing the transcript to which the second
-transcript will be merged.}
+\item{transcript_x}{A data frame containing the transcript to which the
+second transcript will be merged.}
 
 \item{transcript_y}{A data frame containing the transcript to be merged in.}
 

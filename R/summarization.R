@@ -157,7 +157,27 @@ set_prompts <- function(
 
 #' Get the current prompts
 #'
+#' This function returns the a set of prompts as a vector. If no prompts are
+#' requested, all the prompts are returned. If only one prompt is requested, it
+#' is returned as an unnamed vector.
+#'
+#' @param which A character vector of the prompts to return.
+#'
 #' @return A list containing the current prompts.
+#'
+#' @examples
+#'
+#' # Put the default prompts into the options if not done already
+#' set_prompts()
+#'
+#' # Get all the prompts names
+#' get_prompts() |> names()
+#'
+#' # Get one prompt
+#' get_prompts("base_task")
+#'
+#' # Get multiple prompts
+#' get_prompts(c("base_task", "event_description_template"))
 #'
 #' @export
 get_prompts <- function(which = NULL) {
@@ -266,7 +286,7 @@ generate_recording_details <- function(
 #' @param transcript A character vector representing the transcript to be
 #'   summarised.
 #' @param event_description A description of the event.
-#' @param recordings_details Details on the specific recording. We suggest using
+#' @param recording_details Details on the specific recording. We suggest using
 #'   `generate_recording_details` to generate this string.
 #' @param audience A description the intended audience and the focus of the
 #'   summarisation.
@@ -500,7 +520,7 @@ summarise_full_meeting <- function(
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
-      audience = meeting_audience,
+      audience = event_audience,
 
       summarisation_sections = summarisation_sections,
       diarization_instructions = diarization_instructions,

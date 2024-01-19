@@ -16,8 +16,8 @@ path to a file containing the summary tree.}
 output is returned invisibly and not written to a file.}
 }
 \value{
-A string containing the formatted summary tree, invisibly. This is printed to
-the output file if one is provided.
+A string containing the formatted summary tree, invisibly. This is
+printed to the output file if one is provided.
 }
 \description{
 The summary functions returns a machine-readable summary tree. This function

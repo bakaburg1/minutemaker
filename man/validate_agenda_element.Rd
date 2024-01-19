@@ -18,13 +18,16 @@ validate_agenda_element(
 \arguments{
 \item{agenda_element}{A list containing the agenda element.}
 
-\item{session}{A boolean indicating whether the \code{session} item should be present.}
+\item{session}{A boolean indicating whether the \code{session} item should be
+present.}
 
 \item{title}{A boolean indicating whether the \code{title} item should be present.}
 
-\item{speakers}{A boolean indicating whether the \code{speakers} item should be present.}
+\item{speakers}{A boolean indicating whether the \code{speakers} item should be
+present.}
 
-\item{moderators}{A boolean indicating whether the \code{moderators} item should be present.}
+\item{moderators}{A boolean indicating whether the \code{moderators} item should
+be present.}
 
 \item{type}{A boolean indicating whether the \code{type} item should be present.}
 

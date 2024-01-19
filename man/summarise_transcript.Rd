@@ -7,11 +7,13 @@
 summarise_transcript(
   transcript,
   event_description = NULL,
-  event_details = NULL,
+  recording_details = NULL,
   audience = NULL,
   vocabulary = NULL,
   consider_diarization = TRUE,
-  extra_diarization_instructions = NULL,
+  summarisation_sections = NULL,
+  diarization_instructions = NULL,
+  output_instructions = NULL,
   prompt_only = FALSE,
   ...
 )
@@ -22,7 +24,7 @@ summarised.}
 
 \item{event_description}{A description of the event.}
 
-\item{event_details}{Additional details about the event. We suggest using
+\item{recording_details}{Details on the specific recording. We suggest using
 \code{generate_recording_details} to generate this string.}
 
 \item{audience}{A description the intended audience and the focus of the
@@ -31,12 +33,22 @@ summarisation.}
 \item{vocabulary}{A character vector of specific vocabulary words, names,
 definitions, to help the LLM recognise misspellings and abbreviations.}
 
-\item{consider_diarization}{A logical indicating whether the summarisation should take
-into account the diarization (e.g. the speakers) of the transcript. Default is TRUE}
+\item{consider_diarization}{A logical indicating whether the summarisation
+should take into account the diarization (e.g. the speakers) of the
+transcript. Default is TRUE}
 
-\item{extra_diarization_instructions}{Additional diarization instructions,
-e.g., "Do not report the name of the speaker", "Use only the second name of
-the speaker", etc...}
+\item{summarisation_sections}{A character vector of the sections to include
+in the summary. See \code{get_prompts("summarisation_sections")} for the
+defaults.}
+
+\item{diarization_instructions}{Diarization instructions, e.g., "Do not
+report the name of the speaker", "Use only the second name of the speaker",
+etc... See get_prompts("diarization_instructions") for the default
+instructions.}
+
+\item{output_instructions}{Instructions for the output, i.e., how to produce
+and format the summary. See get_prompts("output_instructions") for the
+defaults.}
 
 \item{prompt_only}{If TRUE, only the prompt is returned, the LLM is not
 interrogated. Default is FALSE.}
@@ -48,8 +60,10 @@ such as the LLM provider.}
 A summary of the transcript.
 }
 \description{
-This function takes a transcript and various optional parameters, and returns
-a summarised version of the transcript. All parameters apart from the
-transcript are optional, and if not provided they will be ignored in the
+This function takes a transcript and various optional parameters, and uses an
+LLM to generate a summary. For \code{diarization_instructions} and
+\code{output_instructions}, the default prompts are used if they are not provided
+(check them using \code{get_prompts()}). All the other parameters apart from
+\code{transcript} are optional, and if not provided they will be ignored in the
 final prompt.
 }

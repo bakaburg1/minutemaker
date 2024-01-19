@@ -7,7 +7,7 @@
 use_openai_llm(
   body,
   model = getOption("minutemaker_openai_model_gpt"),
-  api_key = getOption("minutemaker_open_api_key")
+  api_key = getOption("minutemaker_openai_api_key")
 )
 }
 \arguments{
