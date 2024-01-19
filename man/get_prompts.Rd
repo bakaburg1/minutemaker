@@ -4,7 +4,7 @@
 \alias{get_prompts}
 \title{Get the current prompts}
 \usage{
-get_prompts()
+get_prompts(which = NULL)
 }
 \value{
 A list containing the current prompts.

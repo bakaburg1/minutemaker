@@ -8,11 +8,13 @@ summarise_full_meeting(
   transcript_data,
   agenda,
   output_file = "event_summary.R",
-  meeting_description = NULL,
-  meeting_audience = NULL,
+  event_description = NULL,
+  event_audience = NULL,
   vocabulary = NULL,
   consider_diarization = TRUE,
-  extra_diarization_instructions = NULL,
+  summarisation_sections = NULL,
+  diarization_instructions = NULL,
+  output_instructions = NULL,
   overwrite = FALSE,
   ...
 )
@@ -28,11 +30,11 @@ containing such a list.}
 \item{output_file}{The file to save the results to as a list. Default is
 "event_summary.R".}
 
-\item{meeting_description}{The description of the meeting. See
+\item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}
 
-\item{meeting_audience}{The audience of the meeting. See
-\code{summarise_transcript} for more details.}
+\item{event_audience}{The audience of the event See \code{summarise_transcript}
+for more details.}
 
 \item{vocabulary}{The vocabulary used in the meeting. See
 \code{summarise_transcript} for more details.}
@@ -41,8 +43,9 @@ containing such a list.}
 the transcript. Default is TRUE See \code{summarise_transcript} for more
 details.}
 
-\item{extra_diarization_instructions}{Extra instructions for diarization. See
-\code{summarise_transcript} for more details.}
+\item{summarisation_sections, diarization_instructions, output_instructions}{Specific instructions necessary to build the summarisation prompt. See
+\code{summarise_transcript} for more details and run \code{get_prompts()} to see the
+defaults.}
 
 \item{overwrite}{Whether to overwrite existing summaries. Default is FALSE.}
 
@@ -54,7 +57,8 @@ The result tree of the meeting summary. Also saves the results in the
 output file as side effect.
 }
 \description{
-This function summarises a full meeting by processing the transcript data and
-the agenda. It generates a summary for each talk in the meeting and saves the
-results in an output file. It's built on top of \code{summarise_transcript}.
+This function summarises a full event comprising multiple meetings/talks
+described in an \code{agenda}. It generates a summary for each talk in the meeting
+and saves the results in an output file. It's built on top of
+\code{summarise_transcript}.
 }

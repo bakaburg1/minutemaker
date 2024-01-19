@@ -2,46 +2,53 @@
 % Please edit documentation in R/summarization.R
 \name{set_prompts}
 \alias{set_prompts}
-\title{Set technical prompts that power the LLM model}
+\title{Set the technical prompts that power the LLM model}
 \usage{
 set_prompts(
   base_task = NULL,
-  transcript = NULL,
-  vocabulary = NULL,
+  transcript_template = NULL,
+  event_description_template = NULL,
+  recording_details_template = NULL,
+  vocabulary_template = NULL,
+  diarization_template = NULL,
   diarization_instructions = NULL,
-  extra_diarization_instructions = NULL,
-  audience_instructions = NULL,
+  audience_template = NULL,
   audience = NULL,
-  summarisation_focus = NULL,
-  output_format = NULL,
-  presentation_details = NULL,
-  meeting_description = NULL,
+  summarisation_template = NULL,
+  summarisation_sections = NULL,
+  output_template = NULL,
+  output_instructions = NULL,
   force = TRUE
 )
 }
 \arguments{
 \item{base_task}{The base task of the AI secretary.}
 
-\item{transcript}{The transcript to be summarised.}
+\item{transcript_template}{The template for the transcript.}
 
-\item{vocabulary}{The vocabulary to be used.}
+\item{event_description_template}{The template for the event description.}
 
-\item{diarization_instructions}{Instructions for diarization.}
+\item{recording_details_template}{The template for the recording details.}
 
-\item{extra_diarization_instructions}{Extra instructions for diarization.}
+\item{vocabulary_template}{The template for the vocabulary.}
 
-\item{audience_instructions}{Instructions for the audience and the summary
-focus.}
+\item{diarization_template}{The template for the diarization instructions.}
 
-\item{audience}{The audience for the summary.}
+\item{diarization_instructions}{Default instructions for the diarization.}
 
-\item{summarisation_focus}{The focus of the summarisation.}
+\item{audience_template}{The template for the audience.}
 
-\item{output_format}{The format of the output.}
+\item{audience}{Description of the audience and the summary focus.}
 
-\item{presentation_details}{The details of the presentation.}
+\item{summarisation_template}{The template for the summarisation
+instructions.}
 
-\item{meeting_description}{The description of the meeting.}
+\item{summarisation_sections}{The sections to include in the summary.}
+
+\item{output_template}{The template for the output instructions.}
+
+\item{output_instructions}{Instructions for the output, i.e., how to produce
+and format the summary.}
 
 \item{force}{If TRUE, overwrite existing prompts.}
 }
