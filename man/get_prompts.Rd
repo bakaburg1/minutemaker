@@ -6,9 +6,29 @@
 \usage{
 get_prompts(which = NULL)
 }
+\arguments{
+\item{which}{A character vector of the prompts to return.}
+}
 \value{
 A list containing the current prompts.
 }
 \description{
-Get the current prompts
+This function returns the a set of prompts as a vector. If no prompts are
+requested, all the prompts are returned. If only one prompt is requested, it
+is returned as an unnamed vector.
+}
+\examples{
+
+# Put the default prompts into the options if not done already
+set_prompts()
+
+# Get all the prompts names
+get_prompts() |> names()
+
+# Get one prompt
+get_prompts("base_task")
+
+# Get multiple prompts
+get_prompts(c("base_task", "event_description_template"))
+
 }

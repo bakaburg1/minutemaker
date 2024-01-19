@@ -89,6 +89,13 @@ output file should be overwritten if it already exists.}
 \item{agenda}{A list containing the agenda items or a path to an R file
 containing such list. See \code{summarise_full_meeting} for more details.}
 
+\item{event_description}{A string containing a description of the meeting.
+See \code{summarise_transcript} for more details.}
+
+\item{event_audience}{A string containing a description of the audience of
+the meeting and what to focus on in the summary. See \code{summarise_transcript}
+for more details.}
+
 \item{vocabulary}{A character vector of specific vocabulary words, names,
 definitions, to help the LLM recognise misspellings and abbreviations. See
 \code{summarise_transcript} for more details.}
@@ -119,13 +126,6 @@ the formatted summary will be written.}
 
 \item{overwrite_formatted_output}{A boolean indicating whether the formatted
 summary output file should be overwritten if it already exists.}
-
-\item{meeting_description}{A string containing a description of the meeting.
-See \code{summarise_transcript} for more details.}
-
-\item{meeting_audience}{A string containing a description of the audience of
-the meeting and what to focus on in the summary. See \code{summarise_transcript}
-for more details.}
 }
 \value{
 A list containing the transcript data, the summary tree and the

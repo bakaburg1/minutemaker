@@ -24,6 +24,9 @@ summarised.}
 
 \item{event_description}{A description of the event.}
 
+\item{recording_details}{Details on the specific recording. We suggest using
+\code{generate_recording_details} to generate this string.}
+
 \item{audience}{A description the intended audience and the focus of the
 summarisation.}
 
@@ -52,9 +55,6 @@ interrogated. Default is FALSE.}
 
 \item{...}{Additional arguments passed to the \code{interrogate_llm} function,
 such as the LLM provider.}
-
-\item{recordings_details}{Details on the specific recording. We suggest using
-\code{generate_recording_details} to generate this string.}
 }
 \value{
 A summary of the transcript.
