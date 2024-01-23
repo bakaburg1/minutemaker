@@ -620,7 +620,7 @@ merge_transcripts <- function(
     # Train a GloVe model on both transcripts
     glove_model <- c(transcript_x$text, transcript_y$text) |>
       purrr::discard(is_silent) |>
-      generate_model()
+      generate_glove_model()
 
     message("Importing diarization...")
 
@@ -671,7 +671,7 @@ merge_transcripts <- function(
       )
 
       # Some segments are too short to compute embeddings, so they are removed
-      y_probes <- y_probes |> filter(!is.na(similarity))
+      y_probes <- y_probes |> filter(!is.na(.data$similarity))
 
       if (nrow(y_probes) == 0) {
         # No segments in the second transcript are similar to the segment in the
@@ -697,8 +697,8 @@ merge_transcripts <- function(
 #' This function adds chat messages written during an online/hybrid meeting to
 #' the transcript.
 #'
-#' @param transcript A data frame containing the transcript.
-#' @param chat_data A string with the path to the chat file or a data frame
+#' @param transcript_data A data frame containing the transcript.
+#' @param chat_transcript A string with the path to the chat file or a data frame
 #'   containing the chat data.
 #' @param start_time The start time of the meeting. A string in the format
 #'   "HH:MM AM/PM" or "HH:MM:SS".
@@ -710,17 +710,17 @@ merge_transcripts <- function(
 #' @export
 #'
 add_chat_transcript <- function(
-    transcript,
-    chat_data,
+    transcript_data,
+    chat_transcript,
     start_time,
     chat_format = "webex"
 ) {
 
   chat_format <- match.arg(chat_format)
 
-  if (is.character(chat_data)) {
+  if (is.character(chat_transcript)) {
 
-    if (!file.exists(chat_data)) {
+    if (!file.exists(chat_transcript)) {
       stop("Chat file not found.")
     }
 
@@ -735,7 +735,7 @@ add_chat_transcript <- function(
       as.numeric()
 
     tryCatch(
-      chat_data <- readLines(chat_data, skipNul = T) |>
+      chat_transcript <- readLines(chat_transcript, skipNul = T) |>
         # Remove encoding characters
         stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
         purrr::discard(is_silent) |>
@@ -755,13 +755,20 @@ add_chat_transcript <- function(
           speaker = paste(.data$speaker, "(from chat)")
         ),
       error = \(e) {
-        stop("Error parsing chat file: ", e)
+        stop("Error parsing chat file: ", basename(chat_transcript), "\n\n", e)
       })
+  } else if (is.data.frame(chat_transcript)) {
+    # Check if the chat data has the required columns
+    if (!all(c("start", "speaker", "text") %in% names(chat_transcript))) {
+      stop("Chat data must contain 'start', 'speaker' and 'text' columns.")
+    }
+  } else {
+    stop("Unsupported chat data format.")
   }
 
   # Add the chat messages to the transcript
   # left_join should position the chat messages in the right place
-  left_join(transcript, chat_data)
+  left_join(transcript_data, chat_transcript)
 }
 
 #' Full Speech-To-Summary Workflow Execution
