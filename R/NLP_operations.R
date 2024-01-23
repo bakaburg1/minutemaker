@@ -37,13 +37,13 @@ tokenize_text <- function(text) {
 #'
 #' @return A matrix of word embeddings.
 #'
-#' @export
-#'
 #' @examples
+#' \dontrun{
 #' text <- "Sample text for GloVe model generation."
-#' word_vectors <- generate_model(text, dimensions = 5, iterations = 10)
+#' word_vectors <- generate_glove_model(text, dimensions = 5, iterations = 10)
+#' }
 #'
-generate_model <- function(
+generate_glove_model <- function(
     text,
     dimensions = 100,
     iterations = 50,
@@ -118,13 +118,13 @@ generate_model <- function(
 #'
 #' @return A numeric vector of similarity scores.
 #'
-#' @export
-#'
 #' @examples
+#' \dontrun{
 #' x_text <- "Sample source text."
 #' y_texts <- c("Comparative text one.", "Comparative text two.")
-#' word_vectors <- generate_model(c(x_text, y_texts))
+#' word_vectors <- generate_glove_model(c(x_text, y_texts))
 #' similarities <- compute_text_sim(x_text, y_texts, word_vectors)
+#' }
 #'
 compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
   # Function to convert a text to a normalized embedding vector

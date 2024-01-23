@@ -10,8 +10,7 @@
 #' @param audio_path Path to one or more audio files or to a folder of audio
 #'   files. Tested with .mp3 and .wav files.
 #' @param output_dir Path to output directory. If the directory doesn't exist,
-#'   it will be created in the same directory as the audio file and will be
-#'   named "transcripts".
+#'   it will be created in the same directory as the audio file.
 #' @param model Name of the model to use. The models available in the package
 #'   are: "azure_whisper" (online API), "openai_whisper" (online API),
 #'   "whisper_ctranslate2" (offline local model). Users can provide their own
@@ -33,7 +32,7 @@
 #'
 perform_speech_to_text <- function(
     audio_path,
-    output_dir = file.path(dirname(audio_path), "transcripts"),
+    output_dir = file.path(dirname(audio_path), "transcription_output_data"),
     model,
     initial_prompt = NULL, overwrite = FALSE,
     language = "en",
@@ -192,9 +191,15 @@ run_in_terminal <- function(cmd, args) {
 
 #' Split an audio file into segments of a specified duration
 #'
+#' Some speech-to-text models have a limit on the size of the audio file. For
+#' example, the "Whisper" based models have a limit of 25 MB. This function
+#' splits an audio file into segments of a specified duration and saves them as
+#' mp3 files.
+#'
 #' @param audio_file The path to the audio file to split.
-#' @param segment_duration The duration of each segment in minutes.
-#' @param output_folder The folder to save the segments in.
+#' @param segment_duration The duration of each splitted audio file in minutes.
+#'   20 minutes equate to more or less 7-8 MB.
+#' @param output_folder The path to the folder where to save the segments in.
 #'
 #' @return Nothing, but saves the segments to files.
 #'
@@ -202,7 +207,7 @@ run_in_terminal <- function(cmd, args) {
 #'
 split_audio <- function(
     audio_file,
-    segment_duration = 60,
+    segment_duration = 40,
     output_folder = file.path(dirname(audio_file), "recording_parts")
 ) {
 

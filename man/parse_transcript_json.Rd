@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_management.R
 \name{parse_transcript_json}
 \alias{parse_transcript_json}
-\title{Parse the tts JSON output}
+\title{Parse the speech-to-text JSON output into a transcript data frame}
 \usage{
 parse_transcript_json(transcript_json, pretty_times = TRUE)
 }

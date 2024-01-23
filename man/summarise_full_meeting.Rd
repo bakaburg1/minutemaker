@@ -7,14 +7,19 @@
 summarise_full_meeting(
   transcript_data,
   agenda,
+  method = c("simple", "rolling"),
   output_file = "event_summary.R",
+
+  window_size = 15,
+  output_length = 3,
   event_description = NULL,
-  event_audience = NULL,
+  event_audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
-  summarisation_sections = NULL,
-  diarization_instructions = NULL,
-  output_instructions = NULL,
+  summary_structure = get_prompts("summary_structure"),
+  extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
+  
   overwrite = FALSE,
   ...
 )
@@ -27,8 +32,19 @@ each with a session name, a title, speaker and moderator lists, type of
 talk and start and end times. Alternatively, the path to an R file
 containing such a list.}
 
+\item{method}{The method to use to summarise the transcript. Can be either
+"simple" or "rolling", with the first being faster and the second
+(theoritically) more accurate. See \code{summarise_transcript} for more details.}
+
 \item{output_file}{The file to save the results to as a list. Default is
 "event_summary.R".}
+
+\item{window_size}{The size of the window in minutes to use when summarising
+the transcript using the "rolling window" method. See
+\code{summarise_transcript} for more details.}
+
+\item{output_length}{An indication to the LLM regarding the length of the
+output. See \code{summarise_transcript} for more details.}
 
 \item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}
@@ -43,9 +59,9 @@ for more details.}
 the transcript. Default is TRUE See \code{summarise_transcript} for more
 details.}
 
-\item{summarisation_sections, diarization_instructions, output_instructions}{Specific instructions necessary to build the summarisation prompt. See
+\item{summary_structure, extra_diarization_instructions, extra_output_instructions}{Specific instructions necessary to build the summarisation prompt. See
 \code{summarise_transcript} for more details and run \code{get_prompts()} to see the
-defaults.}
+defaults. See \code{summarise_transcript} for more details.}
 
 \item{overwrite}{Whether to overwrite existing summaries. Default is FALSE.}
 

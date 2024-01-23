@@ -4,12 +4,17 @@
 \alias{add_chat_transcript}
 \title{Add chat messages to a transcript}
 \usage{
-add_chat_transcript(transcript, chat_data, start_time, chat_format = "webex")
+add_chat_transcript(
+  transcript_data,
+  chat_transcript,
+  start_time,
+  chat_format = "webex"
+)
 }
 \arguments{
-\item{transcript}{A data frame containing the transcript.}
+\item{transcript_data}{A data frame containing the transcript.}
 
-\item{chat_data}{A string with the path to the chat file or a data frame
+\item{chat_transcript}{A string with the path to the chat file or a data frame
 containing the chat data.}
 
 \item{start_time}{The start time of the meeting. A string in the format
