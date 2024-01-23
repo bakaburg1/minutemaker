@@ -1,4 +1,4 @@
-#' Parse the tts JSON output
+#' Parse the speech-to-text JSON output into a transcript data frame
 #'
 #' Takes the JSON output of `perform_speech_to_text` and parses it into a data
 #' frame with the text and time of each segment.
@@ -12,6 +12,8 @@
 #'   seconds.
 #'
 #' @return A data frame with the text and start and end time of each segment.
+#'
+#' @export
 parse_transcript_json <- function(
     transcript_json,
     pretty_times = TRUE
