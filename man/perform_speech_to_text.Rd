@@ -6,7 +6,7 @@
 \usage{
 perform_speech_to_text(
   audio_path,
-  output_dir = file.path(dirname(audio_path), "transcripts"),
+  output_dir = file.path(dirname(audio_path), "transcription_output_data"),
   model,
   initial_prompt = NULL,
   overwrite = FALSE,
@@ -19,8 +19,7 @@ perform_speech_to_text(
 files. Tested with .mp3 and .wav files.}
 
 \item{output_dir}{Path to output directory. If the directory doesn't exist,
-it will be created in the same directory as the audio file and will be
-named "transcripts".}
+it will be created in the same directory as the audio file.}
 
 \item{model}{Name of the model to use. The models available in the package
 are: "azure_whisper" (online API), "openai_whisper" (online API),

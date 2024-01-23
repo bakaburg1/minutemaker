@@ -7,12 +7,17 @@
 summarise_full_meeting(
   transcript_data,
   agenda,
+  method = c("simple", "rolling"),
   output_file = "event_summary.R",
-  meeting_description = NULL,
-  meeting_audience = NULL,
+  window_size = 15,
+  output_length = 3,
+  event_description = NULL,
+  event_audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
+  summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
   overwrite = FALSE,
   ...
 )
@@ -25,14 +30,25 @@ each with a session name, a title, speaker and moderator lists, type of
 talk and start and end times. Alternatively, the path to an R file
 containing such a list.}
 
+\item{method}{The method to use to summarise the transcript. Can be either
+"simple" or "rolling", with the first being faster and the second
+(theoritically) more accurate. See \code{summarise_transcript} for more details.}
+
 \item{output_file}{The file to save the results to as a list. Default is
 "event_summary.R".}
 
-\item{meeting_description}{The description of the meeting. See
+\item{window_size}{The size of the window in minutes to use when summarising
+the transcript using the "rolling window" method. See
 \code{summarise_transcript} for more details.}
 
-\item{meeting_audience}{The audience of the meeting. See
+\item{output_length}{An indication to the LLM regarding the length of the
+output. See \code{summarise_transcript} for more details.}
+
+\item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}
+
+\item{event_audience}{The audience of the event See \code{summarise_transcript}
+for more details.}
 
 \item{vocabulary}{The vocabulary used in the meeting. See
 \code{summarise_transcript} for more details.}
@@ -41,8 +57,9 @@ containing such a list.}
 the transcript. Default is TRUE See \code{summarise_transcript} for more
 details.}
 
-\item{extra_diarization_instructions}{Extra instructions for diarization. See
-\code{summarise_transcript} for more details.}
+\item{summary_structure, extra_diarization_instructions, extra_output_instructions}{Specific instructions necessary to build the summarisation prompt. See
+\code{summarise_transcript} for more details and run \code{get_prompts()} to see the
+defaults. See \code{summarise_transcript} for more details.}
 
 \item{overwrite}{Whether to overwrite existing summaries. Default is FALSE.}
 
@@ -54,7 +71,8 @@ The result tree of the meeting summary. Also saves the results in the
 output file as side effect.
 }
 \description{
-This function summarises a full meeting by processing the transcript data and
-the agenda. It generates a summary for each talk in the meeting and saves the
-results in an output file. It's built on top of \code{summarise_transcript}.
+This function summarises a full event comprising multiple meetings/talks
+described in an \code{agenda}. It generates a summary for each talk in the meeting
+and saves the results in an output file. It's built on top of
+\code{summarise_transcript}.
 }

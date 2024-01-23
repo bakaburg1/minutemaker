@@ -10,14 +10,16 @@ format_summary_tree(summary_tree, agenda, output_file = NULL)
 \item{summary_tree}{A list containing the summary tree, or a string with the
 path to a file containing the summary tree.}
 
-\item{agenda}{A list containing the agenda items.}
+\item{agenda}{A list containing the agenda items. It is used to extract a number
+of information about each talk, such as the session, title, speakers and
+moderators.}
 
 \item{output_file}{A string with the path to the output file. If NULL, the
 output is returned invisibly and not written to a file.}
 }
 \value{
-A string containing the formatted summary tree, invisibly. This is printed to
-the output file if one is provided.
+A string containing the formatted summary tree, invisibly. This is
+printed to the output file if one is provided.
 }
 \description{
 The summary functions returns a machine-readable summary tree. This function

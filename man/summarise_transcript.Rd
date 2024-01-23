@@ -5,24 +5,44 @@
 \title{Summarise a recording transcript}
 \usage{
 summarise_transcript(
-  transcript,
+  transcript_data,
+  method = c("simple", "rolling"),
+  window_size = 15,
+  output_length = 3,
   event_description = NULL,
-  event_details = NULL,
-  audience = NULL,
+  recording_details = NULL,
+  audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
+  summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
   prompt_only = FALSE,
   ...
 )
 }
 \arguments{
-\item{transcript}{A character vector representing the transcript to be
-summarised.}
+\item{transcript_data}{A character vector or a data frame representing the
+transcript to be summarised. A data frame transcript with start and end
+segment times is necessary if the "rolling window" method is used.}
+
+\item{method}{The method to use to summarise the transcript. Can be either
+"simple" or "rolling", with the first being faster and the second
+(theoritically) more accurate. If "rolling", the transcript is split into
+segments of \code{window_size} minutes and each segment is summarised separately
+and then aggregated in one summary. If "simple", the whole transcript is
+summarised in one go. Default is "rolling".}
+
+\item{window_size}{The size of the window in minutes to use when summarising
+the transcript using the rolling window method. Default is 15.}
+
+\item{output_length}{An indication to the LLM regarding the length of the
+output. Mind that the LLM will not respect this indication precisely, but
+this parameter will impact the length of the output. Default is 3 (pages).}
 
 \item{event_description}{A description of the event.}
 
-\item{event_details}{Additional details about the event. We suggest using
+\item{recording_details}{Details on the specific recording. We suggest using
 \code{generate_recording_details} to generate this string.}
 
 \item{audience}{A description the intended audience and the focus of the
@@ -31,12 +51,22 @@ summarisation.}
 \item{vocabulary}{A character vector of specific vocabulary words, names,
 definitions, to help the LLM recognise misspellings and abbreviations.}
 
-\item{consider_diarization}{A logical indicating whether the summarisation should take
-into account the diarization (e.g. the speakers) of the transcript. Default is TRUE}
+\item{consider_diarization}{A logical indicating whether the summarisation
+should take into account the diarization (e.g. the speakers) of the
+transcript. Default is TRUE}
 
-\item{extra_diarization_instructions}{Additional diarization instructions,
-e.g., "Do not report the name of the speaker", "Use only the second name of
-the speaker", etc...}
+\item{summary_structure}{The expected structure of the summary. Run
+get_prompts("summary_structure") to see the default structure.}
+
+\item{extra_diarization_instructions}{Diarization instructions, e.g., "Do not
+report the name of the speaker", "Use only the second name of the speaker",
+etc... These instructions will be added to the defaults, which can be
+visualized using get_prompts("diarization_template").}
+
+\item{extra_output_instructions}{Additional instruction to tune the output of
+the summarisation. These instructions will be added to the
+get_prompts("output_summarisation") or
+get_prompts("output_rolling_aggregation") prompts depending on the task.}
 
 \item{prompt_only}{If TRUE, only the prompt is returned, the LLM is not
 interrogated. Default is FALSE.}
@@ -48,8 +78,10 @@ such as the LLM provider.}
 A summary of the transcript.
 }
 \description{
-This function takes a transcript and various optional parameters, and returns
-a summarised version of the transcript. All parameters apart from the
-transcript are optional, and if not provided they will be ignored in the
+This function takes a transcript and various optional parameters, and uses an
+LLM to generate a summary. For \code{diarization_instructions} and
+\code{output_instructions}, the default prompts are used if they are not provided
+(check them using \code{get_prompts()}). All the other parameters apart from
+\code{transcript} are optional, and if not provided they will be ignored in the
 final prompt.
 }
