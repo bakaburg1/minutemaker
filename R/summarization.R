@@ -12,6 +12,7 @@
 #'   "workshop", "panel discussion", "conference welcome message", etc.
 #' @param session The session in which the talk/meeting took place.
 #' @param title The title of the talk/meeting.
+#' @param description A description of the talk/meeting topic.
 #' @param speakers The main speakers of the talk/meeting as a vector.
 #' @param moderators The moderators of the talk/meeting as a vector.
 #'
@@ -24,6 +25,7 @@ generate_recording_details <- function(
     type = NULL,
     session = NULL,
     title = NULL,
+    description = NULL,
     speakers = NULL,
     moderators = NULL
 ) {
@@ -33,12 +35,13 @@ generate_recording_details <- function(
     type <- agenda_element$type
     session <- agenda_element$session
     title <- agenda_element$title
+    description <- agenda_element$description
     speakers <- agenda_element$speakers
     moderators <- agenda_element$moderators
   }
 
   # Return NULL if all the arguments are NULL
-  if (is.null(type) && is.null(session) &&
+  if (is.null(type) && is.null(session) && is.null(description) &&
       is.null(title) && is.null(speakers) && is.null(moderators)) {
     return(NULL)
   }
@@ -57,6 +60,7 @@ generate_recording_details <- function(
     add_section(type, "Type (the type of this specific talk/meeting)"),
     add_section(session, "Session (the conference/larger meeting session in which this talk/meeting took place)"),
     add_section(title, "Title (the title of the talk/meeting)"),
+    add_section(description, "Description (a description of the talk/meeting topic)"),
     add_section(speakers, "Speakers (the main speakers of this talk/meeting)"),
     add_section(moderators, "Moderators (the moderators of this talk/meeting)")
   ) |> trimws()
