@@ -297,8 +297,16 @@ summarise_transcript <- function(
 #'   each with a session name, a title, speaker and moderator lists, type of
 #'   talk and start and end times. Alternatively, the path to an R file
 #'   containing such a list.
+#' @param method The method to use to summarise the transcript. Can be either
+#'   "simple" or "rolling", with the first being faster and the second
+#'   (theoritically) more accurate. See `summarise_transcript` for more details.
 #' @param output_file The file to save the results to as a list. Default is
 #'   "event_summary.R".
+#' @param window_size The size of the window in minutes to use when summarising
+#'   the transcript using the "rolling window" method. See
+#'   `summarise_transcript` for more details.
+#' @param output_length An indication to the LLM regarding the length of the
+#'   output. See `summarise_transcript` for more details.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
 #' @param event_audience The audience of the event See `summarise_transcript`
@@ -308,10 +316,10 @@ summarise_transcript <- function(
 #' @param consider_diarization Whether to take into account the diarization of
 #'   the transcript. Default is TRUE See `summarise_transcript` for more
 #'   details.
-#' @param summarisation_sections,diarization_instructions,output_instructions
+#' @param summary_structure,extra_diarization_instructions,extra_output_instructions
 #'   Specific instructions necessary to build the summarisation prompt. See
 #'   `summarise_transcript` for more details and run `get_prompts()` to see the
-#'   defaults.
+#'   defaults. See `summarise_transcript` for more details.
 #' @param overwrite Whether to overwrite existing summaries. Default is FALSE.
 #' @param ... Additional arguments passed to `interrogate_llm` function, such as
 #'   the LLM provider.
@@ -323,16 +331,20 @@ summarise_transcript <- function(
 summarise_full_meeting <- function(
     transcript_data,
     agenda,
+    method = c("simple", "rolling"),
     output_file = "event_summary.R",
 
+    window_size = 15,
+    output_length = 3,
+
     event_description = NULL,
-    event_audience = NULL,
+    event_audience = "An audience with understanding of the topic",
     vocabulary = NULL,
     consider_diarization = TRUE,
 
-    summarisation_sections = NULL,
-    diarization_instructions = NULL,
-    output_instructions = NULL,
+    summary_structure = get_prompts("summary_structure"),
+    extra_diarization_instructions = NULL,
+    extra_output_instructions = NULL,
 
     overwrite = FALSE,
     ...
@@ -380,26 +392,32 @@ summarise_full_meeting <- function(
       next
     }
 
-    # Extract the transcript of the talk
-    transcript_text <- extract_text_from_transcript(
-      transcript_data,
-      agenda_element = agenda_element
-    )
+    # Extract the talk from the transcript
+    transcript_subset <- transcript_data |>
+      dplyr::filter(
+        .data$start >= agenda_element$from,
+        .data$start <= agenda_element$to)
 
     # Extract the details of the talk
     recording_details <- generate_recording_details(agenda_element)
 
     # Extract the vocabulary of the talk
     talk_summary <- summarise_transcript(
-      transcript = transcript_text,
+      transcript_data = transcript_subset,
+
+      method = method,
+      window_size = window_size,
+      output_length = output_length,
+
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
-      audience = meeting_audience,
+      audience = event_audience,
+      consider_diarization = consider_diarization,
 
-      summarisation_sections = summarisation_sections,
-      diarization_instructions = diarization_instructions,
-      output_instructions = output_instructions,
+      summary_structure = summary_structure,
+      extra_diarization_instructions = extra_diarization_instructions,
+      extra_output_instructions = extra_output_instructions,
       ...
     )
 
