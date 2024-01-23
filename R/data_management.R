@@ -55,7 +55,7 @@ parse_transcript_json <- function(
           stop("Error parsing JSON: ", e$message)
         })
     }
-  } else if (vctrs::vec_is_list(transcript_json)) {
+  } else if (vctrs::obj_is_list(transcript_json)) {
     list(transcript_json)
   } else {
     stop("Unsupported transcript format.")
