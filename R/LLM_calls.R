@@ -67,7 +67,7 @@ process_messages <- function(messages) {
 
     # Check if the message is in correct list format
     check <- !purrr::every(msg_list, function(msg) {
-      vctrs::vec_is_list(msg) &&
+      vctrs::obj_is_list(msg) &&
         hasName(msg, "role") &&
         hasName(msg, "content") &&
         msg$role %in% c("system", "user", "assistant", "function")
@@ -82,7 +82,7 @@ process_messages <- function(messages) {
   }
 
 
-  if (vctrs::vec_is_list(messages)) {
+  if (vctrs::obj_is_list(messages)) {
 
     # Check if valid list format
     if (validate_list_format(messages)) {
