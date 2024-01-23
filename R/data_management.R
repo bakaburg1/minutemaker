@@ -219,9 +219,19 @@ extract_text_from_transcript <- function(
 
   # If no parameters are provided, the whole transcript is used and a warning is
   # issued
-  if (is.null(agenda_element) && is.null(start_time) && is.null(end_time)) {
-    warning("The whole transcript will be used (may be very long)."
-            , call. = FALSE, immediate. = TRUE)
+  if (
+    is.null(agenda_element) && is.null(start_time) && is.null(end_time)
+  ) {
+    durantion <- max(transcript_data$end) - min(transcript_data$start)
+
+    if (durantion > 3600) {
+      warning(
+        "Summarising a transcript covering more than 1 hour may ",
+        "result in a loss of details. ",
+        "Consider treating it as a collection of taks/meetings to ",
+        "summarise separately. Cfr. `summarise_full_meeting()`"
+        , call. = FALSE, immediate. = TRUE)
+    }
   }
 
   # If an agenda element is provided, its start and end times are used
