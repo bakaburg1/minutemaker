@@ -20,6 +20,7 @@ set_prompts(
   output_template = NULL,
   output_summarisation = NULL,
   output_rolling_aggregation = NULL,
+
   force = TRUE
 )
 }

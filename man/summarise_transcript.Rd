@@ -11,12 +11,14 @@ summarise_transcript(
   output_length = 3,
   event_description = NULL,
   recording_details = NULL,
+
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
+
   prompt_only = FALSE,
   ...
 )

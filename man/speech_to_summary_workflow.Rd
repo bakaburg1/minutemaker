@@ -26,6 +26,7 @@ speech_to_summary_workflow(
   chat_file = list.files(target_dir, pattern = "Chat", full.names = T)[1],
   chat_start_time = NULL,
   chat_format = "webex",
+
   agenda = file.path(target_dir, "agenda.R"),
   event_description = NULL,
   event_audience = "An audience with understanding of the topic",
@@ -34,6 +35,7 @@ speech_to_summary_workflow(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
+
   llm_provider = NULL,
   extra_summarise_args = NULL,
   summarization_window_size = 15,
@@ -46,6 +48,7 @@ speech_to_summary_workflow(
 )
 }
 \arguments{
+
 \item{target_dir}{A path to the folder where the summarisation process will
 take place. All the intermediate and output files will be stored and looked
 for here. It allows encapsulating a single summarisation task from start to
@@ -140,6 +143,7 @@ should take into account the diarization of the transcript. See
 \code{summarise_transcript} for more details.}
 
 \item{summary_structure, extra_diarization_instructions, extra_output_instructions}{Specific instructions necessary to build the summarisation prompt. See
+
 \code{summarise_transcript} for more details and run \code{get_prompts()} to see the
 defaults. See \code{summarise_transcript} for more details.}
 
