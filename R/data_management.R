@@ -320,7 +320,9 @@ build_ids_from_agenda <- function(agenda) {
 #'
 #' @param summary_tree A list containing the summary tree, or a string with the
 #'   path to a file containing the summary tree.
-#' @param agenda A list containing the agenda items.
+#' @param agenda A list containing the agenda items. It is used to extract a number
+#'  of information about each talk, such as the session, title, speakers and
+#'  moderators.
 #' @param output_file A string with the path to the output file. If NULL, the
 #'   output is returned invisibly and not written to a file.
 #'
@@ -377,11 +379,10 @@ format_summary_tree <- function(
       agenda_element$title), "", agenda_element$title)
 
     output_piece <- stringr::str_glue_data(agenda_element,
-    "Session: {session};
+                                           "Session: {session};
     Title: {title};
     Speakers: {speakers};
     Moderators: {moderators};
-    Summary:
 
     {talk_summary}") |>
       stringr::str_remove_all("\\n?\\w+:\\s*;") # Remove empty fields
