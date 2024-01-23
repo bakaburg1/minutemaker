@@ -131,6 +131,8 @@ process_messages <- function(messages) {
 #'   to a list with `temperature = 0`.
 #' @param force_json A boolean to force the response in JSON format. Default is
 #'   FALSE. Works only for OpenAI and Azure endpoints.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #' @param ... Additional arguments passed to the language model provider
 #'   functions.
 #'
@@ -152,10 +154,15 @@ interrogate_llm <- function(
       temperature = 0
     ),
     force_json = FALSE,
+    log_request = getOption("minutemaker_log_requests", TRUE),
     ...) {
 
   messages <- process_messages(messages)
   provider <- match.arg(provider)
+
+  if (log_request) {
+    check_and_install_dependencies("tictoc")
+  }
 
   # Prepare the body of the request and merge with default
   body <- purrr::list_modify(list(
@@ -186,16 +193,18 @@ interrogate_llm <- function(
     #message("Sending message to Azure GPT API.")
     retry <- FALSE
 
-    tictoc::tic()
+    if (log_request) tictoc::tic()
     response <- llm_fun(body, ...)
-    tictoc::toc()
+    if (log_request) tictoc::toc()
 
     if (httr::status_code(response) == 429) {
-      warning("Rate limit exceeded. Waiting before retrying.", immediate. = TRUE)
+      warning("Rate limit exceeded. Waiting before retrying.",
+              immediate. = TRUE)
 
       to_wait <- as.numeric(httr::headers(response)$`retry-after`)
-      message("Waiting for ", to_wait, " seconds.")
+      message("Waiting for ", to_wait, " seconds.\n...")
       Sys.sleep(to_wait)
+      message("Retrying...")
       retry <- TRUE
     }
   }
@@ -217,13 +226,15 @@ interrogate_llm <- function(
   # Return the response
   parsed <- httr::content(response, as = "parsed", encoding = "UTF-8")
 
-  with(parsed$usage,
-       paste(
-         "Prompt tokens:", prompt_tokens,
-         "\nResponse tokens:", completion_tokens,
-         "\nTotal tokens:", total_tokens
-       )
-  ) |> message()
+  if (log_request) {
+    with(parsed$usage,
+         paste(
+           "Prompt tokens:", prompt_tokens,
+           "\nResponse tokens:", completion_tokens,
+           "\nTotal tokens:", total_tokens
+         )
+    ) |> message()
+  }
 
   answer <- parsed$choices[[1]]
 
@@ -249,13 +260,13 @@ use_openai_llm <- function(
     body,
     model = getOption("minutemaker_openai_model_gpt"),
     api_key = getOption("minutemaker_openai_api_key")
-    ) {
+) {
 
   if (is.null(api_key) || is.null(model)) {
     stop("OpenAI GPT model and API key are not set. ",
-    "Use the following options to set them:\n",
-    "minutemaker_openai_model_gpt, ",
-    "minutemaker_open_api_key options.")
+         "Use the following options to set them:\n",
+         "minutemaker_openai_model_gpt, ",
+         "minutemaker_open_api_key options.")
   }
 
   body$model = model
@@ -296,7 +307,7 @@ use_azure_llm <- function(
     resource_name = getOption("minutemaker_azure_resource_gpt"),
     api_key = getOption("minutemaker_azure_api_key_gpt"),
     api_version = getOption("minutemaker_azure_api_version")
-    ) {
+) {
 
   if (is.null(resource_name) || is.null(deployment_id) ||
       is.null(api_key) || is.null(api_version)) {
@@ -340,7 +351,7 @@ use_local_llm <- function(
     body,
     endpoint = getOption("minutemaker_local_endpoint_gpt",
                          "http://localhost:1234/v1/chat/completions")
-    ) {
+) {
 
   if (is.null(endpoint)) {
     stop("Local endpoint is not set. ",
