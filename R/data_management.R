@@ -987,7 +987,7 @@ speech_to_summary_workflow <- function(
   if (
     stt_overwrite_output_files ||
     (is.character(stt_output_dir) &&
-     purrr::is_empty(list.files(stt_output_dir)))
+     length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir)))
   ) {
 
     message("\n### Performing speech to text...\n")
