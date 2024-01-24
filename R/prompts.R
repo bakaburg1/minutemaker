@@ -183,7 +183,7 @@ set_prompts <- function(
     if (is.null(current_prompt) || force) {
 
       # Raise a warning if the new prompt is different from the current one
-      if (!is.null(current_prompt) && current_prompt != prompt) {
+      if (!is.null(current_prompt) && !identical(current_prompt, prompt)) {
         warning("The prompt for '", prompt_name, "' is being overwritten.",
                 call. = FALSE, immediate. = TRUE)
       }
