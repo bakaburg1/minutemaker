@@ -224,9 +224,9 @@ extract_text_from_transcript <- function(
   if (
     is.null(agenda_element) && is.null(start_time) && is.null(end_time)
   ) {
-    durantion <- max(transcript_data$end) - min(transcript_data$start)
+    duration <- max(transcript_data$end) - min(transcript_data$start)
 
-    if (durantion > 3600) {
+    if (duration > 3600) {
       warning(
         "Summarising a transcript covering more than 1 hour may ",
         "result in a loss of details. ",
