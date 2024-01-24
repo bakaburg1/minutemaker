@@ -181,6 +181,13 @@ set_prompts <- function(
 
     # If the current prompt is NULL or 'force' is TRUE, set the prompt
     if (is.null(current_prompt) || force) {
+
+      # Raise a warning if the new prompt is different from the current one
+      if (!is.null(current_prompt) && current_prompt != prompt) {
+        warning("The prompt for '", prompt_name, "' is being overwritten.",
+                call. = FALSE, immediate. = TRUE)
+      }
+
       prompt |>
         list() |>
         setNames(opt_label) |>
