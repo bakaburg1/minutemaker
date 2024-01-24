@@ -9,7 +9,6 @@ summarise_full_meeting(
   agenda,
   method = c("simple", "rolling"),
   output_file = "event_summary.R",
-
   window_size = 15,
   output_length = 3,
   event_description = NULL,
@@ -19,7 +18,6 @@ summarise_full_meeting(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
-  
   overwrite = FALSE,
   ...
 )
