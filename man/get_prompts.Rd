@@ -13,9 +13,7 @@ get_prompts(which = NULL)
 A list containing the current prompts.
 }
 \description{
-
 This function returns the current prompts as a list. If no argument is
 provided, all the prompts are returned. If a vector of prompt names is
 provided, only the requested prompts are returned.
-
 }
