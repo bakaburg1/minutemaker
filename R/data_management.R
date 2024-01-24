@@ -238,6 +238,12 @@ extract_text_from_transcript <- function(
 
   # If an agenda element is provided, its start and end times are used
   if (!is.null(agenda_element)) {
+    if (!is.numeric(agenda_element$from) || !is.numeric(agenda_element$to)) {
+      stop("The agenda element must contain 'from' and 'to' ",
+      "fields in numeric format. Use convert_agenda_times() to convert ",
+      "the agenda element times to numeric format.")
+    }
+
     start_time <- agenda_element$from
     end_time <- agenda_element$to
   }
