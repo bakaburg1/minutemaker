@@ -359,6 +359,10 @@ summarise_full_meeting <- function(
     agenda <- dget(agenda)
   }
 
+  # Convert the agenda times to seconds if they are in "HH:MM(:SS)( AM/PM)"
+  # format
+  agenda <- convert_agenda_times(agenda)
+
   # Generate the output container if it doesn't exist
   if (!file.exists(output_file)) {
     result_tree <- list()

@@ -45,3 +45,16 @@ is_silent <- function(segments) {
 silent <- function(){
   "[...]"
 }
+
+#' Transform a time string to numeric
+#'
+#' @param time A time string in the "HH:MM(:SS)( AM/PM)", format.
+#'
+#' @return A numeric value representing the time.
+time_to_numeric <- function(time) {
+  if (is.numeric(time)) {
+    time
+  } else {
+    lubridate::parse_date_time(time, c("R", "T")) |> as.numeric()
+  }
+}

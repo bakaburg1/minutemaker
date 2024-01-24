@@ -319,6 +319,32 @@ build_ids_from_agenda <- function(agenda) {
   })
 }
 
+convert_agenda_times <- function(agenda, start_time = NULL) {
+
+  is_agenda_element <- any(c("from", "to") %in% names(agenda))
+
+  if (is_agenda_element && is.null(start_time)) {
+    stop("The start time must be provided when converting an agenda element.")
+  } else if (!is_agenda_element && is.null(start_time)) {
+    warning("No start time provided. Using the start time of the first agenda ",
+            "element.", call. = FALSE, immediate. = TRUE)
+    start_time <- agenda[[1]]$from |> time_to_numeric()
+  }
+
+  if (is_agenda_element) {
+    agenda$from <- agenda$from |> time_to_numeric() - start_time
+    agenda$to <- agenda$to |> time_to_numeric() - start_time
+  } else {
+    agenda <- purrr::map(agenda, ~ {
+      .x$from <- .x$from |> time_to_numeric() - start_time
+      .x$to <- .x$to |> time_to_numeric() - start_time
+      .x
+    })
+  }
+
+  agenda
+}
+
 #' Formats a summary tree into a human-readable text
 #'
 #' The summary functions returns a machine-readable summary tree. This function
