@@ -9,6 +9,7 @@ generate_recording_details(
   type = NULL,
   session = NULL,
   title = NULL,
+  description = NULL,
   speakers = NULL,
   moderators = NULL
 )
@@ -23,6 +24,8 @@ is provided, the other parameters are ignored.}
 \item{session}{The session in which the talk/meeting took place.}
 
 \item{title}{The title of the talk/meeting.}
+
+\item{description}{A description of the talk/meeting topic.}
 
 \item{speakers}{The main speakers of the talk/meeting as a vector.}
 

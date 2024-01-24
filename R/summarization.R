@@ -1,215 +1,3 @@
-#' Set the technical prompts that power the LLM model
-#'
-#' This function helps setting the prompts for the LLM that is tasked with
-#' summarising meetings and conference presentations. The prompts are set as
-#' options in the R environment. If `NULL` is passed as an argument, the default
-#' prompts are used.`
-#'
-#' @param base_task The base task of the AI secretary.
-#' @param transcript_template The template for the transcript.
-#' @param event_description_template The template for the event description.
-#' @param recording_details_template The template for the recording details.
-#' @param vocabulary_template The template for the vocabulary.
-#' @param diarization_template The template for the diarization instructions.
-#' @param diarization_instructions Default instructions for the diarization.
-#' @param audience_template The template for the audience.
-#' @param audience Description of the audience and the summary focus.
-#' @param summarisation_template The template for the summarisation
-#'   instructions.
-#' @param summarisation_sections The sections to include in the summary.
-#' @param output_template The template for the output instructions.
-#' @param output_instructions Instructions for the output, i.e., how to produce
-#'   and format the summary.
-#' @param force If TRUE, overwrite existing prompts.
-#'
-#' @return Nothing. The prompts are set as options in the R environment.
-#'
-#' @importFrom stats setNames
-#'
-#' @export
-#'
-set_prompts <- function(
-    base_task = NULL,
-    transcript_template = NULL,
-    event_description_template = NULL,
-    recording_details_template = NULL,
-    vocabulary_template = NULL,
-    diarization_template = NULL,
-    diarization_instructions = NULL,
-    audience_template = NULL,
-    audience = NULL,
-    summarisation_template = NULL,
-    summarisation_sections = NULL,
-    output_template = NULL,
-    output_instructions = NULL,
-
-    force = TRUE
-) {
-
-  # Get the arguments as a list
-  args <- as.list(environment())
-
-  # Remove the 'force' argument from the list
-  args$force <- NULL
-
-  # Define a function to collapse the prompt pieces into a single string
-  collapse <- purrr::partial(paste, sep = "\n")
-
-  defaults <- list(
-    base_task = collapse(
-      "You are an AI secretary, expert in summarising meetings and conference presentations.",
-      "Your task is to provide a summary of the transcripts that will be provided to you."
-    ),
-
-    event_description_template = collapse(
-      "The following is a description of the event, which will provide you with context.",
-      "<event_description>", "{event_description}", "</event_description>"
-    ),
-
-    recording_details_template = collapse(
-      "The following are the information on the recording:",
-      "<recording_details>",
-      "{recording_details}",
-      "</recording_details>"
-    ),
-
-    transcript_template = collapse(
-      "Here is the transcript:",
-      "<transcript>", "{transcript}", "</transcript>"
-    ),
-
-    vocabulary_template = "Mind that the transcript is not perfect and the following and other terms and names may have been wrongly transcribed: {vocabulary}. Use your knowledge to recognize and correct misspelled versions of these terms.",
-
-    diarization_template = collapse(
-      "<speaker_recognition_instructions>",
-      "Take into account that multiple speakers may be present in the transcript, each idenfitied by a specific (i.e., a name) or generic (e.g. Guest 1) label.",
-      "Keep into account that the diarization is never perfect, therefore the same speaker label may be wring, or the same speaker may be identified with different labels in different parts of the transcript.",
-      "{diarization_instructions}",
-      "</speaker_recognition_instructions>"
-      ),
-
-    diarization_instructions = "; if the speaker label is generic (e.g. Guest 1), try to infer the name from the context",
-
-    audience_template = "Your summary must focus on aspects relevant for an audience with the following characteristics:\n<audience>{audience}</audience>",
-
-    audience_instructions = "An audience with understanding of the topic",
-
-    summarisation_template = collapse(
-      "Your summary must include the following sections:",
-      "<summary_sections>",
-      "{summarisation_sections}",
-      "</summary_sections>"
-    ),
-
-    summarisation_sections = collapse(
-      "- Topic of the talk/meeting: Identify the main topic(s) discussed. Understanding the objective will guide you in determining which parts of the presentation are most crucial to include in your summary.",
-      "- Key points: Identify all possible key points/results/take home messages of the presentation/meeting. These are the main ideas that the speaker wants to convey to the audience.",
-      "- Questions and Discussions: If there were interventions from the audience, include key questions and answers or points of discussion. This often provides additional insight and clarifies any ambiguities in the presentation. Try to infer who asked the question from the transcript even if the name is not clearly mentioned.",
-      "- Conclusions: Summarize the main conclusions of the presentation/meeting. If the speaker doesn't mention the conclusions explicitly, try to infer them from the context of the presentation/meeting. List any discussed action points if mentioned during the presentation/meeting."
-    ),
-
-    output_template = collapse(
-      "The following instructions will guide you on how to write the summary. Be sure to adhere to them:",
-      "<output_instructions>",
-      "{output_instructions}",
-      "</output_instructions>",
-      "\nNow provide your summary."
-    ),
-
-    output_instructions = collapse(
-      "- When summarizing, aim to be concise but extremely comprehensive.",
-      "- Summarise only the information provided in the <transcript>, and use the <event_description> and <recording_details> to understand the context. Do not add any information that is not present in the transcript.",
-      "- Speak at the present tense when describing what was said during the talk/meeting.",
-      "- The summary must provide a clear and extremely information-dense representation of the transcript, without unnecessary details and formalisms.",
-      "- Avoid reporting circumstantial details, jokes, non-content related comments, etc.",
-      "- The summary must allow the reader to internalize most of the information of the original recording without reading the full transcript.",
-      "- Remember to maintain the original meaning and context of the presentation/discussion.",
-      "- Your summary must be two to three pages long."
-    )
-  )
-
-  # Walk through the names of the default prompts
-  purrr::walk(names(defaults), function(prompt_name) {
-    # Create the option label
-    opt_label <- paste0("minutemaker_prompt_", prompt_name)
-
-    # Get the current prompt. Cannot use get_prompts() since it would give
-    # errors if the option is not set yet
-    current_prompt <- getOption(opt_label)
-
-    # Get the prompt from the arguments
-    prompt <- args[[prompt_name]]
-
-    # If the prompt is NULL, use the default prompt
-    if (is.null(prompt)) {
-      prompt <- defaults[[prompt_name]]
-    }
-
-    # If the current prompt is NULL or 'force' is TRUE, set the prompt
-    if (is.null(current_prompt) || force) {
-      prompt |>
-        list() |>
-        setNames(opt_label) |>
-        options()
-    }
-  })
-}
-
-#' Get the current prompts
-#'
-#' This function returns the a set of prompts as a vector. If no prompts are
-#' requested, all the prompts are returned. If only one prompt is requested, it
-#' is returned as an unnamed vector.
-#'
-#' @param which A character vector of the prompts to return.
-#'
-#' @return A list containing the current prompts.
-#'
-#' @examples
-#'
-#' # Put the default prompts into the options if not done already
-#' set_prompts()
-#'
-#' # Get all the prompts names
-#' get_prompts() |> names()
-#'
-#' # Get one prompt
-#' get_prompts("base_task")
-#'
-#' # Get multiple prompts
-#' get_prompts(c("base_task", "event_description_template"))
-#'
-#' @export
-get_prompts <- function(which = NULL) {
-
-  # Get the names of the valid options
-  valid_options <- names(options()) |>
-    stringr::str_subset("minutemaker_prompt_") |>
-    stringr::str_remove("minutemaker_prompt_")
-
-  # Check if the requested prompts are valid
-  if (!is.null(which) && any(!which %in% valid_options)) {
-    stop("Invalid prompt name: ", which[!which %in% valid_options])
-  }
-
-  # If no prompts are requested, return all the prompts
-  if (is.null(which)) {
-    which <- valid_options
-  }
-
-  # Get the prompts
-  prompts <- purrr::map_chr(which, ~ {
-    getOption(paste0("minutemaker_prompt_", .x))
-  }) |> purrr::set_names(which)
-
-  # If only one prompt is requested, return it as an unnamed vector
-  if (length(which) == 1) {
-    prompts <- as.vector(prompts)
-  }
-
-  prompts
-
-}
 
 #' Generate Recording Details
 #'
@@ -224,6 +12,7 @@ get_prompts <- function(which = NULL) {
 #'   "workshop", "panel discussion", "conference welcome message", etc.
 #' @param session The session in which the talk/meeting took place.
 #' @param title The title of the talk/meeting.
+#' @param description A description of the talk/meeting topic.
 #' @param speakers The main speakers of the talk/meeting as a vector.
 #' @param moderators The moderators of the talk/meeting as a vector.
 #'
@@ -236,6 +25,7 @@ generate_recording_details <- function(
     type = NULL,
     session = NULL,
     title = NULL,
+    description = NULL,
     speakers = NULL,
     moderators = NULL
 ) {
@@ -245,12 +35,13 @@ generate_recording_details <- function(
     type <- agenda_element$type
     session <- agenda_element$session
     title <- agenda_element$title
+    description <- agenda_element$description
     speakers <- agenda_element$speakers
     moderators <- agenda_element$moderators
   }
 
   # Return NULL if all the arguments are NULL
-  if (is.null(type) && is.null(session) &&
+  if (is.null(type) && is.null(session) && is.null(description) &&
       is.null(title) && is.null(speakers) && is.null(moderators)) {
     return(NULL)
   }
@@ -269,6 +60,7 @@ generate_recording_details <- function(
     add_section(type, "Type (the type of this specific talk/meeting)"),
     add_section(session, "Session (the conference/larger meeting session in which this talk/meeting took place)"),
     add_section(title, "Title (the title of the talk/meeting)"),
+    add_section(description, "Description (a description of the talk/meeting topic)"),
     add_section(speakers, "Speakers (the main speakers of this talk/meeting)"),
     add_section(moderators, "Moderators (the moderators of this talk/meeting)")
   ) |> trimws()
@@ -283,8 +75,20 @@ generate_recording_details <- function(
 #' `transcript` are optional, and if not provided they will be ignored in the
 #' final prompt.
 #'
-#' @param transcript A character vector representing the transcript to be
-#'   summarised.
+#' @param transcript_data A character vector or a data frame representing the
+#'   transcript to be summarised. A data frame transcript with start and end
+#'   segment times is necessary if the "rolling window" method is used.
+#' @param method The method to use to summarise the transcript. Can be either
+#'   "simple" or "rolling", with the first being faster and the second
+#'   (theoritically) more accurate. If "rolling", the transcript is split into
+#'   segments of `window_size` minutes and each segment is summarised separately
+#'   and then aggregated in one summary. If "simple", the whole transcript is
+#'   summarised in one go. Default is "rolling".
+#' @param window_size The size of the window in minutes to use when summarising
+#'   the transcript using the rolling window method. Default is 15.
+#' @param output_length An indication to the LLM regarding the length of the
+#'   output. Mind that the LLM will not respect this indication precisely, but
+#'   this parameter will impact the length of the output. Default is 3 (pages).
 #' @param event_description A description of the event.
 #' @param recording_details Details on the specific recording. We suggest using
 #'   `generate_recording_details` to generate this string.
@@ -295,16 +99,16 @@ generate_recording_details <- function(
 #' @param consider_diarization A logical indicating whether the summarisation
 #'   should take into account the diarization (e.g. the speakers) of the
 #'   transcript. Default is TRUE
-#' @param summarisation_sections A character vector of the sections to include
-#'   in the summary. See `get_prompts("summarisation_sections")` for the
-#'   defaults.
-#' @param diarization_instructions Diarization instructions, e.g., "Do not
+#' @param summary_structure The expected structure of the summary. Run
+#'   get_prompts("summary_structure") to see the default structure.
+#' @param extra_diarization_instructions Diarization instructions, e.g., "Do not
 #'   report the name of the speaker", "Use only the second name of the speaker",
-#'   etc... See get_prompts("diarization_instructions") for the default
-#'   instructions.
-#' @param output_instructions Instructions for the output, i.e., how to produce
-#'   and format the summary. See get_prompts("output_instructions") for the
-#'   defaults.
+#'   etc... These instructions will be added to the defaults, which can be
+#'   visualized using get_prompts("diarization_template").
+#' @param extra_output_instructions Additional instruction to tune the output of
+#'   the summarisation. These instructions will be added to the
+#'   get_prompts("output_summarisation") or
+#'   get_prompts("output_rolling_aggregation") prompts depending on the task.
 #' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
 #'   interrogated. Default is FALSE.
 #' @param ... Additional arguments passed to the `interrogate_llm` function,
@@ -315,99 +119,174 @@ generate_recording_details <- function(
 #' @export
 #'
 summarise_transcript <- function(
-    transcript,
+    transcript_data,
+    method = c("simple", "rolling"),
+    window_size = 15,
+    output_length = 3,
     event_description = NULL,
     recording_details = NULL,
-    audience = NULL,
+    audience = "An audience with understanding of the topic",
     vocabulary = NULL,
     consider_diarization = TRUE,
 
-    summarisation_sections = NULL,
-    diarization_instructions = NULL,
-    output_instructions = NULL,
+    summary_structure = get_prompts("summary_structure"),
+    extra_diarization_instructions = NULL,
+    extra_output_instructions = NULL,
 
     prompt_only = FALSE,
     ...
 ) {
 
-  transcript <- paste(transcript, collapse = "\n")
+  method <- match.arg(method)
 
+  args <- as.list(environment())
 
   # Set the default prompts if not already set
   set_prompts()
 
-  # Check if the arguments are NULL and if so, get the prompts
-  if (is.null(diarization_instructions)) {
-    diarization_instructions <- get_prompts("diarization_instructions")
+  # Revert to simple summarisation if the transcript argument is not of the
+  # correct type
+  if (method == "rolling" &&
+      (is.data.frame(transcript_data) && !"start" %in% names(transcript_data)) ||
+      (!is.data.frame(transcript_data) && length(transcript_data) == 1)
+  ) {
+    stop(
+      "To apply the \"rolling window\" method, the `transcript_data` argument ",
+      "must be a transcript data frame with segments' start times or ",
+      "a list of transcript data frames, or a vector of transcript text."
+    )
+
   }
 
-  if (is.null(output_instructions)) {
-    output_instructions <- get_prompts("output_instructions")
+  if (method == "simple" && !is.data.frame(transcript_data) &&
+      length(transcript_data) > 1) {
+    stop(
+      "To apply the \"simple\" summarisation method, ",
+      "the `transcript_data` argument ",
+      "must be a transcript data frame or a single transcript text."
+    )
   }
 
-  if (is.null(summarisation_sections)) {
-    summarisation_sections <- get_prompts("summarisation_sections")
+  if (method == "rolling" && is.data.frame(transcript_data)) {
+
+    # window_size is in minutes, convert to seconds
+    window_size <- window_size * 60
+
+    transcript_duration <- diff(range(transcript_data$start))
+
+    # Only apply the rolling window method if the transcript is longer than
+    # 1.5 * window_size
+    if (transcript_duration > 1.5 * window_size) {
+      # Generate the breakpoints
+      breakpoints <- seq(
+        transcript_data$start[1], max(transcript_data$start), by = window_size)
+
+      last_segment <- max(transcript_data$start) - tail(breakpoints, n=1)
+
+      # Adjust if the last segment is less than window_size / 2 seconds
+      if (last_segment < (window_size / 2)) {
+        breakpoints <- utils::head(breakpoints, -1)
+      }
+
+      # Add the stopping point
+      breakpoints <- c(breakpoints, max(transcript_data$start))
+
+      # Split the array using the breakpoints
+      transcript_data <- seq_along(breakpoints) |> utils::head(-1) |>
+        purrr::map(\(bp) {
+          transcript_data |>
+            dplyr::filter(
+              .data$start >= breakpoints[bp],
+              .data$start < breakpoints[bp+1])
+        })
+
+    } else {
+      warning(
+        "The transcript is too short (< 1.5 * window_size) ",
+        "to apply the \"rolling window method\". ",
+        "\nReverting to the \"simple\" summarisation method.",
+        call. = FALSE, immediate. = TRUE
+      )
+
+      method <- "simple"
+    }
   }
 
-  if (is.null(audience)) {
-    audience <- get_prompts("audience")
+  # Enclose single transcript data frames in a list
+  if (is.data.frame(transcript_data)) {
+    transcript_data <- list(transcript_data)
   }
 
-  # Build the prompt
-  prompt <- paste(
-    get_prompts("base_task"),
+  # Generate the summarisation prompts
+  prompts <- purrr::imap_chr(transcript_data, \(transcript, i) {
 
-    if (!is.null(event_description)) {
-      get_prompts("event_description_template")
-    },
+    # Convert the transcript to text if it is a data frame
+    if (is.data.frame(transcript)) {
+      transcript <- extract_text_from_transcript(
+        transcript,
+        import_diarization = consider_diarization)
+    }
 
-    #  Uses the {recording_details} as generated by generate_recording_details()
-    if (!is.null(recording_details)) {
-      get_prompts("recording_details_template")
-    },
+    args <- args[
+      c("event_description", "recording_details", "audience", "vocabulary",
+        "consider_diarization", "summary_structure",
+        "extra_diarization_instructions", "extra_output_instructions")
+    ]
 
-    # Uses the {transcript} argument
-    get_prompts("transcript_template"),
-
-    if (!is.null(vocabulary)) {
-      vocabulary <- stringr::str_flatten_comma(vocabulary)
-      get_prompts("vocabulary_template")
-    },
-
-    # Uses the {summarisation_sections} argument
-    if (!is.null(summarisation_sections)) {
-      get_prompts("summarisation_template")
-    },
-
-    # Uses the {diarization_instructions} argument
-    if (consider_diarization && !is.null(diarization_instructions)) {
-      get_prompts("diarization_template")
-    },
-
-    # Uses the {audience} argument
-    if (!is.null(audience)) {
-      audience <- stringr::str_flatten_comma(audience)
-      get_prompts("audience_template")
-    },
-
-    # Uses the {output_instructions} argument
-    if (!is.null(output_instructions)) {
-      get_prompts("output_template")
-    },
-
-    sep = "\n\n"
-  ) |>
-    stringr::str_replace_all("\n\n+", "\n\n") |> # remove multiple newlines
-    stringr::str_glue(.null = NULL) # leaving .null default produces character(0) if any of the {vars} is NULL
+    # Generate the prompt
+    generate_summarisation_prompt(
+      transcript,
+      args = args
+    )
+  })
 
   if (prompt_only) {
-    return(prompt)
+    return(prompts)
   }
 
+  # Generate the summaries
+  summaries <- purrr::imap(prompts, \(prompt, i) {
+    if (method == "rolling") {
+      message("Processing transcript segment", i,
+              " of ", length(transcript_data))
+    }
+
+    # Interrogate the LLM
+    interrogate_llm(
+      c(
+        system = get_prompts("persona"),
+        user = prompt),
+      ...
+    )
+
+  })
+
+  # Return the summaries if there is only one
+  if (length(summaries) == 1) {
+    return(summaries[[1]])
+  }
+
+  # If the method is "rolling", aggregate the summaries
+  message("\nAggregating summaries")
+
+  args <- args[
+    c("event_description", "recording_details", "audience",
+       "summary_structure", "extra_output_instructions")
+  ]
+
+  # Aggregate the summaries
+  aggregation_prompt <- generate_rolling_aggregation_prompt(
+    summaries,
+    args = args
+  )
+
   interrogate_llm(
-    c(user = prompt),
+    c(
+      system = get_prompts("persona"),
+      user = aggregation_prompt),
     ...
   )
+
 }
 
 #' Summarise a full meeting
@@ -422,8 +301,16 @@ summarise_transcript <- function(
 #'   each with a session name, a title, speaker and moderator lists, type of
 #'   talk and start and end times. Alternatively, the path to an R file
 #'   containing such a list.
+#' @param method The method to use to summarise the transcript. Can be either
+#'   "simple" or "rolling", with the first being faster and the second
+#'   (theoritically) more accurate. See `summarise_transcript` for more details.
 #' @param output_file The file to save the results to as a list. Default is
 #'   "event_summary.R".
+#' @param window_size The size of the window in minutes to use when summarising
+#'   the transcript using the "rolling window" method. See
+#'   `summarise_transcript` for more details.
+#' @param output_length An indication to the LLM regarding the length of the
+#'   output. See `summarise_transcript` for more details.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
 #' @param event_audience The audience of the event See `summarise_transcript`
@@ -433,10 +320,10 @@ summarise_transcript <- function(
 #' @param consider_diarization Whether to take into account the diarization of
 #'   the transcript. Default is TRUE See `summarise_transcript` for more
 #'   details.
-#' @param summarisation_sections,diarization_instructions,output_instructions
+#' @param summary_structure,extra_diarization_instructions,extra_output_instructions
 #'   Specific instructions necessary to build the summarisation prompt. See
 #'   `summarise_transcript` for more details and run `get_prompts()` to see the
-#'   defaults.
+#'   defaults. See `summarise_transcript` for more details.
 #' @param overwrite Whether to overwrite existing summaries. Default is FALSE.
 #' @param ... Additional arguments passed to `interrogate_llm` function, such as
 #'   the LLM provider.
@@ -448,16 +335,20 @@ summarise_transcript <- function(
 summarise_full_meeting <- function(
     transcript_data,
     agenda,
+    method = c("simple", "rolling"),
     output_file = "event_summary.R",
 
+    window_size = 15,
+    output_length = 3,
+
     event_description = NULL,
-    event_audience = NULL,
+    event_audience = "An audience with understanding of the topic",
     vocabulary = NULL,
     consider_diarization = TRUE,
 
-    summarisation_sections = NULL,
-    diarization_instructions = NULL,
-    output_instructions = NULL,
+    summary_structure = get_prompts("summary_structure"),
+    extra_diarization_instructions = NULL,
+    extra_output_instructions = NULL,
 
     overwrite = FALSE,
     ...
@@ -505,26 +396,32 @@ summarise_full_meeting <- function(
       next
     }
 
-    # Extract the transcript of the talk
-    transcript_text <- extract_text_from_transcript(
-      transcript_data,
-      agenda_element = agenda_element
-    )
+    # Extract the talk from the transcript
+    transcript_subset <- transcript_data |>
+      dplyr::filter(
+        .data$start >= agenda_element$from,
+        .data$start <= agenda_element$to)
 
     # Extract the details of the talk
     recording_details <- generate_recording_details(agenda_element)
 
     # Extract the vocabulary of the talk
     talk_summary <- summarise_transcript(
-      transcript = transcript_text,
+      transcript_data = transcript_subset,
+
+      method = method,
+      window_size = window_size,
+      output_length = output_length,
+
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
       audience = event_audience,
+      consider_diarization = consider_diarization,
 
-      summarisation_sections = summarisation_sections,
-      diarization_instructions = diarization_instructions,
-      output_instructions = output_instructions,
+      summary_structure = summary_structure,
+      extra_diarization_instructions = extra_diarization_instructions,
+      extra_output_instructions = extra_output_instructions,
       ...
     )
 

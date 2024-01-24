@@ -5,22 +5,42 @@
 \title{Summarise a recording transcript}
 \usage{
 summarise_transcript(
-  transcript,
+  transcript_data,
+  method = c("simple", "rolling"),
+  window_size = 15,
+  output_length = 3,
   event_description = NULL,
   recording_details = NULL,
-  audience = NULL,
+
+  audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
-  summarisation_sections = NULL,
-  diarization_instructions = NULL,
-  output_instructions = NULL,
+  summary_structure = get_prompts("summary_structure"),
+  extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
+
   prompt_only = FALSE,
   ...
 )
 }
 \arguments{
-\item{transcript}{A character vector representing the transcript to be
-summarised.}
+\item{transcript_data}{A character vector or a data frame representing the
+transcript to be summarised. A data frame transcript with start and end
+segment times is necessary if the "rolling window" method is used.}
+
+\item{method}{The method to use to summarise the transcript. Can be either
+"simple" or "rolling", with the first being faster and the second
+(theoritically) more accurate. If "rolling", the transcript is split into
+segments of \code{window_size} minutes and each segment is summarised separately
+and then aggregated in one summary. If "simple", the whole transcript is
+summarised in one go. Default is "rolling".}
+
+\item{window_size}{The size of the window in minutes to use when summarising
+the transcript using the rolling window method. Default is 15.}
+
+\item{output_length}{An indication to the LLM regarding the length of the
+output. Mind that the LLM will not respect this indication precisely, but
+this parameter will impact the length of the output. Default is 3 (pages).}
 
 \item{event_description}{A description of the event.}
 
@@ -37,18 +57,18 @@ definitions, to help the LLM recognise misspellings and abbreviations.}
 should take into account the diarization (e.g. the speakers) of the
 transcript. Default is TRUE}
 
-\item{summarisation_sections}{A character vector of the sections to include
-in the summary. See \code{get_prompts("summarisation_sections")} for the
-defaults.}
+\item{summary_structure}{The expected structure of the summary. Run
+get_prompts("summary_structure") to see the default structure.}
 
-\item{diarization_instructions}{Diarization instructions, e.g., "Do not
+\item{extra_diarization_instructions}{Diarization instructions, e.g., "Do not
 report the name of the speaker", "Use only the second name of the speaker",
-etc... See get_prompts("diarization_instructions") for the default
-instructions.}
+etc... These instructions will be added to the defaults, which can be
+visualized using get_prompts("diarization_template").}
 
-\item{output_instructions}{Instructions for the output, i.e., how to produce
-and format the summary. See get_prompts("output_instructions") for the
-defaults.}
+\item{extra_output_instructions}{Additional instruction to tune the output of
+the summarisation. These instructions will be added to the
+get_prompts("output_summarisation") or
+get_prompts("output_rolling_aggregation") prompts depending on the task.}
 
 \item{prompt_only}{If TRUE, only the prompt is returned, the LLM is not
 interrogated. Default is FALSE.}

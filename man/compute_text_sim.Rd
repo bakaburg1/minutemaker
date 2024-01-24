@@ -22,9 +22,11 @@ This function calculates the cosine similarity scores between one text
 by a GloVe model.
 }
 \examples{
+\dontrun{
 x_text <- "Sample source text."
 y_texts <- c("Comparative text one.", "Comparative text two.")
-word_vectors <- generate_model(c(x_text, y_texts))
+word_vectors <- generate_glove_model(c(x_text, y_texts))
 similarities <- compute_text_sim(x_text, y_texts, word_vectors)
+}
 
 }

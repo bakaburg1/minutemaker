@@ -6,20 +6,24 @@
 \usage{
 split_audio(
   audio_file,
-  segment_duration = 60,
+  segment_duration = 40,
   output_folder = file.path(dirname(audio_file), "recording_parts")
 )
 }
 \arguments{
 \item{audio_file}{The path to the audio file to split.}
 
-\item{segment_duration}{The duration of each segment in minutes.}
+\item{segment_duration}{The duration of each splitted audio file in minutes.
+20 minutes equate to more or less 7-8 MB.}
 
-\item{output_folder}{The folder to save the segments in.}
+\item{output_folder}{The path to the folder where to save the segments in.}
 }
 \value{
 Nothing, but saves the segments to files.
 }
 \description{
-Split an audio file into segments of a specified duration
+Some speech-to-text models have a limit on the size of the audio file. For
+example, the "Whisper" based models have a limit of 25 MB. This function
+splits an audio file into segments of a specified duration and saves them as
+mp3 files.
 }

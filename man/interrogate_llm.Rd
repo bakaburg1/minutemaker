@@ -9,6 +9,7 @@ interrogate_llm(
   provider = c("openai", "azure", "local"),
   params = list(temperature = 0),
   force_json = FALSE,
+  log_request = getOption("minutemaker_log_requests", TRUE),
   ...
 )
 }
@@ -23,6 +24,9 @@ to a list with \code{temperature = 0}.}
 
 \item{force_json}{A boolean to force the response in JSON format. Default is
 FALSE. Works only for OpenAI and Azure endpoints.}
+
+\item{log_request}{A boolean to log the request time. Can be set up globally
+using the \code{minutemaker_log_requests} option, which defaults to TRUE.}
 
 \item{...}{Additional arguments passed to the language model provider
 functions.}
