@@ -228,7 +228,10 @@ agenda <- list(
   list(
     session = "Session 1",
     title = "Opening",
+    
+    # Information to provide context to the summarization process
     type = "Conference introduction",
+    description = "A description of the topic"
     
     # The start and end time of a talk in seconds
     from = 0,
@@ -242,6 +245,7 @@ agenda <- list(
     session = "Session 1",
     title = "Presentation 1",
     type = "conference presentation",
+    description = "This presentation is about this and that."
     from = 334,
     to = 600,
     speakers = c("Speaker 3"),
