@@ -166,7 +166,22 @@ transcript <- perform_speech_to_text(
   # details.
 )
 
-# Optionally, you can save the transcript to a file
+# In alternative, the transcript data frame can be generated at will using the
+# parse_transcript_json() function and the folder where the trascription outputs
+# are stored.
+transcript <- parse_transcript_json("transcription_output_data")
+
+This allows you also to pass in the starting time of the event in
+# the HH:MM(:SS)( AM/PM) format which allows to compute the timing of the speech
+# segment in real clock time.
+# The event start time can be set globally using the
+# minutemaker_event_start_time option
+transcript_with_clocktime <- parse_transcript_json(
+  "transcription_output_data",
+  clock_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
+)
+
+# Then, you can save the transcript to a file
 readr::write_csv(transcript, file.path(work_dir, day, "transcript.csv"))
 ```
 

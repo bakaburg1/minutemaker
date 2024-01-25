@@ -19,6 +19,7 @@ speech_to_summary_workflow(
   extra_stt_args = NULL,
   stt_overwrite_output_files = FALSE,
   transcript_file = file.path(target_dir, "transcript.csv"),
+  clock_start_time = getOption("minutemaker_event_start_time"),
   overwrite_transcript = FALSE,
   transcript_to_merge = list.files(target_dir, pattern = "\\\\.(vtt|srt)", full.names =
     T)[1],
@@ -95,6 +96,11 @@ exist. See \code{perform_speech_to_text} for more details.}
 
 \item{transcript_file}{A path to the output file where the transcript will be
 written.}
+
+\item{clock_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
+format. Will be used to add the actual clock time to the transcript
+segments. If NULL, the clock time will not be added. See
+parse_transcript_json()` for more details.}
 
 \item{overwrite_transcript}{A boolean indicating whether the transcript
 output file should be overwritten if it already exists.}

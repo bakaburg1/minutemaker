@@ -10,13 +10,17 @@
 #' @param pretty_times A boolean indicating whether the start and end times
 #'   should be also formatted as hours-seconds-minutes instead of cumulative
 #'   seconds.
+#' @param clock_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Will be used to add the actual clock time to the transcript
+#'   segments. If NULL, the clock time will not be added.
 #'
 #' @return A data frame with the text and start and end time of each segment.
 #'
 #' @export
 parse_transcript_json <- function(
     transcript_json,
-    pretty_times = TRUE
+    pretty_times = TRUE,
+    clock_start_time = getOption("minutemaker_event_start_time")
 ) {
 
   json_files <- NA
@@ -105,6 +109,23 @@ parse_transcript_json <- function(
   }
 
   full_transcript <- clean_transcript(full_transcript)
+
+  if (!is.null(clock_start_time)) {
+    clock_start_time <- lubridate::parse_date_time(
+      clock_start_time, c("R", "T"))
+
+    if (is.na(clock_start_time)) {
+      stop("Start time not interpretable. Use the HH:MM(:SS)( AM/PM) format.")
+    }
+
+    full_transcript <- full_transcript |>
+      mutate(
+        across(
+          any_of(c("start", "end")),
+          ~ (clock_start_time + lubridate::seconds(.x)) |> format("%T"),
+          .names = "{.col}_clock")
+      )
+  }
 
   if (pretty_times) {
     full_transcript <- full_transcript |>
@@ -863,6 +884,10 @@ add_chat_transcript <- function(
 #'   generate the chat file. See `add_chat_transcript` for more details.
 #' @param transcript_file A path to the output file where the transcript will be
 #'   written.
+#' @param clock_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Will be used to add the actual clock time to the transcript
+#'   segments. If NULL, the clock time will not be added. See
+#'   parse_transcript_json()` for more details.
 #' @param overwrite_transcript A boolean indicating whether the transcript
 #'   output file should be overwritten if it already exists.
 #' @param agenda A list containing the agenda items or a path to an R file
@@ -931,6 +956,7 @@ speech_to_summary_workflow <- function(
 
   # Arguments for `parse_transcript_json`
   transcript_file = file.path(target_dir, "transcript.csv"),
+  clock_start_time = getOption("minutemaker_event_start_time"),
   overwrite_transcript = FALSE,
 
   # Arguments for `merge_transcripts`
@@ -1052,7 +1078,10 @@ speech_to_summary_workflow <- function(
   # Check if the transcript file doesn't exists or overwrite is TRUE
   if (overwrite_transcript || !file.exists(transcript_file)) {
 
-    transcript_data <- parse_transcript_json(stt_output_dir)
+    # Generate the trascript from the json output data
+    transcript_data <- parse_transcript_json(
+      stt_output_dir,
+      clock_start_time = clock_start_time)
 
     # Merge transcripts
     if (!is.null(transcript_to_merge)) {
