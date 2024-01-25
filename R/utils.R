@@ -46,6 +46,21 @@ silent <- function(){
   "[...]"
 }
 
+#' Parse time if it is a string
+#'
+#' @param time A time string in the "HH:MM(:SS)( AM/PM)", format.
+#' @param format A character vector of formats to try.
+#'
+#' @return A POSIXct value representing the time or the original value if it is
+#'   numeric.
+parse_event_time <- function(time, format = c("R", "T")) {
+  if (is.numeric(time)) {
+    time
+  } else {
+    lubridate::parse_date_time(time, format)
+  }
+}
+
 #' Transform a time string to numeric
 #'
 #' @param time A time string in the "HH:MM(:SS)( AM/PM)", format.
@@ -55,6 +70,6 @@ time_to_numeric <- function(time) {
   if (is.numeric(time)) {
     time
   } else {
-    lubridate::parse_date_time(time, c("R", "T")) |> as.numeric()
+    parse_event_time(time) |> as.numeric()
   }
 }
