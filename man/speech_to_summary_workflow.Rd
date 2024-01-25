@@ -19,13 +19,12 @@ speech_to_summary_workflow(
   extra_stt_args = NULL,
   stt_overwrite_output_files = FALSE,
   transcript_file = file.path(target_dir, "transcript.csv"),
-  clock_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker_event_start_time"),
   overwrite_transcript = FALSE,
   transcript_to_merge = list.files(target_dir, pattern = "\\\\.(vtt|srt)", full.names =
     T)[1],
   import_diarization_on_merge = TRUE,
   chat_file = list.files(target_dir, pattern = "Chat", full.names = T)[1],
-  chat_start_time = NULL,
   chat_format = "webex",
   agenda = file.path(target_dir, "agenda.R"),
   event_description = NULL,
@@ -97,10 +96,10 @@ exist. See \code{perform_speech_to_text} for more details.}
 \item{transcript_file}{A path to the output file where the transcript will be
 written.}
 
-\item{clock_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
+\item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
 format. Will be used to add the actual clock time to the transcript
 segments. If NULL, the clock time will not be added. See
-parse_transcript_json()` for more details.}
+\code{parse_transcript_json()} for more details.}
 
 \item{overwrite_transcript}{A boolean indicating whether the transcript
 output file should be overwritten if it already exists.}
@@ -118,11 +117,8 @@ should be imported from the transcript to be merged, if present. See
 \item{chat_file}{A string with the path to a file containing the chat data.
 It will be picked up automatically if a file with "Chat" in its name is
 available in the target directory. Pass NULL to disable the automatic chat
-file importation. See \code{add_chat_transcript} for more details.}
-
-\item{chat_start_time}{The start time of the meeting. A string in the format
-"HH:MM AM/PM" or "HH:MM:SS". Cannot be NULL if a chat file is provided. See
-\code{add_chat_transcript} for more details.}
+file importation. See \code{add_chat_transcript} for more details. Note that
+\code{event_start_time} must be set if \code{chat_file} is not NULL.}
 
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}

@@ -6,7 +6,7 @@
 \usage{
 convert_agenda_times(
   agenda,
-  clock_start_time = getOption("minutemaker_event_start_time")
+  event_start_time = getOption("minutemaker_event_start_time")
 )
 }
 \arguments{
@@ -14,7 +14,7 @@ convert_agenda_times(
 each with a session name, a title, speaker and moderator lists, type of
 talk and start and end times. Alternatively, an agenda element directly.}
 
-\item{clock_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
+\item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
 format. Will be used to compute the time lapse in seconds from the start of
 the event. If \code{NULL}, defaults to the start time of the first element in
 the agenda, with a warning. Cannot be \code{NULL} if agenda is actually an
