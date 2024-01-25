@@ -375,10 +375,21 @@ convert_agenda_times <- function(
   if (is_agenda_element) {
     agenda$from <- agenda$from |> time_to_numeric() - clock_start_time
     agenda$to <- agenda$to |> time_to_numeric() - clock_start_time
+
+    if (agenda$from > agenda$to) {
+      stop("Agenda element times are not consistent. ",
+           "from: ", agenda$from,
+           "to: ", agenda$to)
+    }
   } else {
     agenda <- purrr::imap(agenda, ~ {
       .x$from <- .x$from |> time_to_numeric() - clock_start_time
       .x$to <- .x$to |> time_to_numeric() - clock_start_time
+
+      stop("Agenda element ", .y, " times are not consistent. ",
+           "from: ", .x$from,
+           "to: ", .x$to)
+
       .x
     })
   }
@@ -511,6 +522,14 @@ validate_agenda_element <- function(
   is_valid <- purrr::imap_lgl(args, ~ {
     !is.null(agenda_element[[.y]]) || isFALSE(.x)
   }) |> all()
+
+  if (isTRUE(from) && isTRUE(to)) {
+    if (agenda_element$from > agenda_element$to) {
+      stop("Agenda element times are not consistent. ",
+           "from: ", agenda_element$from,
+           "to: ", agenda_element$to)
+    }
+  }
 
   # Return the validation result
   is_valid
