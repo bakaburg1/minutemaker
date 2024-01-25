@@ -127,8 +127,10 @@ file importation. See \code{add_chat_transcript} for more details.}
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}
 
-\item{agenda}{A list containing the agenda items or a path to an R file
-containing such list. See \code{summarise_full_meeting} for more details.}
+\item{agenda}{The agenda of the meeting, that is, a list of agenda elements
+each with a session name, a title, speaker and moderator lists, type of
+talk and start and end times. Alternatively, the path to an R file
+containing such a list. See \code{summarise_full_meeting} for more details.}
 
 \item{event_description}{A string containing a description of the meeting.
 See \code{summarise_transcript} for more details.}

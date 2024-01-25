@@ -259,7 +259,8 @@ agenda <- list(
     type = "Conference introduction",
     description = "A description of the topic"
     
-    # The start and end time of a talk in seconds
+    # The start and end time of a talk in seconds from the beginning of the
+    # event
     from = 0,
     to = 334,
     
@@ -274,6 +275,21 @@ agenda <- list(
     description = "This presentation is about this and that."
     from = 334,
     to = 600,
+    speakers = c("Speaker 3"),
+    moderators = "Moderator name",
+  )
+)
+
+# Alternatively, actual clock times can be used, according to the HH:MM(:SS)(
+# AM/PM) format
+list(
+  list(
+    session = "Session 1",
+    title = "Presentation 1",
+    type = "conference presentation",
+    description = "This presentation is about this and that."
+    from = "10:10",
+    to = "10:50",
     speakers = c("Speaker 3"),
     moderators = "Moderator name",
   )

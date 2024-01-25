@@ -487,7 +487,7 @@ format_summary_tree <- function(
 
 #' Validates an agenda element
 #'
-#' @param agenda_element A list containing the agenda element.
+#' @param agenda_element A list containing the agenda elements.
 #' @param session A boolean indicating whether the `session` item should be
 #'   present.
 #' @param title A boolean indicating whether the `title` item should be present.
@@ -929,8 +929,10 @@ add_chat_transcript <- function(
 #'   parse_transcript_json()` for more details.
 #' @param overwrite_transcript A boolean indicating whether the transcript
 #'   output file should be overwritten if it already exists.
-#' @param agenda A list containing the agenda items or a path to an R file
-#'   containing such list. See `summarise_full_meeting` for more details.
+#' @param agenda The agenda of the meeting, that is, a list of agenda elements
+#'   each with a session name, a title, speaker and moderator lists, type of
+#'   talk and start and end times. Alternatively, the path to an R file
+#'   containing such a list. See `summarise_full_meeting` for more details.
 #' @param summarization_method A string indicating the summarization method to
 #'   use. See `summarise_full_meeting` for more details.
 #' @param event_description A string containing a description of the meeting.
