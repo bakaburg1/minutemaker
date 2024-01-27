@@ -4,13 +4,17 @@
 \alias{time_to_numeric}
 \title{Transform a time string to numeric}
 \usage{
-time_to_numeric(time)
+time_to_numeric(time, origin = NULL)
 }
 \arguments{
-\item{time}{A time string in the "HH:MM(:SS)( AM/PM)", format.}
+\item{time}{A time string in the "HH:MM(:SS)( AM/PM)" format, a POSIXct
+object, or a number (i.e., of seconds).}
+
+\item{origin}{Same format as \code{time}; if provided, used to compute the
+difference in seconds from \code{time}.}
 }
 \value{
-A numeric value representing the time.
+A numeric value representing the difference in seconds from \code{origin}.
 }
 \description{
 Transform a time string to numeric

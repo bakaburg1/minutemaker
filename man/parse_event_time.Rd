@@ -12,8 +12,7 @@ parse_event_time(time, format = c("R", "T"))
 \item{format}{A character vector of formats to try.}
 }
 \value{
-A POSIXct value representing the time or the original value if it is
-numeric.
+A POSIXct value representing the time.
 }
 \description{
 Parse time if it is a string

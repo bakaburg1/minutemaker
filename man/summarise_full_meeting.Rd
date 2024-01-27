@@ -11,6 +11,7 @@ summarise_full_meeting(
   output_file = "event_summary.R",
   window_size = 15,
   output_length = 3,
+  event_start_time = getOption("minutemaker_event_start_time"),
   event_description = NULL,
   event_audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -43,6 +44,10 @@ the transcript using the "rolling window" method. See
 
 \item{output_length}{An indication to the LLM regarding the length of the
 output. See \code{summarise_transcript} for more details.}
+
+\item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
+format. Necessary to convert the agenda times to seconds if the first event
+time is not the start time of the event.}
 
 \item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}

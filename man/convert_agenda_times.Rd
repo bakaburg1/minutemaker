@@ -2,11 +2,13 @@
 % Please edit documentation in R/data_management.R
 \name{convert_agenda_times}
 \alias{convert_agenda_times}
-\title{Convert agenda clock time to seconds from start}
+\title{Convert agenda clock time to seconds from start and vice versa}
 \usage{
 convert_agenda_times(
   agenda,
-  event_start_time = getOption("minutemaker_event_start_time")
+  convert_to = c("seconds", "clocktime"),
+  event_start_time = getOption("minutemaker_event_start_time"),
+  conversion_format = "\%T"
 )
 }
 \arguments{
@@ -14,11 +16,18 @@ convert_agenda_times(
 each with a session name, a title, speaker and moderator lists, type of
 talk and start and end times. Alternatively, an agenda element directly.}
 
+\item{convert_to}{A string indicating whether to convert the times to seconds
+from the start or to clock time. Conversion to seconds will happen only if
+the times are in clock time format, and vice versa.}
+
 \item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
-format. Will be used to compute the time lapse in seconds from the start of
-the event. If \code{NULL}, defaults to the start time of the first element in
-the agenda, with a warning. Cannot be \code{NULL} if agenda is actually an
-agenda element.}
+format or a POSIXct object. Will be used to convert event times to seconds
+from the start. If \code{NULL}, defaults to the start time of the first element
+in the agenda, with a warning.}
+
+\item{conversion_format}{The format to use when converting to clock time.
+E.g., \%T for HH:MM:SS, or \%R for HH:MM, etc... See \code{?strptime} for a list
+of supported formats.}
 }
 \value{
 The agenda (or agenda element) with all the times in seconds from the
@@ -26,6 +35,6 @@ start.
 }
 \description{
 Users can provide events' times in the agenda following the HH:MM(:SS)(
-AM/PM) format, but then most function require it as seconds from the start to
-match events to the transcript
+AM/PM) format or as number of seconds from the start of the event. This
+function converts the times to the other format.
 }
