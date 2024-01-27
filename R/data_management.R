@@ -260,8 +260,8 @@ extract_text_from_transcript <- function(
   if (!is.null(agenda_element)) {
     if (!is.numeric(agenda_element$from) || !is.numeric(agenda_element$to)) {
       stop("The agenda element must contain 'from' and 'to' ",
-      "fields in numeric format. Use convert_agenda_times() to convert ",
-      "the agenda element times to numeric format.")
+           "fields in numeric format. Use convert_agenda_times() to convert ",
+           "the agenda element times to numeric format.")
     }
 
     start_time <- agenda_element$from
@@ -339,62 +339,144 @@ build_ids_from_agenda <- function(agenda) {
   })
 }
 
-#' Convert agenda clock time to seconds from start
+#' Convert agenda clock time to seconds from start and vice versa
 #'
 #' Users can provide events' times in the agenda following the HH:MM(:SS)(
-#' AM/PM) format, but then most function require it as seconds from the start to
-#' match events to the transcript
+#' AM/PM) format or as number of seconds from the start of the event. This
+#' function converts the times to the other format.
 #'
 #' @param agenda The agenda of the meeting, that is, a list of agenda elements
 #'   each with a session name, a title, speaker and moderator lists, type of
 #'   talk and start and end times. Alternatively, an agenda element directly.
+#' @param convert_to A string indicating whether to convert the times to seconds
+#'   from the start or to clock time. Conversion to seconds will happen only if
+#'   the times are in clock time format, and vice versa.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
-#'   format. Will be used to compute the time lapse in seconds from the start of
-#'   the event. If `NULL`, defaults to the start time of the first element in
-#'   the agenda, with a warning. Cannot be `NULL` if agenda is actually an
-#'   agenda element.
+#'   format or a POSIXct object. Will be used to convert event times to seconds
+#'   from the start. If `NULL`, defaults to the start time of the first element
+#'   in the agenda, with a warning.
+#' @param conversion_format The format to use when converting to clock time.
+#'   E.g., %T for HH:MM:SS, or %R for HH:MM, etc... See `?strptime` for a list
+#'   of supported formats.
 #'
 #' @return The agenda (or agenda element) with all the times in seconds from the
 #'   start.
 #'
 convert_agenda_times <- function(
     agenda,
-    event_start_time = getOption("minutemaker_event_start_time")
+    convert_to = c("seconds", "clocktime"),
+    event_start_time = getOption("minutemaker_event_start_time"),
+    conversion_format = "%T"
 ) {
 
+  convert_to <- match.arg(convert_to)
+
+  agenda_orig <- agenda
+
+  # Check if agenda is actually an agenda item only
   is_agenda_element <- any(c("from", "to") %in% names(agenda))
 
-  if (is_agenda_element && is.null(event_start_time)) {
-    stop("The start time must be provided when converting an agenda element.")
-  } else if (!is_agenda_element && is.null(event_start_time)) {
-    warning("No start time provided. Using the start time of the first agenda ",
-            "element.", call. = FALSE, immediate. = TRUE)
-    event_start_time <- agenda[[1]]$from |> time_to_numeric()
+  # Convert to agenda format in case it's just an item
+  if (is_agenda_element) {
+    agenda <- list(agenda)
+  }
+
+  # Check all agenda elements before converting
+  for (i in seq_along(agenda)) {
+    validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
+  }
+
+  # if (
+  #   convert_to == "clocktime" &&
+  #   inherits(agenda[[1]]["from"], c("POSIXct", "character"))) {
+  #
+  #   warning("Agenda already in clock time format.",
+  #           call. = FALSE, immediate. = TRUE)
+  #
+  #   return(agenda_orig)
+  # }
+
+  # Check if agenda times are all of the same class
+  if (!all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
+      !all(purrr::map_lgl(agenda, ~ {
+        inherits(.x$from, c("POSIXct", "character"))
+      }))
+  ) {
+    stop("Agenda times must be all of the same class across the agenda.")
+  }
+
+  if (!is.null(event_start_time)) {
+
+    if (inherits(event_start_time, c("POSIXct", "character"))) {
+
+      # Parse the start time if not null
+      temp <- parse_event_time(event_start_time)
+
+      if (is.na(temp)) {
+        stop("Agenda time conversion failed: ", event_start_time)
+      }
+
+      event_start_time <- temp
+    } else {
+      # Only character and POSIXct event start times are supported
+      stop("Invalid event start time format.")
+    }
+
+  } else if (
+    agenda[[1]]$from |> inherits(c("POSIXct", "character")) &&
+    convert_to == "seconds"
+  ) {
+    # Use the first agenda time otherwise
+    event_start_time <- agenda[[1]]$from |>
+      parse_event_time()
+
+    warning("No start time provided.\n",
+            "Using the start time of the first agenda element.",
+            call. = FALSE, immediate. = TRUE)
+  } else {
+    event_start_time <- lubridate::origin
+
+    warning("No start time provided.\n",
+            "Using \"00:00:00\" as start time.",
+            call. = FALSE, immediate. = TRUE)
+  }
+
+  for (i in seq_along(agenda)) {
+
+    # Convert the times
+    for (time in c("from", "to")) {
+      if (convert_to == "seconds" && !is.numeric(agenda[[i]][[time]])) {
+        # Convert to seconds
+        agenda[[i]][[time]] <- agenda[[i]][[time]] |>
+          time_to_numeric(origin = event_start_time)
+      } else if (convert_to == "clocktime"){
+
+        if (is.numeric(agenda[[i]][[time]])) {
+        # Convert to clock time
+        cur_time <- agenda[[i]][[time]]
+
+        agenda[[i]][[time]] <- (
+          event_start_time +
+            lubridate::seconds_to_period(cur_time))
+        } else {
+          # Allow users to change the format
+          agenda[[i]][[time]] <- parse_event_time(agenda[[i]][[time]])
+        }
+
+
+        agenda[[i]][[time]] <- format(agenda[[i]][[time]], conversion_format)
+      } else {
+        # Do nothing, the time is already in the correct format
+      }
+    }
+
+    # Revalidate times after transformations
+    validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
+
   }
 
   if (is_agenda_element) {
-    agenda$from <- agenda$from |> time_to_numeric() - event_start_time
-    agenda$to <- agenda$to |> time_to_numeric() - event_start_time
-
-    if (agenda$from > agenda$to) {
-      stop("Agenda element times are not consistent:",
-           " from: ", agenda$from,
-           " to: ", agenda$to)
-    }
-  } else {
-    agenda <- purrr::imap(agenda, ~ {
-
-      .x$from <- .x$from |> time_to_numeric() - event_start_time
-      .x$to <- .x$to |> time_to_numeric() - event_start_time
-
-      if (.x$from > .x$to) {
-        stop("Agenda element ", .y, " times are not consistent:",
-             " from: ", .x$from,
-             " to: ", .x$to)
-      }
-
-      .x
-    })
+    agenda <- agenda[[1]]
   }
 
   agenda
@@ -459,24 +541,10 @@ format_summary_tree <- function(
     }
 
     # Covert times from second to clock time if possible
-    if (is.numeric(agenda_element$from) &&
-        is.numeric(agenda_element$to) &&
-        !is.null(event_start_time)) {
-
-      # Parse the clock time
-      event_start_time <- parse_event_time(event_start_time)
-
-      # Convert the times
-      agenda_element$from <- with(
-        agenda_element,
-        event_start_time + lubridate::seconds(from)
-      ) |> format("%H:%M")
-
-      agenda_element$to <- with(
-        agenda_element,
-        event_start_time + lubridate::seconds(to)
-      ) |> format("%H:%M")
-    }
+    agenda_element <- convert_agenda_times(
+      agenda_element, convert_to = "clock",
+      event_start_time = event_start_time, conversion_format = "%R"
+    )
 
     # Generate a text version of the summary, with session, title, speakers,
     # moderators and summary
@@ -552,9 +620,37 @@ validate_agenda_element <- function(
     !is.null(agenda_element[[.y]]) || isFALSE(.x)
   }) |> all()
 
-  if (isTRUE(from) && isTRUE(to)) {
-    if (agenda_element$from > agenda_element$to) {
-      stop("Agenda element times are not consistent:",
+  if (isTRUE(from) || isTRUE(to)) {
+
+    # Check if the times are interpretable
+    for (time in c("from", "to")) {
+
+      if (!inherits(agenda_element[[time]],
+                    c("numeric", "POSIXct", "character"))) {
+        stop(stringr::str_glue(
+          'Agenda element "{time}" should be numeric, character or POSIXct,',
+          "but it's of class {class(agenda_element[[time]])}."
+        ))
+      }
+
+      if (!is.numeric(agenda_element[[time]]) &&
+        is.na(parse_event_time(agenda_element[[time]]))
+      ) {
+        stop("Agenda element \"", time, "\" time not interpretable: ",
+             agenda_element[[time]])
+      }
+    }
+
+    if (class(agenda_element$from) != class(agenda_element$to)) {
+      stop("The agenda element times are not of the same class:",
+           " from: ", agenda_element$from,
+           " to: ", agenda_element$to)
+    }
+
+    if (
+      time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
+    ) {
+      stop("Agenda element \"from\" time should preceed \"to\" time:",
            " from: ", agenda_element$from,
            " to: ", agenda_element$to)
     }
@@ -1103,7 +1199,7 @@ speech_to_summary_workflow <- function(
   # Check if the stt output folder is empty or overwrite is TRUE
   if (
     stt_overwrite_output_files ||
-     length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
+    length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
   ) {
 
     message("\n### Performing speech to text...\n")
@@ -1248,6 +1344,7 @@ speech_to_summary_workflow <- function(
 
     output_file = summarization_output_file,
 
+    event_start_time = event_start_time,
     event_description = event_description,
     event_audience = event_audience,
     vocabulary = vocabulary,
@@ -1273,6 +1370,7 @@ speech_to_summary_workflow <- function(
     formatted_summary <- format_summary_tree(
       summary_tree = summary_tree,
       agenda = agenda,
+      event_start_time = event_start_time,
       output_file = formatted_output_file)
 
   } else {

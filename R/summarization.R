@@ -311,6 +311,9 @@ summarise_transcript <- function(
 #'   `summarise_transcript` for more details.
 #' @param output_length An indication to the LLM regarding the length of the
 #'   output. See `summarise_transcript` for more details.
+#' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Necessary to convert the agenda times to seconds if the first event
+#'   time is not the start time of the event.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
 #' @param event_audience The audience of the event See `summarise_transcript`
@@ -341,6 +344,7 @@ summarise_full_meeting <- function(
     window_size = 15,
     output_length = 3,
 
+    event_start_time = getOption("minutemaker_event_start_time"),
     event_description = NULL,
     event_audience = "An audience with understanding of the topic",
     vocabulary = NULL,
@@ -361,7 +365,9 @@ summarise_full_meeting <- function(
 
   # Convert the agenda times to seconds if they are in "HH:MM(:SS)( AM/PM)"
   # format
-  agenda <- convert_agenda_times(agenda)
+  agenda <- convert_agenda_times(
+    agenda, convert_to = "seconds",
+    event_start_time = event_start_time)
 
   # Generate the output container if it doesn't exist
   if (!file.exists(output_file)) {
