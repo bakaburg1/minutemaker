@@ -178,7 +178,7 @@ transcript <- parse_transcript_json("transcription_output_data")
 # minutemaker_event_start_time option
 transcript_with_clocktime <- parse_transcript_json(
   "transcription_output_data",
-  clock_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
+  event_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
 )
 
 # Then, you can save the transcript to a file
