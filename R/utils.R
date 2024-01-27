@@ -55,7 +55,8 @@ silent <- function(){
 #'
 parse_event_time <- function(time, format = c("R", "T")) {
   if (!inherits(time, c("POSIXct", "character"))) {
-    stop("Invalid time format")
+    stop("Invalid time format. Should be either a valid HH:MM(:SS)( AM/PM) ",
+         "character or already in POSIXct format.")
   }
 
   if (inherits(time, "POSIXct")) {
@@ -86,10 +87,10 @@ time_to_numeric <- function(time, origin = NULL) {
     }
 
     if (
+      # Using is.numeric is enough since both time and origin types were already
+      # checked to be valid
       (is.numeric(time) && !is.numeric(origin)) ||
-      (!is.numeric(time) && is.numeric(origin)) ||
-      (inherits(time, c("character", "POSIXct")) &&
-       !inherits(time, c("character", "POSIXct")))
+      (!is.numeric(time) && is.numeric(origin))
       ) {
       stop("time and origin arguments are not compatible")
     }
@@ -100,8 +101,12 @@ time_to_numeric <- function(time, origin = NULL) {
     else origin <- "00:00:00"
   }
 
-  origin <- parse_event_time(origin)
-  time <- parse_event_time(time)
+  # Convert to POSIXct if not numeric. Only one check is necessary since type
+  # consistency was already checked
+  if (!is.numeric(time)) {
+    time <- parse_event_time(time)
+    origin <- parse_event_time(origin)
+  }
 
   # Necessary to convert to numeric, otherwise the difference could be in other
   # time units
