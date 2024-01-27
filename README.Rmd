@@ -171,7 +171,7 @@ transcript <- perform_speech_to_text(
 # are stored.
 transcript <- parse_transcript_json("transcription_output_data")
 
-This allows you also to pass in the starting time of the event in
+# This allows you also to pass in the starting time of the event in
 # the HH:MM(:SS)( AM/PM) format which allows to compute the timing of the speech
 # segment in real clock time.
 # The event start time can be set globally using the
