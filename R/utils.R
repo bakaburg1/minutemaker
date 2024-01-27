@@ -51,10 +51,14 @@ silent <- function(){
 #' @param time A time string in the "HH:MM(:SS)( AM/PM)", format.
 #' @param format A character vector of formats to try.
 #'
-#' @return A POSIXct value representing the time or the original value if it is
-#'   numeric.
+#' @return A POSIXct value representing the time.
+#'
 parse_event_time <- function(time, format = c("R", "T")) {
-  if (is.numeric(time)) {
+  if (!inherits(time, c("POSIXct", "character"))) {
+    stop("Invalid time format")
+  }
+
+  if (inherits(time, "POSIXct")) {
     time
   } else {
     lubridate::parse_date_time(time, format)
@@ -63,13 +67,49 @@ parse_event_time <- function(time, format = c("R", "T")) {
 
 #' Transform a time string to numeric
 #'
-#' @param time A time string in the "HH:MM(:SS)( AM/PM)", format.
+#' @param time A time string in the "HH:MM(:SS)( AM/PM)" format, a POSIXct
+#'   object, or a number (i.e., of seconds).
+#' @param origin Same format as `time`; if provided, used to compute the
+#'   difference in seconds from `time`.
 #'
-#' @return A numeric value representing the time.
-time_to_numeric <- function(time) {
-  if (is.numeric(time)) {
-    time
-  } else {
-    parse_event_time(time) |> as.numeric()
+#' @return A numeric value representing the difference in seconds from `origin`.
+#'
+time_to_numeric <- function(time, origin = NULL) {
+
+  if (!inherits(time, c("character", "POSIXct", "numeric"))) {
+    stop("Invalid time format")
   }
+
+  if (!is.null(origin)) {
+    if (!inherits(origin, c("character", "POSIXct", "numeric"))) {
+      stop("Invalid origin time format")
+    }
+
+    if (
+      (is.numeric(time) && !is.numeric(origin)) ||
+      (!is.numeric(time) && is.numeric(origin)) ||
+      (inherits(time, c("character", "POSIXct")) &&
+       !inherits(time, c("character", "POSIXct")))
+      ) {
+      stop("time and origin arguments are not compatible")
+    }
+  }
+
+  if (is.null(origin)) {
+    if (is.numeric(time)) return(time)
+    else origin <- "00:00:00"
+  }
+
+  origin <- parse_event_time(origin)
+  time <- parse_event_time(time)
+
+  # Necessary to convert to numeric, otherwise the difference could be in other
+  # time units
+  diff <- as.numeric(time) - as.numeric(origin)
+
+  if (diff < 0) {
+    stop("Time difference in seconds is negative")
+  }
+
+  diff
 }
