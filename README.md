@@ -63,9 +63,9 @@ library(minutemaker)
 options(
   
   # OpenAI API Key (for both text-to-speech and text summary)
-  minutemaker_openai_api_key = "***"
+  minutemaker_openai_api_key = "***",
   
-  minutemaker_openai_model_gpt = "gpt-4",
+  minutemaker_openai_model_gpt = "gpt-4"
 )
 
 # Azure example
@@ -161,14 +161,14 @@ transcript <- perform_speech_to_text(
 # are stored.
 transcript <- parse_transcript_json("transcription_output_data")
 
-This allows you also to pass in the starting time of the event in
+# This allows you also to pass in the starting time of the event in
 # the HH:MM(:SS)( AM/PM) format which allows to compute the timing of the speech
 # segment in real clock time.
 # The event start time can be set globally using the
 # minutemaker_event_start_time option
 transcript_with_clocktime <- parse_transcript_json(
   "transcription_output_data",
-  clock_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
+  event_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
 )
 
 # Then, you can save the transcript to a file
@@ -246,7 +246,7 @@ agenda <- list(
     
     # Information to provide context to the summarization process
     type = "Conference introduction",
-    description = "A description of the topic"
+    description = "A description of the topic",
     
     # The start and end time of a talk in seconds from the beginning of the
     # event
@@ -261,7 +261,7 @@ agenda <- list(
     session = "Session 1",
     title = "Presentation 1",
     type = "conference presentation",
-    description = "This presentation is about this and that."
+    description = "This presentation is about this and that.",
     from = 334,
     to = 600,
     speakers = c("Speaker 3"),
@@ -276,7 +276,7 @@ list(
     session = "Session 1",
     title = "Presentation 1",
     type = "conference presentation",
-    description = "This presentation is about this and that."
+    description = "This presentation is about this and that.",
     from = "10:10",
     to = "10:50",
     speakers = c("Speaker 3"),
@@ -409,7 +409,7 @@ talk_summary <- summarise_transcript(
   
   summary_structure = summary_structure, # Or don't pass it to use the default
   extra_diarization_instructions = diarization_instructions,
-  extra_output_instructions = output_instructions
+  extra_output_instructions = output_instructions,
   
   provider = "my-LLM-provider-of-choice",
 )
@@ -448,7 +448,7 @@ conference_summaries <- summarise_full_meeting(
   
   summary_structure = summary_structure,
   extra_diarization_instructions = diarization_instructions,
-  extra_output_instructions = output_instructions
+  extra_output_instructions = output_instructions,
   
   provider = "my-LLM-provider-of-choice",
 )
