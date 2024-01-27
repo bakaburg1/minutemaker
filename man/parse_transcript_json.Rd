@@ -4,7 +4,11 @@
 \alias{parse_transcript_json}
 \title{Parse the speech-to-text JSON output into a transcript data frame}
 \usage{
-parse_transcript_json(transcript_json, pretty_times = TRUE)
+parse_transcript_json(
+  transcript_json,
+  pretty_times = TRUE,
+  event_start_time = getOption("minutemaker_event_start_time")
+)
 }
 \arguments{
 \item{transcript_json}{The JSON output of \code{perform_speech_to_text} in
@@ -15,6 +19,10 @@ parse all JSON files in the folder.}
 \item{pretty_times}{A boolean indicating whether the start and end times
 should be also formatted as hours-seconds-minutes instead of cumulative
 seconds.}
+
+\item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
+format. Will be used to add the actual clock time to the transcript
+segments. If NULL, the clock time will not be added.}
 }
 \value{
 A data frame with the text and start and end time of each segment.

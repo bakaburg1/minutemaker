@@ -10,13 +10,17 @@
 #' @param pretty_times A boolean indicating whether the start and end times
 #'   should be also formatted as hours-seconds-minutes instead of cumulative
 #'   seconds.
+#' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Will be used to add the actual clock time to the transcript
+#'   segments. If NULL, the clock time will not be added.
 #'
 #' @return A data frame with the text and start and end time of each segment.
 #'
 #' @export
 parse_transcript_json <- function(
     transcript_json,
-    pretty_times = TRUE
+    pretty_times = TRUE,
+    event_start_time = getOption("minutemaker_event_start_time")
 ) {
 
   json_files <- NA
@@ -105,6 +109,22 @@ parse_transcript_json <- function(
   }
 
   full_transcript <- clean_transcript(full_transcript)
+
+  if (!is.null(event_start_time)) {
+    event_start_time <- parse_event_time(event_start_time)
+
+    if (is.na(event_start_time)) {
+      stop("Start time not interpretable. Use the HH:MM(:SS)( AM/PM) format.")
+    }
+
+    full_transcript <- full_transcript |>
+      mutate(
+        across(
+          any_of(c("start", "end")),
+          ~ (event_start_time + lubridate::seconds(.x)) |> format("%T"),
+          .names = "{.col}_clock")
+      )
+  }
 
   if (pretty_times) {
     full_transcript <- full_transcript |>
@@ -238,6 +258,12 @@ extract_text_from_transcript <- function(
 
   # If an agenda element is provided, its start and end times are used
   if (!is.null(agenda_element)) {
+    if (!is.numeric(agenda_element$from) || !is.numeric(agenda_element$to)) {
+      stop("The agenda element must contain 'from' and 'to' ",
+           "fields in numeric format. Use convert_agenda_times() to convert ",
+           "the agenda element times to numeric format.")
+    }
+
     start_time <- agenda_element$from
     end_time <- agenda_element$to
   }
@@ -313,6 +339,149 @@ build_ids_from_agenda <- function(agenda) {
   })
 }
 
+#' Convert agenda clock time to seconds from start and vice versa
+#'
+#' Users can provide events' times in the agenda following the HH:MM(:SS)(
+#' AM/PM) format or as number of seconds from the start of the event. This
+#' function converts the times to the other format.
+#'
+#' @param agenda The agenda of the meeting, that is, a list of agenda elements
+#'   each with a session name, a title, speaker and moderator lists, type of
+#'   talk and start and end times. Alternatively, an agenda element directly.
+#' @param convert_to A string indicating whether to convert the times to seconds
+#'   from the start or to clock time. Conversion to seconds will happen only if
+#'   the times are in clock time format, and vice versa.
+#' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format or a POSIXct object. Will be used to convert event times to seconds
+#'   from the start. If `NULL`, defaults to the start time of the first element
+#'   in the agenda, with a warning.
+#' @param conversion_format The format to use when converting to clock time.
+#'   E.g., %T for HH:MM:SS, or %R for HH:MM, etc... See `?strptime` for a list
+#'   of supported formats.
+#'
+#' @return The agenda (or agenda element) with all the times in seconds from the
+#'   start.
+#'
+convert_agenda_times <- function(
+    agenda,
+    convert_to = c("seconds", "clocktime"),
+    event_start_time = getOption("minutemaker_event_start_time"),
+    conversion_format = "%T"
+) {
+
+  convert_to <- match.arg(convert_to)
+
+  agenda_orig <- agenda
+
+  # Check if agenda is actually an agenda item only
+  is_agenda_element <- any(c("from", "to") %in% names(agenda))
+
+  # Convert to agenda format in case it's just an item
+  if (is_agenda_element) {
+    agenda <- list(agenda)
+  }
+
+  # Check all agenda elements before converting
+  for (i in seq_along(agenda)) {
+    validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
+  }
+
+  # if (
+  #   convert_to == "clocktime" &&
+  #   inherits(agenda[[1]]["from"], c("POSIXct", "character"))) {
+  #
+  #   warning("Agenda already in clock time format.",
+  #           call. = FALSE, immediate. = TRUE)
+  #
+  #   return(agenda_orig)
+  # }
+
+  # Check if agenda times are all of the same class
+  if (!all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
+      !all(purrr::map_lgl(agenda, ~ {
+        inherits(.x$from, c("POSIXct", "character"))
+      }))
+  ) {
+    stop("Agenda times must be all of the same class across the agenda.")
+  }
+
+  if (!is.null(event_start_time)) {
+
+    if (inherits(event_start_time, c("POSIXct", "character"))) {
+
+      # Parse the start time if not null
+      temp <- parse_event_time(event_start_time)
+
+      if (is.na(temp)) {
+        stop("Agenda time conversion failed: ", event_start_time)
+      }
+
+      event_start_time <- temp
+    } else {
+      # Only character and POSIXct event start times are supported
+      stop("Invalid event start time format.")
+    }
+
+  } else if (
+    agenda[[1]]$from |> inherits(c("POSIXct", "character")) &&
+    convert_to == "seconds"
+  ) {
+    # Use the first agenda time otherwise
+    event_start_time <- agenda[[1]]$from |>
+      parse_event_time()
+
+    warning("No start time provided.\n",
+            "Using the start time of the first agenda element.",
+            call. = FALSE, immediate. = TRUE)
+  } else {
+    event_start_time <- lubridate::origin
+
+    warning("No start time provided.\n",
+            "Using \"00:00:00\" as start time.",
+            call. = FALSE, immediate. = TRUE)
+  }
+
+  for (i in seq_along(agenda)) {
+
+    # Convert the times
+    for (time in c("from", "to")) {
+      if (convert_to == "seconds" && !is.numeric(agenda[[i]][[time]])) {
+        # Convert to seconds
+        agenda[[i]][[time]] <- agenda[[i]][[time]] |>
+          time_to_numeric(origin = event_start_time)
+      } else if (convert_to == "clocktime"){
+
+        if (is.numeric(agenda[[i]][[time]])) {
+        # Convert to clock time
+        cur_time <- agenda[[i]][[time]]
+
+        agenda[[i]][[time]] <- (
+          event_start_time +
+            lubridate::seconds_to_period(cur_time))
+        } else {
+          # Allow users to change the format
+          agenda[[i]][[time]] <- parse_event_time(agenda[[i]][[time]])
+        }
+
+
+        agenda[[i]][[time]] <- format(agenda[[i]][[time]], conversion_format)
+      } else {
+        # Do nothing, the time is already in the correct format
+      }
+    }
+
+    # Revalidate times after transformations
+    validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
+
+  }
+
+  if (is_agenda_element) {
+    agenda <- agenda[[1]]
+  }
+
+  agenda
+}
+
 #' Formats a summary tree into a human-readable text
 #'
 #' The summary functions returns a machine-readable summary tree. This function
@@ -320,9 +489,13 @@ build_ids_from_agenda <- function(agenda) {
 #'
 #' @param summary_tree A list containing the summary tree, or a string with the
 #'   path to a file containing the summary tree.
-#' @param agenda A list containing the agenda items. It is used to extract a number
-#'  of information about each talk, such as the session, title, speakers and
-#'  moderators.
+#' @param agenda A list containing the agenda items. It is used to extract a
+#'   number of information about each talk, such as the session, title,
+#'   speakers, moderators, start and ending times. Agenda sessions/titles must
+#'   be consistent with those in the `summary_tree` object.
+#' @param event_start_time If agenda timings are in seconds, the starting time
+#'   is needed to convert them to actual clock time. If `NULL` it will use the
+#'   timing as reported in the agenda.
 #' @param output_file A string with the path to the output file. If NULL, the
 #'   output is returned invisibly and not written to a file.
 #'
@@ -333,6 +506,7 @@ build_ids_from_agenda <- function(agenda) {
 format_summary_tree <- function(
     summary_tree,
     agenda,
+    event_start_time = getOption("minutemaker_event_start_time"),
     output_file = NULL
 ) {
 
@@ -366,6 +540,12 @@ format_summary_tree <- function(
       next
     }
 
+    # Covert times from second to clock time if possible
+    agenda_element <- convert_agenda_times(
+      agenda_element, convert_to = "clock",
+      event_start_time = event_start_time, conversion_format = "%R"
+    )
+
     # Generate a text version of the summary, with session, title, speakers,
     # moderators and summary
     # TODO: streamline this repetitive code
@@ -383,6 +563,7 @@ format_summary_tree <- function(
     Title: {title};
     Speakers: {speakers};
     Moderators: {moderators};
+    Time: {from} - {to};
 
     {talk_summary}") |>
       stringr::str_remove_all("\\n?\\w+:\\s*;") # Remove empty fields
@@ -403,7 +584,7 @@ format_summary_tree <- function(
 
 #' Validates an agenda element
 #'
-#' @param agenda_element A list containing the agenda element.
+#' @param agenda_element A list containing the agenda elements.
 #' @param session A boolean indicating whether the `session` item should be
 #'   present.
 #' @param title A boolean indicating whether the `title` item should be present.
@@ -438,6 +619,42 @@ validate_agenda_element <- function(
   is_valid <- purrr::imap_lgl(args, ~ {
     !is.null(agenda_element[[.y]]) || isFALSE(.x)
   }) |> all()
+
+  if (isTRUE(from) || isTRUE(to)) {
+
+    # Check if the times are interpretable
+    for (time in c("from", "to")) {
+
+      if (!inherits(agenda_element[[time]],
+                    c("numeric", "POSIXct", "character"))) {
+        stop(stringr::str_glue(
+          'Agenda element "{time}" should be numeric, character or POSIXct,',
+          "but it's of class {class(agenda_element[[time]])}."
+        ))
+      }
+
+      if (!is.numeric(agenda_element[[time]]) &&
+        is.na(parse_event_time(agenda_element[[time]]))
+      ) {
+        stop("Agenda element \"", time, "\" time not interpretable: ",
+             agenda_element[[time]])
+      }
+    }
+
+    if (class(agenda_element$from) != class(agenda_element$to)) {
+      stop("The agenda element times are not of the same class:",
+           " from: ", agenda_element$from,
+           " to: ", agenda_element$to)
+    }
+
+    if (
+      time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
+    ) {
+      stop("Agenda element \"from\" time should preceed \"to\" time:",
+           " from: ", agenda_element$from,
+           " to: ", agenda_element$to)
+    }
+  }
 
   # Return the validation result
   is_valid
@@ -724,14 +941,8 @@ add_chat_transcript <- function(
       stop("Chat file not found.")
     }
 
-    # Guess time format
-    time_format <- if_else(
-      stringr::str_detect(start_time, "AM|PM"),
-      "%I:%M %p", "%H:%M:%S"
-    )
-
     # Parse the start time
-    start_time <- lubridate::parse_date_time(start_time, time_format) |>
+    start_time <- parse_event_time(start_time) |>
       as.numeric()
 
     tryCatch(
@@ -745,7 +956,7 @@ add_chat_transcript <- function(
         setNames(c("date", "start", "speaker", "text")) |>
         mutate(
           date = NULL,
-          start = lubridate::parse_date_time(.data$start, time_format) |>
+          start = parse_event_time(.data$start) |>
             as.numeric(),
           start = .data$start - start_time,
           speaker = stringr::str_remove(.data$speaker, "from ") |>
@@ -812,31 +1023,35 @@ add_chat_transcript <- function(
 #' @param stt_overwrite_output_files A boolean indicating whether the json files
 #'   generated by the speech-to-text model should be overwritten if they already
 #'   exist. See `perform_speech_to_text` for more details.
+#' @param transcript_file A path to the output file where the transcript will be
+#'   written.
+#' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Will be used to add the actual clock time to the transcript
+#'   segments. If NULL, the clock time will not be added. See
+#'   `parse_transcript_json()` for more details.
+#' @param overwrite_transcript A boolean indicating whether the transcript
+#'   output file should be overwritten if it already exists.
 #' @param transcript_to_merge A string with the path to the transcript file to
 #'   be merged with the transcript generated by the speech-to-text model. It
 #'   will be picked up automatically if a .vtt or .srt file is available in the
-#'   target directory. Pass NULL or FALSE to disable the automatic detection.
-#'   See `merge_transcripts` for more details.
+#'   target directory. Pass NULL to disable the automatic importation of
+#'   transcript files. See `merge_transcripts` for more details.
 #' @param import_diarization_on_merge A boolean indicating whether the speaker
 #'   should be imported from the transcript to be merged, if present. See
 #'   `merge_transcripts` for more details.
 #' @param chat_file A string with the path to a file containing the chat data.
 #'   It will be picked up automatically if a file with "Chat" in its name is
-#'   available in the target directory. Pass NULL or FALSE to disable the
-#'   automatic detection. See `add_chat_transcript` for more details.
-#' @param chat_start_time The start time of the meeting. A string in the format
-#'   "HH:MM AM/PM" or "HH:MM:SS". Cannot be NULL if a chat file is provided. See
-#'   `add_chat_transcript` for more details.
+#'   available in the target directory. Pass NULL to disable the automatic chat
+#'   file importation. See `add_chat_transcript` for more details. Note that
+#'   `event_start_time` must be set if `chat_file` is not NULL.
 #' @param chat_format A string indicating the online meeting platform used to
 #'   generate the chat file. See `add_chat_transcript` for more details.
-#' @param transcript_file A path to the output file where the transcript will be
-#'   written.
-#' @param overwrite_transcript A boolean indicating whether the transcript
-#'   output file should be overwritten if it already exists.
-#' @param agenda A list containing the agenda items or a path to an R file
-#'   containing such list. See `summarise_full_meeting` for more details.
+#' @param agenda The agenda of the meeting, that is, a list of agenda elements
+#'   each with a session name, a title, speaker and moderator lists, type of
+#'   talk and start and end times. Alternatively, the path to an R file
+#'   containing such a list. See `summarise_full_meeting` for more details.
 #' @param summarization_method A string indicating the summarization method to
-#'  use. See `summarise_full_meeting` for more details.
+#'   use. See `summarise_full_meeting` for more details.
 #' @param event_description A string containing a description of the meeting.
 #'   See `summarise_transcript` for more details.
 #' @param event_audience A string containing a description of the audience of
@@ -899,6 +1114,7 @@ speech_to_summary_workflow <- function(
 
   # Arguments for `parse_transcript_json`
   transcript_file = file.path(target_dir, "transcript.csv"),
+  event_start_time = getOption("minutemaker_event_start_time"),
   overwrite_transcript = FALSE,
 
   # Arguments for `merge_transcripts`
@@ -909,7 +1125,6 @@ speech_to_summary_workflow <- function(
   # Arguments for `add_chat_transcript`
   chat_file = list.files(target_dir, pattern = "Chat"
                          , full.names = T)[1],
-  chat_start_time = NULL,
   chat_format = "webex",
 
   # Arguments for `summarise_full_meeting`
@@ -942,9 +1157,7 @@ speech_to_summary_workflow <- function(
 
   # Check if the stt audio dir is empty or overwrite is TRUE
   if (
-    overwrite_stt_audio ||
-    (is.character(stt_audio_dir) &&
-     purrr::is_empty(list.files(stt_audio_dir)))
+    overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))
   ) {
 
     if (purrr::is_empty(source_audio)) {
@@ -986,8 +1199,7 @@ speech_to_summary_workflow <- function(
   # Check if the stt output folder is empty or overwrite is TRUE
   if (
     stt_overwrite_output_files ||
-    (is.character(stt_output_dir) &&
-     purrr::is_empty(list.files(stt_output_dir)))
+    length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
   ) {
 
     message("\n### Performing speech to text...\n")
@@ -1021,14 +1233,15 @@ speech_to_summary_workflow <- function(
   ## Create the transcript file ##
 
   # Check if the transcript file doesn't exists or overwrite is TRUE
-  if (overwrite_transcript ||
-      (is.character(transcript_file) &&
-       !file.exists(transcript_file))) {
+  if (overwrite_transcript || !file.exists(transcript_file)) {
 
-    transcript_data <- parse_transcript_json(stt_output_dir)
+    # Generate the trascript from the json output data
+    transcript_data <- parse_transcript_json(
+      stt_output_dir,
+      event_start_time = event_start_time)
 
     # Merge transcripts
-    if (!is.null(transcript_to_merge) && !isFALSE(transcript_to_merge)) {
+    if (!is.null(transcript_to_merge)) {
 
       if (!file.exists(transcript_to_merge)) {
         stop("Transcript file to merge not valid.")
@@ -1051,17 +1264,17 @@ speech_to_summary_workflow <- function(
     }
 
     # Add chat transcript
-    if (!is.null(chat_file) && !isFALSE(chat_file)) {
+    if (!is.null(chat_file)) {
       message("\n### Adding chat transcript...\n")
 
-      if (is.null(chat_start_time)) {
-        stop("Chat file found but no chat start time provided.")
+      if (is.null(event_start_time)) {
+        stop("Chat file found but no start time provided.")
       }
 
       transcript_data <- add_chat_transcript(
         transcript_data = transcript_data,
         chat_transcript = chat_file,
-        start_time = chat_start_time,
+        start_time = event_start_time,
         chat_format = chat_format
       )
     }
@@ -1131,6 +1344,7 @@ speech_to_summary_workflow <- function(
 
     output_file = summarization_output_file,
 
+    event_start_time = event_start_time,
     event_description = event_description,
     event_audience = event_audience,
     vocabulary = vocabulary,
@@ -1149,15 +1363,14 @@ speech_to_summary_workflow <- function(
 
   ## Format summary tree ##
 
-  if (overwrite_formatted_output ||
-      (is.character(formatted_output_file) &&
-       !file.exists(formatted_output_file))) {
+  if (overwrite_formatted_output || !file.exists(formatted_output_file)) {
 
     message("\n### Formatting summary tree...\n")
 
     formatted_summary <- format_summary_tree(
       summary_tree = summary_tree,
       agenda = agenda,
+      event_start_time = event_start_time,
       output_file = formatted_output_file)
 
   } else {

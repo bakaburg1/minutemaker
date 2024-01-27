@@ -16,7 +16,7 @@ validate_agenda_element(
 )
 }
 \arguments{
-\item{agenda_element}{A list containing the agenda element.}
+\item{agenda_element}{A list containing the agenda elements.}
 
 \item{session}{A boolean indicating whether the \code{session} item should be
 present.}

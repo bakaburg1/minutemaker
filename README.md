@@ -156,9 +156,30 @@ transcript <- perform_speech_to_text(
   # details.
 )
 
-# Optionally, you can save the transcript to a file
+# In alternative, the transcript data frame can be generated at will using the
+# parse_transcript_json() function and the folder where the trascription outputs
+# are stored.
+transcript <- parse_transcript_json("transcription_output_data")
+
+This allows you also to pass in the starting time of the event in
+# the HH:MM(:SS)( AM/PM) format which allows to compute the timing of the speech
+# segment in real clock time.
+# The event start time can be set globally using the
+# minutemaker_event_start_time option
+transcript_with_clocktime <- parse_transcript_json(
+  "transcription_output_data",
+  clock_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
+)
+
+# Then, you can save the transcript to a file
 readr::write_csv(transcript, file.path(work_dir, day, "transcript.csv"))
 ```
+
+NOTE: this process sometimes may fails for issues on the API side. Some
+times the process stops and with the creation with a JSON file with an
+error inside; just remove this file and restart the process. For other
+API related error, restarting the process is usually enough. Otherwise,
+feel free to open an issue.
 
 ### Importation of existing transcript data
 
@@ -170,7 +191,7 @@ WebEx transcripts offer extra details like speaker names and chat
 messages.
 
 The provided package includes two key functions:
-`extract_text_from_transcript()`, which is designed to read vtt/srt
+`import_transcript_from_file()`, which is designed to read vtt/srt
 format transcripts, and `add_chat_transcript()`, which integrates chat
 messages into the existing transcript data. Currently, these functions
 are compatible exclusively with WebEx outputs.
@@ -222,9 +243,13 @@ agenda <- list(
   list(
     session = "Session 1",
     title = "Opening",
-    type = "Conference introduction",
     
-    # The start and end time of a talk in seconds
+    # Information to provide context to the summarization process
+    type = "Conference introduction",
+    description = "A description of the topic"
+    
+    # The start and end time of a talk in seconds from the beginning of the
+    # event
     from = 0,
     to = 334,
     
@@ -236,8 +261,24 @@ agenda <- list(
     session = "Session 1",
     title = "Presentation 1",
     type = "conference presentation",
+    description = "This presentation is about this and that."
     from = 334,
     to = 600,
+    speakers = c("Speaker 3"),
+    moderators = "Moderator name",
+  )
+)
+
+# Alternatively, actual clock times can be used, according to the HH:MM(:SS)(
+# AM/PM) format
+list(
+  list(
+    session = "Session 1",
+    title = "Presentation 1",
+    type = "conference presentation",
+    description = "This presentation is about this and that."
+    from = "10:10",
+    to = "10:50",
     speakers = c("Speaker 3"),
     moderators = "Moderator name",
   )
