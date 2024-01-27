@@ -191,7 +191,7 @@ WebEx transcripts offer extra details like speaker names and chat
 messages.
 
 The provided package includes two key functions:
-`extract_text_from_transcript()`, which is designed to read vtt/srt
+`import_transcript_from_file()`, which is designed to read vtt/srt
 format transcripts, and `add_chat_transcript()`, which integrates chat
 messages into the existing transcript data. Currently, these functions
 are compatible exclusively with WebEx outputs.
