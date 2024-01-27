@@ -11,11 +11,12 @@ check_and_install_dependencies <- function(deps) {
   for (dep in deps) {
     stop_message <- paste0(dep, " is required but was not installed.")
     # Check if the package is installed
-    is_installed = requireNamespace(dep, quietly = TRUE)
+    is_installed <- requireNamespace(dep, quietly = TRUE)
 
     if (!is_installed) {
       # If not, ask the user if they want to install it
-      if (interactive()) { # Only ask if the session is interactive otherwise just stop
+      if (interactive()) {
+        # Only in interactive sessions, otherwise just stop
         is_installed <- utils::menu(
           c("Yes", "No"),
           title = paste0(dep, " is not installed. Install it now?")) == 1
@@ -42,7 +43,7 @@ is_silent <- function(segments) {
 #' Generate text for silent segments
 #'
 #' @return The "silent" symbol, i.e., "[...]".
-silent <- function(){
+silent <- function() {
   "[...]"
 }
 
@@ -91,7 +92,7 @@ time_to_numeric <- function(time, origin = NULL) {
       # checked to be valid
       (is.numeric(time) && !is.numeric(origin)) ||
       (!is.numeric(time) && is.numeric(origin))
-      ) {
+    ) {
       stop("time and origin arguments are not compatible")
     }
   }
