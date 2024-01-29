@@ -260,6 +260,11 @@ generate_summarisation_prompt <- function(
     args$extra_output_instructions
   )
 
+  # Remove extra_output_instructions since it would trigger the length check
+  # later
+  args$extra_output_instructions <- NULL
+
+  # Collapse output instruction into a bullet point list
   args$output_instructions <- paste0(
     "- ",
     args$output_instructions,
@@ -268,6 +273,19 @@ generate_summarisation_prompt <- function(
 
   if (is.null(args$output_length)) {
     args$output_length <- "3"
+  }
+
+  # Aggregate arguments if length > 1 vectors
+  if (length(args$extra_diarization_instructions) > 1) {
+    args$extra_diarization_instructions <- paste(
+      args$extra_diarization_instructions, collapse = "\n"
+    )
+  }
+
+  if (length(args$summary_structure) > 1) {
+    args$summary_structure <- paste(
+      args$summary_structure, collapse = "\n"
+    )
   }
 
   prompt <- paste(
@@ -355,6 +373,11 @@ generate_rolling_aggregation_prompt <- function(
     args$extra_output_instructions
   )
 
+  # Remove extra_output_instructions since it would trigger the length check
+  # later
+  args$extra_output_instructions <- NULL
+
+  # Collapse output instruction into a bullet point list
   args$output_instructions <- paste0(
     "- ",
     args$output_instructions,
@@ -363,6 +386,13 @@ generate_rolling_aggregation_prompt <- function(
 
   if (is.null(args$output_length)) {
     args$output_length <- "3"
+  }
+
+  # Aggregate arguments if length > 1 vectors
+  if (length(args$summary_structure) > 1) {
+    args$summary_structure <- paste(
+      args$summary_structure, collapse = "\n"
+    )
   }
 
   summary_seq <- seq_along(summaries)
