@@ -510,6 +510,9 @@ format_summary_tree <- function(
     output_file = NULL
 ) {
 
+  # Check the consistency of the summary tree and the agenda
+  check_agenda_summary_tree_consistency(agenda, summary_tree)
+
   # If summary_tree is a file path, load the data from the file
   if (is.character(summary_tree) && file.exists(summary_tree)) {
     summary_tree <- dget(summary_tree)
@@ -582,83 +585,7 @@ format_summary_tree <- function(
 }
 
 
-#' Validates an agenda element
-#'
-#' @param agenda_element A list containing the agenda elements.
-#' @param session A boolean indicating whether the `session` item should be
-#'   present.
-#' @param title A boolean indicating whether the `title` item should be present.
-#' @param speakers A boolean indicating whether the `speakers` item should be
-#'   present.
-#' @param moderators A boolean indicating whether the `moderators` item should
-#'   be present.
-#' @param type A boolean indicating whether the `type` item should be present.
-#' @param from A boolean indicating whether the `from` item should be present.
-#' @param to A boolean indicating whether the `to` item should be present.
-#'
-#' @return A boolean indicating whether the agenda element is valid.
-#'
-validate_agenda_element <- function(
-    agenda_element,
-    session = FALSE,
-    title = FALSE,
-    speakers = FALSE,
-    moderators = FALSE,
-    type = FALSE,
-    from = FALSE,
-    to = FALSE
-) {
 
-  # Get the arguments as a list
-  args <- as.list(environment())
-
-  # Remove the 'agenda_element' argument from the list
-  args$agenda_element <- NULL
-
-  # Check if the required items are present in the agenda element
-  is_valid <- purrr::imap_lgl(args, ~ {
-    !is.null(agenda_element[[.y]]) || isFALSE(.x)
-  }) |> all()
-
-  if (isTRUE(from) || isTRUE(to)) {
-
-    # Check if the times are interpretable
-    for (time in c("from", "to")) {
-
-      if (!inherits(agenda_element[[time]],
-                    c("numeric", "POSIXct", "character"))) {
-        stop(stringr::str_glue(
-          'Agenda element "{time}" should be numeric, character or POSIXct,',
-          "but it's of class {class(agenda_element[[time]])}."
-        ))
-      }
-
-      if (!is.numeric(agenda_element[[time]]) &&
-          is.na(parse_event_time(agenda_element[[time]]))
-      ) {
-        stop("Agenda element \"", time, "\" time not interpretable: ",
-             agenda_element[[time]])
-      }
-    }
-
-    if (class(agenda_element$from) != class(agenda_element$to)) {
-      stop("The agenda element times are not of the same class:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
-    }
-
-    if (
-      time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
-    ) {
-      stop("Agenda element \"from\" time should preceed \"to\" time:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
-    }
-  }
-
-  # Return the validation result
-  is_valid
-}
 
 #' Import transcript from subtitle file
 #'
