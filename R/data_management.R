@@ -452,12 +452,12 @@ convert_agenda_times <- function(
       } else if (convert_to == "clocktime"){
 
         if (is.numeric(agenda[[i]][[time]])) {
-        # Convert to clock time
-        cur_time <- agenda[[i]][[time]]
+          # Convert to clock time
+          cur_time <- agenda[[i]][[time]]
 
-        agenda[[i]][[time]] <- (
-          event_start_time +
-            lubridate::seconds_to_period(cur_time))
+          agenda[[i]][[time]] <- (
+            event_start_time +
+              lubridate::seconds_to_period(cur_time))
         } else {
           # Allow users to change the format
           agenda[[i]][[time]] <- parse_event_time(agenda[[i]][[time]])
@@ -634,7 +634,7 @@ validate_agenda_element <- function(
       }
 
       if (!is.numeric(agenda_element[[time]]) &&
-        is.na(parse_event_time(agenda_element[[time]]))
+          is.na(parse_event_time(agenda_element[[time]]))
       ) {
         stop("Agenda element \"", time, "\" time not interpretable: ",
              agenda_element[[time]])
@@ -1241,13 +1241,13 @@ speech_to_summary_workflow <- function(
       event_start_time = event_start_time)
 
     # Merge transcripts
-    if (!is.null(transcript_to_merge)) {
+    if (!purrr::is_empty(transcript_to_merge) && !is.na(transcript_to_merge)) {
+
+      message("\n### Merging transcripts...\n ")
 
       if (!file.exists(transcript_to_merge)) {
         stop("Transcript file to merge not valid.")
       }
-
-      message("\n### Merging transcripts...\n ")
 
       # If the transcript to merge is a file path, load the data from the file
       if (is.character(transcript_to_merge)) {
@@ -1264,7 +1264,8 @@ speech_to_summary_workflow <- function(
     }
 
     # Add chat transcript
-    if (!is.null(chat_file)) {
+    if (!purrr::is_empty(chat_file) && !is.na(chat_file)) {
+
       message("\n### Adding chat transcript...\n")
 
       if (is.null(event_start_time)) {
@@ -1294,7 +1295,8 @@ speech_to_summary_workflow <- function(
   ## Perform summarization ##
 
   # Agenda is not provided, ask whether to generate a default agenda
-  if (is.null(agenda) || (is.character(agenda) && !file.exists(agenda))) {
+  if (purrr::is_empty(agenda) ||
+      (is.character(agenda) && !file.exists(agenda))) {
 
     cat("No agenda was provided or found in the target directory.\n")
 
