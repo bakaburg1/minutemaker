@@ -452,12 +452,12 @@ convert_agenda_times <- function(
       } else if (convert_to == "clocktime"){
 
         if (is.numeric(agenda[[i]][[time]])) {
-        # Convert to clock time
-        cur_time <- agenda[[i]][[time]]
+          # Convert to clock time
+          cur_time <- agenda[[i]][[time]]
 
-        agenda[[i]][[time]] <- (
-          event_start_time +
-            lubridate::seconds_to_period(cur_time))
+          agenda[[i]][[time]] <- (
+            event_start_time +
+              lubridate::seconds_to_period(cur_time))
         } else {
           # Allow users to change the format
           agenda[[i]][[time]] <- parse_event_time(agenda[[i]][[time]])
@@ -509,6 +509,9 @@ format_summary_tree <- function(
     event_start_time = getOption("minutemaker_event_start_time"),
     output_file = NULL
 ) {
+
+  # Check the consistency of the summary tree and the agenda
+  check_agenda_summary_tree_consistency(agenda, summary_tree)
 
   # If summary_tree is a file path, load the data from the file
   if (is.character(summary_tree) && file.exists(summary_tree)) {
@@ -582,83 +585,7 @@ format_summary_tree <- function(
 }
 
 
-#' Validates an agenda element
-#'
-#' @param agenda_element A list containing the agenda elements.
-#' @param session A boolean indicating whether the `session` item should be
-#'   present.
-#' @param title A boolean indicating whether the `title` item should be present.
-#' @param speakers A boolean indicating whether the `speakers` item should be
-#'   present.
-#' @param moderators A boolean indicating whether the `moderators` item should
-#'   be present.
-#' @param type A boolean indicating whether the `type` item should be present.
-#' @param from A boolean indicating whether the `from` item should be present.
-#' @param to A boolean indicating whether the `to` item should be present.
-#'
-#' @return A boolean indicating whether the agenda element is valid.
-#'
-validate_agenda_element <- function(
-    agenda_element,
-    session = FALSE,
-    title = FALSE,
-    speakers = FALSE,
-    moderators = FALSE,
-    type = FALSE,
-    from = FALSE,
-    to = FALSE
-) {
 
-  # Get the arguments as a list
-  args <- as.list(environment())
-
-  # Remove the 'agenda_element' argument from the list
-  args$agenda_element <- NULL
-
-  # Check if the required items are present in the agenda element
-  is_valid <- purrr::imap_lgl(args, ~ {
-    !is.null(agenda_element[[.y]]) || isFALSE(.x)
-  }) |> all()
-
-  if (isTRUE(from) || isTRUE(to)) {
-
-    # Check if the times are interpretable
-    for (time in c("from", "to")) {
-
-      if (!inherits(agenda_element[[time]],
-                    c("numeric", "POSIXct", "character"))) {
-        stop(stringr::str_glue(
-          'Agenda element "{time}" should be numeric, character or POSIXct,',
-          "but it's of class {class(agenda_element[[time]])}."
-        ))
-      }
-
-      if (!is.numeric(agenda_element[[time]]) &&
-        is.na(parse_event_time(agenda_element[[time]]))
-      ) {
-        stop("Agenda element \"", time, "\" time not interpretable: ",
-             agenda_element[[time]])
-      }
-    }
-
-    if (class(agenda_element$from) != class(agenda_element$to)) {
-      stop("The agenda element times are not of the same class:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
-    }
-
-    if (
-      time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
-    ) {
-      stop("Agenda element \"from\" time should preceed \"to\" time:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
-    }
-  }
-
-  # Return the validation result
-  is_valid
-}
 
 #' Import transcript from subtitle file
 #'
@@ -1241,13 +1168,13 @@ speech_to_summary_workflow <- function(
       event_start_time = event_start_time)
 
     # Merge transcripts
-    if (!is.null(transcript_to_merge)) {
+    if (!purrr::is_empty(transcript_to_merge) && !is.na(transcript_to_merge)) {
+
+      message("\n### Merging transcripts...\n ")
 
       if (!file.exists(transcript_to_merge)) {
         stop("Transcript file to merge not valid.")
       }
-
-      message("\n### Merging transcripts...\n ")
 
       # If the transcript to merge is a file path, load the data from the file
       if (is.character(transcript_to_merge)) {
@@ -1264,7 +1191,8 @@ speech_to_summary_workflow <- function(
     }
 
     # Add chat transcript
-    if (!is.null(chat_file)) {
+    if (!purrr::is_empty(chat_file) && !is.na(chat_file)) {
+
       message("\n### Adding chat transcript...\n")
 
       if (is.null(event_start_time)) {
@@ -1294,7 +1222,8 @@ speech_to_summary_workflow <- function(
   ## Perform summarization ##
 
   # Agenda is not provided, ask whether to generate a default agenda
-  if (is.null(agenda) || (is.character(agenda) && !file.exists(agenda))) {
+  if (purrr::is_empty(agenda) ||
+      (is.character(agenda) && !file.exists(agenda))) {
 
     cat("No agenda was provided or found in the target directory.\n")
 
