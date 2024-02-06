@@ -93,16 +93,8 @@ check_summary_tree_consistency <- function(summary_tree) {
 
   obs_ids <- names(summary_tree)
 
-  titles <- purrr::map(summary_tree, \(x) x[["title"]])
-  sessions <- purrr::map(summary_tree, \(x) {
-    if (!purrr::is_empty(x[["session"]])) {
-      x[["session"]]
-    } else {
-      x[["title"]]
-    }
-  })
-
-  exp_ids <- paste(sessions, titles, sep = "_")
+  exp_ids <- build_ids_from_agenda(summary_tree)
+  names(exp_ids) <- NULL
 
   test <- all.equal(obs_ids, exp_ids)
 
@@ -110,7 +102,8 @@ check_summary_tree_consistency <- function(summary_tree) {
     return()
   }
 
-  stop("The summary tree is not consistent: ", test, ".\n",
+  stop("The summary tree IDs and titles/sessions are not consistent: ",
+       test, ".\n",
        purrr::map(seq_along(obs_ids), \(i) {
          if (obs_ids[i] != exp_ids[i]) {
            sprintf('"%s" != "%s"', obs_ids[i], exp_ids[i])
