@@ -386,7 +386,7 @@ summarise_full_meeting <- function(
       next
     }
 
-    message("Talk: ", id)
+    message("\n# Talk: ", id)
 
     # Get the index of the current talk in the agenda
     i <- which(talks_ids == id)
