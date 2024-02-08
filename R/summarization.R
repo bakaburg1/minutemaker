@@ -247,7 +247,7 @@ summarise_transcript <- function(
   # Generate the summaries
   summaries <- purrr::imap(prompts, \(prompt, i) {
     if (method == "rolling") {
-      message("Processing transcript segment", i,
+      message("Processing transcript segment ", i,
               " of ", length(transcript_data))
     }
 
