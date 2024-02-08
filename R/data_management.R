@@ -872,13 +872,26 @@ add_chat_transcript <- function(
     start_time <- parse_event_time(start_time) |>
       as.numeric()
 
-    tryCatch(
+    tryCatch({
       chat_transcript <- readLines(chat_transcript, skipNul = T) |>
         # Remove encoding characters
         stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
         purrr::discard(is_silent) |>
-        purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t()) |>
-        do.call(what = "rbind") |>
+        purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t())
+
+      # Loop over the chat messages and concatenate the ones that are split
+      # across multiple lines
+      for (i in rev(seq_along(chat_transcript))) {
+        curr <- chat_transcript[[i]]
+        if (ncol(curr) == 1) {
+          prev <- chat_transcript[[i - 1]]
+          chat_transcript[[i - 1]][1, ncol(prev)] <- paste(
+            prev[1, ncol(prev)], curr[1, ncol(curr)])
+          chat_transcript[[i]] <- NULL
+        }
+      }
+
+      chat_transcript <- do.call("rbind", chat_transcript) |>
         as.data.frame() |>
         setNames(c("date", "start", "speaker", "text")) |>
         mutate(
@@ -891,7 +904,7 @@ add_chat_transcript <- function(
             stringr::str_remove("( to everyone)?:") |>
             stringr::str_replace_all("(?<=\\s)[a-z]", toupper),
           speaker = paste(.data$speaker, "(from chat)")
-        ),
+        )},
       error = \(e) {
         stop("Error parsing chat file: ", basename(chat_transcript), "\n\n", e)
       })
