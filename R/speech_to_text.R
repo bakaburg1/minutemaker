@@ -387,20 +387,29 @@ use_azure_whisper_stt <- function(
 
   # Check response status
   if (response$status_code != 200) {
-    warning("Error in Azure Whisper API request: ",
-            httr::content(response, "text"))
-    if (response$status_code == 429 ||
-        grepl("temporarily unable to process", httr::content(response, "text"))
-    ) {
-      message("Retrying in 30 seconds...")
-      Sys.sleep(30)
-      use_azure_whisper_stt(
+
+    warning("Error ", response$status_code, " in Azure Whisper API request: ",
+            httr::content(response, "text"), call. = FALSE, immediate. = TRUE)
+
+      wait_for <- stringr::str_extract(
+        httr::content(response, "text", encoding = "UTF-8"),
+        "\\d+(?= seconds)") |> as.numeric()
+
+      if (is.na(wait_for) && !interactive()) stop()
+
+      if (is.na(wait_for)) wait_for <- 30
+
+      message("Retrying in ", wait_for, " seconds...")
+
+      Sys.sleep(wait_for)
+
+      res <- use_azure_whisper_stt(
         audio_file = audio_file,
         language = language,
         initial_prompt = initial_prompt,
-        temperature = temperature
-      )
-    } else stop()
+        temperature = temperature)
+
+      return(res)
   }
 
   # Return the response
