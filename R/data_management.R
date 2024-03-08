@@ -285,11 +285,12 @@ extract_text_from_transcript <- function(
 
   # Ignore the `import_diarization` parameter if the transcript does not contain
   # speaker information
-  if (all(is.na(transcript_data$speaker)) ||
+  if (!"speaker" %in% names(transcript_data) ||
+      all(is.na(transcript_data$speaker)) ||
       n_distinct(transcript_data$speaker, na.rm = T) == 1) {
     import_diarization <- FALSE
 
-    transcript_data$speaker <- "None"
+    transcript_data$speaker <- "Unknown"
   }
 
   transcript <- transcript_data %>%
