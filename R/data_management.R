@@ -984,8 +984,25 @@ add_chat_transcript <- function(
 #'   generate the chat file. See `add_chat_transcript` for more details.
 #' @param agenda The agenda of the meeting, that is, a list of agenda elements
 #'   each with a session name, a title, speaker and moderator lists, type of
-#'   talk and start and end times. Alternatively, the path to an R file
-#'   containing such a list. See `summarise_full_meeting` for more details.
+#'   talk, talk description and start and end times. Alternatively, the path to
+#'   an R file containing such a list. See `summarise_full_meeting` for more
+#'   details. If NULL, the user will be asked if the system should try to
+#'   generate the agenda automatically, using the `infer_agenda_from_transcript`
+#'   function.
+#' @param expected_agenda A character string. Only used if the `agenda` argument
+#'   is `NULL` and the user requests the automatic agenda generation. this
+#'   string will be used to drive the LLM while generating the agenda. See
+#'   `infer_agenda_from_transcript` for more details.
+#' @param agenda_generation_window_size The size of the window in seconds to
+#'   analyze at once when generating the agenda. See
+#'   `infer_agenda_from_transcript` for more details.
+#' @param agenda_generation_output_file A string with the path to the output
+#'   file where the automatically generated agenda will be written. Should be a
+#'   .R file. See `infer_agenda_from_transcript` for more details.
+#' @param extra_agenda_generation_args Additional arguments passed to the
+#'  `infer_agenda_from_transcript` function. See `infer_agenda_from_transcript`
+#'  for more details. Note that the `diarization_instructions` argument for this
+#'  function will be taken from the `extra_agenda_generation_args` argument.
 #' @param summarization_method A string indicating the summarization method to
 #'   use. See `summarise_full_meeting` for more details.
 #' @param event_description A string containing a description of the meeting.
@@ -1000,9 +1017,9 @@ add_chat_transcript <- function(
 #'   should take into account the diarization of the transcript. See
 #'   `summarise_transcript` for more details.
 #' @param summary_structure,extra_diarization_instructions,extra_output_instructions
-#'   Specific instructions necessary to build the summarisation prompt. See
-#'   `summarise_transcript` for more details and run `get_prompts()` to see the
-#'   defaults. See `summarise_transcript` for more details.
+#' Specific instructions necessary to build the summarisation prompt. See
+#' `summarise_transcript` for more details and run `get_prompts()` to see the
+#' defaults. See `summarise_transcript` for more details.
 #' @param llm_provider A string indicating the LLM provider to use for the
 #'   summarization. See `summarise_transcript` for more details.
 #' @param extra_summarise_args Additional arguments passed to the
@@ -1063,8 +1080,12 @@ speech_to_summary_workflow <- function(
                          , full.names = T)[1],
   chat_format = "webex",
 
-  # Arguments for `summarise_full_meeting`
+  # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
   agenda = file.path(target_dir, "agenda.R"),
+  expected_agenda = NULL,
+  agenda_generation_window_size = 7200,
+  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
+  extra_agenda_generation_args = NULL,
 
   event_description = NULL,
   event_audience = "An audience with understanding of the topic",
@@ -1245,7 +1266,7 @@ speech_to_summary_workflow <- function(
     } else {
       choice <- utils::menu(
         choices = c(
-          "Generate a default agenda (i.e., process the transcript as one talk)",
+          "Generate the agenda automatically (You will need to review it before proceeding)",
           "Exit (write your own agenda)"
         ),
         title = "How do you want to proceed?"
@@ -1258,12 +1279,22 @@ speech_to_summary_workflow <- function(
     }
 
     # Generate a default agenda with 1 talk/meeting if none is provided
-    agenda <- list(
-      list(
-        from = min(transcript_data$start),
-        to = max(transcript_data$end)
-      )
-    )
+    agenda_infer_args <- c(list(
+      transcript = transcript_data,
+      event_description = event_description,
+      vocabulary = vocabulary,
+      diarization_instructions = extra_diarization_instructions,
+      start_time = event_start_time,
+      expected_agenda = expected_agenda,
+      window_size = agenda_generation_window_size,
+      output_file = file.path(target_dir, "agenda.R"),
+      provider = llm_provider
+    ), extra_agenda_generation_args)
+
+    agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
+
+    message("Agenda generated. Please review it before proceeding.")
+    return(invisible(transcript_data))
   }
 
   message("\n### Summarizing transcript...\n")

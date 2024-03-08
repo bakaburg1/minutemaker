@@ -467,3 +467,390 @@ summarise_full_meeting <- function(
   # Return the result tree invisibly
   invisible(result_tree)
 }
+
+
+#' Infer the agenda from a transcript
+#'
+#' This function takes a transcript and various optional parameters, and uses an
+#' LLM to generate an agenda.
+#'
+#' @param transcript The transcript to be summarised. Can be a file path or a
+#'   data frame.
+#' @param event_description A description of the event. Provide context about
+#'   the event.
+#' @param vocabulary A character vector of specific vocabulary words, names,
+#'   definitions, to help the LLM recognise misspellings and abbreviations.
+#' @param start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Necessary to convert the agenda times from seconds to an easier to
+#'   read format.
+#' @param expected_agenda The expected agenda of the event. A text description
+#'   of the expected agenda. If provided, the LLM will be asked to generate an
+#'   agenda that matches this description.
+#' @param window_size The time window that will be taken into account when
+#'   inferring the agenda. Default is 2 hours. A larger window will increase the
+#'   accuracy of the agenda since it will provide context and will prevent to
+#'   have talks crossing the window boundaries; also decrease the chance of
+#'   having the LLM being over sensitive to small changes in topics, generating
+#'   too many small talks. However, a larger window will also require a larger
+#'   LLM context.
+#' @param output_file An optional file to save the results to. Default is NULL,
+#'   i.e., the results are not saved to a file.
+#' @param ... Additional arguments passed to the `interrogate_llm` function.
+#'   Keep in consideration that this function needs LLMs that manages long
+#'   context and that produce valid JSON outputs. The `force_json` argument is
+#'   used with OpenAI based LLM but it's not accepted by other LLMs; therefore
+#'   the user may need to edit the system prompts to ensure that the output is a
+#'   valid JSON.
+#'
+#' @return An agenda in the usual list format.
+#'
+#' @export
+#'
+infer_agenda_from_transcript <- function(
+    transcript,
+    event_description = NULL,
+    vocabulary = NULL,
+    diarization_instructions = NULL,
+    start_time = NULL,
+    expected_agenda = NULL,
+    window_size = 3600,
+    output_file = NULL,
+    ...
+) {
+
+  # Set the default prompts if not already set
+  set_prompts()
+
+  # import the transcript if it's a file path
+  if (is.character(transcript)) {
+    # Is the transcript a CSV file?
+    if (stringr::str_detect(transcript, "\\.csv$")) {
+      transcript_data <- readr::read_csv(transcript, show_col_types = FALSE)
+    }
+    # Is the transcript a subtitle file?
+    else {
+      transcript_data <- import_transcript_from_file(transcript)
+    }
+  } else if (is.data.frame(transcript)) {
+    transcript_data <- transcript
+  } else {
+    stop("The transcript must be a file path or a data frame.")
+  }
+
+  transcript_data <- transcript_data |>
+    select(start, end, text, any_of("speaker")) |>
+    mutate(
+      across(c(start, end), ~ round(.x)),
+    ) |>
+    filter(!is_silent(text))
+
+  breakpoints <- seq(
+    transcript_data$start[1], max(transcript_data$start), by = window_size)
+
+  pause_duration <- 1200
+
+  pauses <- transcript_data |>
+    filter(
+      start - lag(end, default = 0) > pause_duration
+    ) |> pull(start)
+
+  breakpoints <- c(breakpoints, pauses) |> sort()
+
+  for (i in which(breakpoints %in% pauses)) {
+    if (breakpoints[i] - breakpoints[i - 1] < pause_duration) {
+      breakpoints <- breakpoints[-(i - 1)]
+    }
+
+    if (breakpoints[i + 1] - breakpoints[i] < pause_duration) {
+      breakpoints <- breakpoints[-(i + 1)]
+    }
+  }
+
+  last_segment <- max(transcript_data$start) - tail(breakpoints, n=1)
+
+  # Adjust if the last segment is less than window_size / 2 seconds
+  if (last_segment < (window_size / 2)) {
+    breakpoints <- utils::head(breakpoints, -1)
+  }
+
+  stop <- FALSE
+  cur_bp <- 1
+  json_error <- FALSE
+
+  # Check if there was an already started session that got interrupted
+  arg_hash <- rlang::hash(
+    list(
+      transcript_data = transcript_data,
+      event_description = event_description,
+      vocabulary = vocabulary,
+      diarization_instructions = diarization_instructions,
+      start_time = start_time,
+      expected_agenda = expected_agenda,
+      window_size = window_size)
+  )
+
+  # Reset the temporary agenda if the arguments have changed
+  if (is.null(getOption("minutemaker_temp_agenda"))) {
+    options(
+      "minutemaker_temp_agenda" = list(),
+      "minutemaker_temp_agenda_last_bp" = NULL
+      )
+  } else if (getOption("minutemaker_temp_agenda_hash", "") != arg_hash) {
+    options(
+      "minutemaker_temp_agenda" = list(),
+      "minutemaker_temp_agenda_last_bp" = NULL
+    )
+  } else {
+    message("A temporary agenda was found. Resuming the inference.")
+  }
+
+  options("minutemaker_temp_agenda_hash" = arg_hash)
+
+  update_agenda <- function(agenda_elements) {
+    cur_agenda <- c(
+      getOption("minutemaker_temp_agenda", list()),
+      agenda_elements |> sort()
+    )
+
+    options("minutemaker_temp_agenda" = cur_agenda)
+  }
+
+  message("- Inferring the agenda from the transcript")
+
+  while (isFALSE(stop)) {
+
+    bp_left <- breakpoints[cur_bp]
+    bp_right <- breakpoints[cur_bp + 1]
+
+    # Stop if reached the end
+    if (is.na(bp_right)) {
+      bp_right <- max(transcript_data$start) + 1
+    }
+
+    # Check if the current segment was already processed
+    if (cur_bp <= getOption("minutemaker_temp_agenda_last_bp", 0)) {
+      if (cur_bp == length(breakpoints)) stop <- TRUE
+
+      cur_bp <- cur_bp + 1
+
+      next
+    }
+
+    transcript_segment <- transcript_data |>
+      dplyr::filter(
+        .data$start >= bp_left,
+        .data$start < bp_right
+      )
+
+    # Skip empty segments
+    if (nrow(transcript_segment) == 0) {
+      if (cur_bp == length(breakpoints)) stop <- TRUE
+
+      cur_bp <- cur_bp + 1
+
+      next
+    }
+
+    transcript_segment <- transcript_segment |> readr::format_csv()
+
+    prompt <- generate_agenda_inference_prompt(
+      transcript_segment,
+      args = mget(
+        c("event_description", "vocabulary",
+          "diarization_instructions", "expected_agenda"),
+        ifnotfound = list(NULL))
+    )
+
+    # Build the prompt set
+    prompt_set <- c(
+      system = get_prompts("persona"),
+      user = prompt
+    )
+
+    # If this is a retry for failed json parsing, add the previous result to the
+    # prompt set and add instructions to fix the output
+    if (json_error) {
+      prompt_set <- c(
+        prompt_set,
+        assistant = result_json,
+        user = "Your output was not a valid JSON.
+          Please correct it to provide a valid output.")
+    }
+
+    # Attempt to interrogate the LLM
+    result_json <- try(interrogate_llm(
+      prompt_set,
+      ...,
+      force_json = TRUE
+    ), silent = TRUE)
+
+    # If the interrogation fails due to too long output, retry with a smaller
+    # window
+    if (inherits(result_json, "try-error") &&
+        grepl("Answer exhausted the context window", result_json)) {
+
+      warning(
+        "Answer exhausted the context window. retrying...",
+        immediate. = T, call. = F)
+
+      # Add a new breakpoint in the middle of the current segment
+      new_bp <- (bp_left + bp_right) / 2
+      breakpoints <- sort(c(breakpoints, new_bp))
+
+      # Prevent stopping, in case the error happened on the last segment
+      stop <- FALSE
+
+      next
+    } else if (inherits(result_json, "try-error")) {
+
+      stop(result_json)
+
+    }
+
+    cat(result_json)
+
+    # Attempt to parse the result json
+    parsed_result <- try(
+      jsonlite::fromJSON(result_json, simplifyDataFrame = F)$start_times,
+      silent = TRUE)
+
+    # If the parsing fails...
+    if (inherits(parsed_result, "try-error")) {
+
+      # If this is the first parsing error, retry with instructions to fix the
+      # output
+      if (!json_error) {
+        warning(
+          "Output not a valid JSON. retrying...",
+          immediate. = T, call. = F)
+
+        json_error <- TRUE
+      }
+      # If this is the second parsing error, shorten the window
+      else {
+
+        warning(
+          "Output not a valid JSON. Shortening the window...",
+          immediate. = T, call. = F)
+
+        json_error <- FALSE
+
+        # Add a new breakpoint in the middle of the current segment
+        new_bp <- (bp_left + bp_right) / 2
+        breakpoints <- sort(c(breakpoints, new_bp))
+
+      }
+
+      # Prevent stopping, in case the error happened on the last segment
+      stop <- FALSE
+
+      next
+    }
+
+    # If the parsing is successful, update the agenda
+    update_agenda(parsed_result)
+
+    json_error <- FALSE
+
+    options("minutemaker_temp_agenda_last_bp" = cur_bp)
+
+    if (cur_bp == length(breakpoints)) stop <- TRUE
+
+    cur_bp <- cur_bp + 1
+
+  }
+
+  agenda_times <- getOption("minutemaker_temp_agenda", list())
+
+  if (length(agenda_times) == 0) {
+    warning("No agenda was inferred from the transcript.",
+            immediate. = T, call. = F)
+    return(NULL)
+  }
+
+  # Remove segments that are too short or that precede the previous one.
+  agenda_times <- agenda_times |> purrr::imap(\(x, i) {
+    if (i == 1) return(agenda_times[[i]])
+
+    this_time <- agenda_times[[i]]
+    prev_time <- agenda_times[[i - 1]]
+
+    # segments should last at least 5 minutes and not be negative
+    if (this_time - prev_time < 150) return(NULL)
+
+    return(this_time)
+  }) |> unlist()
+
+  message("- Extracting agenda items details")
+
+  # Extract the talks' details from the transcript
+  agenda <- purrr::imap(agenda_times, \(start, i) {
+    # if (i == 1) start <- 1
+
+    # Stop at the end of the transcript if there is no next agenda element
+    end <- min(
+      c(agenda_times[i + 1], max(transcript_data$end)),
+      na.rm = TRUE)
+
+    # Stop at the pause if there is one in the talk segment
+    pauses <- pauses[between(pauses, start, end)]
+    end <- min(c(end, pauses), na.rm = TRUE)
+
+    element <- list(
+      # Sometimes, int are produced, which creates problems when converting to
+      # clocktime
+      from = as.numeric(start),
+      to = as.numeric(end)
+    )
+
+    transcript_segment <- transcript_data |>
+      filter(
+        .data$start >= element$from,
+        .data$end <= element$to,
+      ) |> readr::format_csv()
+
+    prompt <- generate_agenda_element_prompt(
+      transcript_segment,
+      # I cannot use mget here because the prompt function is not in the
+      # environment of the calling function. Probably there's a way to use mget
+      # also here
+      args = list(
+        event_description = event_description,
+        vocabulary = vocabulary,
+        diarization_instructions = diarization_instructions)
+    )
+
+    # Build the prompt set
+    prompt_set <- c(
+      system = get_prompts("persona"),
+      user = prompt
+    )
+
+    result_json <- interrogate_llm(
+      prompt_set,
+      ..., force_json = TRUE
+    )
+
+    jsonlite::fromJSON(result_json, simplifyDataFrame = F) |>
+      c(element)
+  })
+
+  if (!is.null(start_time)) {
+    agenda <- agenda |>
+      convert_agenda_times(
+        convert_to = "clocktime",
+        event_start_time = start_time)
+  }
+
+  if (!is.null(output_file)) {
+    dput(agenda, file = output_file)
+  }
+
+  options(
+    minutemaker_temp_agenda_last_bp = NULL,
+    minutemaker_temp_agenda = NULL,
+    minutemaker_temp_agenda_hash = NULL
+  )
+
+  agenda
+}

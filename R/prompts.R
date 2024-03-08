@@ -74,6 +74,29 @@ set_prompts <- function(
     base_task = "Your task is to provide a summary of the transcript segments that will be given to you.",
 
     aggregate_task_rolling = "Your task is to aggregate the summaries generated from the segments of a meeting/talk into a single, comprehensive text, without loss of information.",
+    agenda_inference_task = collapse(
+      "Your task is to extract individual talks from this transcript, creating an agenda. You can identify them from a change of speaker, and or, a change of topic. Try to detect broad changes of topics so to avoid splitting the transcript into an excessively large number of small talks; a talk usually last at least 10-15 minutes to one hour, so join into one talk very short change of topics, even if the speaker change. Aggregate both the talk itself and possible Q&A sessions in the same talk.",
+      "You wil be FIRST producing a step by step reasoning of what could be a good subdivision of the transcript into different talks, considering different competing subdivisions, and THEN suggest the agenda. Take speakers, topics, and timings into consideration in your reasoning.",
+      "Your output will be a JSON object with two components: your reasoning and the actual agenda. The agenda must be an array of \"talk\" objects, each with the talk title, a short description (1 sentence), a label with the type of talk (e.g. welcome talk, conference outline, conference talk, meeting discussion, Q&A session, etc...), an array with one of more speakers, another array with moderators (if detectable) and the starting and end time in seconds. Add also the \"session\" object if it make sense as grouping.",
+      "Here's an example of the output structure:",
+      "###
+       {
+        reasoning = \"Your reasoning goes here\",
+        agenda = [
+           {
+            title = \"The talk title\",
+            type = \"Conference talk\",
+            description = \"A description of this talk\",
+            speakers = [\"speaker 1\", \"speaker 2\"],
+            moderators = [\"moderator 1\"] # If detectable, otherwise ignore this field
+            from = 1231, to = 2023
+           },
+            {...}, /* another talk element */
+           ...
+        ]
+       }
+       ###",
+      "Important: process the whole transcript, do not be lazy: your agenda should cover the entirety of the transcript."),
 
     event_description_template = collapse(
       "The following is a description of the event in which the talk/meeting took place, which will provide you with context.",
@@ -93,17 +116,14 @@ set_prompts <- function(
       "<transcript>", "{transcript}", "</transcript>"
     ),
 
-    # transcript_template_one_shot = collapse(
-    #   "Here is the transcript segment you need to summarise:",
-    #   "<transcript>", "{transcript}", "</transcript>"
-    # ),
-    #
-    # transcript_template_rolling = collapse(
-    #   "Here is the transcript of the segment you need to summarise:",
-    #   "<transcript>", "[...]\n{transcript}\n[...]", "</transcript>"
-    # ),
-
     aggregate_template_rolling = "Here are the segment summaries to aggregate:",
+
+    agenda_inference_template = collapse(
+      "This is the transcript of an event/meeting:\n<transcript>",
+      "{transcript}",
+      "</transcript>\n",
+      "The transcript is formatted as a csv with the start and end time of each segment and the segment text."
+    ),
 
     vocabulary_template = "Mind that the transcript is not perfect and the following and other terms and names may have been wrongly transcribed. Here's a list of technical terms, acronyms and names you may find in the trascript and that may have been wrongly transcribed:\n{vocabulary}.\nRecognize and correct misspelled versions of these and other related terms and names.",
 
@@ -446,4 +466,191 @@ generate_rolling_aggregation_prompt <- function(
   # NULL
   stringr::str_glue_data(prompt, .x = args, .null = NULL)
 
+}
+
+
+#' Generate the agenda inference prompt
+#'
+#' This function is used by `infer_agenda_from_transcript()` to generate a
+#' prompt for inferring the agenda from a transcript.
+#'
+#' @param transcript_segment A segment of the transcript to be used for
+#'   inferring the agenda. Can be a character vector representing the data in CSV
+#'   format or a data frame.
+#' @param args A list of arguments to be passed to the prompt template. They can
+#'   include: event_description, vocabulary and expected_agenda.
+#'
+#' @return A prompt used by `infer_agenda_from_transcript()`.
+#'
+generate_agenda_inference_prompt <- function(
+    transcript_segment,
+    args
+) {
+
+  if (is.data.frame(transcript_segment)) {
+    transcript_segment <- readr::format_csv(transcript_segment)
+  }
+
+  if (!is.null(args$vocabulary)) {
+    # Format the vocabulary argument if a vector is provided
+    args$vocabulary <- paste0(
+      "- ",
+      args$vocabulary,
+      collapse = "\n"
+    )
+  }
+
+  # Aggregate instructions if length > 1 vectors and convert into the
+  # extra_diarization_instructions argument
+  if (length(args$diarization_instructions) > 0) {
+    args$extra_diarization_instructions <- paste(
+      args$diarization_instructions, collapse = "\n"
+    )
+  }
+
+  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+
+  if (any(long_arguments)) {
+    stop("All arguments in args should have length 1:\n",
+         stringr::str_flatten_comma(names(args)[long_arguments]))
+  }
+
+  prompt <- paste(
+    "Your task is to extract individual talks from a transcript, creating an agenda.",
+
+    if (!is.null(args$event_description)) {
+      # Uses the {event_description} argument
+      get_prompts("event_description_template")
+    },
+
+    if (!is.null(args$vocabulary)) {
+      # Uses the {vocabulary} argument
+      get_prompts("vocabulary_template")
+    },
+
+    # Uses the {extra_diarization_instructions} argument
+    if (!is.null(args$diarization_instructions)) {
+      get_prompts("diarization_template")
+    },
+
+    "This is the transcript of the event/meeting from which you need to infer the agenda items:\n<transcript>\n{transcript_segment}\n</transcript>\n\nThe transcript is formatted as a csv with the start and end time of each segment, the segment text and possibly, the speakers.",
+
+    sep = "\n\n"
+  ) |>
+    stringr::str_glue_data(.x = args, .null = NULL) |>
+    paste(
+      'You can identify the talks from a change of speakers, and or, a change of topic. Try to detect broad changes of topics so to avoid splitting the transcript into an excessively large number of small talks; a talk usually last at least 10-15 minutes to one hour, so join into one talk very short change of topics, even if the speaker change. Aggregate talks and the related Q&A sessions in the same talk.
+
+You wil be FIRST producing an INFORMATION DENSE, step by step reasoning of what could be a good subdivision of the transcript into different talks, considering different competing subdivisions, listing each identified talk start time and topics. THEN you will extract the starting times of each talk.
+
+Take speakers, topics, and timings into consideration in your reasoning. The reasoning doesn\'t have to be human readable. Favor a high information over length ratio.',
+
+      if (!is.null(args$expected_agenda)) {
+        stringr::str_glue_data(
+          .x = args,
+          .null = NULL,
+          "The agenda is expected to have the following talks: ###
+{expected_agenda}
+###
+Try to match the agenda you generated to this structure.")
+      },
+
+      'Your output will be a JSON object with two components: your reasoning and the start times of each identified talks. Here\'s an example of the output structure:
+###
+ {
+  reasoning = "Your reasoning goes here",
+  start_times = [1, 232, 1242, 2343, 5534, 7023, ...]
+ }
+ ###
+
+Important: process the whole transcript, do not be lazy: your agenda WILL cover the entirety of the transcript, FROM START TO END WITHOUT TIME HOLES.',
+
+      sep ="\n"
+    )
+}
+
+#' Generate the prompt to extract an agenda element details from a transcript
+#'
+#' This function is used by `infer_agenda_from_transcript()` to generate a
+#' prompt for extracting the details of an agenda element from a transcript.
+#'
+#' @param transcript_segment A segment of the transcript to be used for
+#'   extracting the details of an agenda element. Can be a character vector
+#'   representing the data in CSV format or a data frame.
+#' @param args A list of arguments to be passed to the prompt template. They can
+#'   include: event_description and vocabulary.
+#'
+#' @return A prompt used by `infer_agenda_from_transcript()`.
+#'
+generate_agenda_element_prompt <- function(
+    transcript_segment,
+    args
+) {
+
+  if (is.data.frame(transcript_segment)) {
+    transcript_segment <- readr::format_csv(transcript_segment)
+  }
+
+  if (!is.null(args$vocabulary)) {
+    # Format the vocabulary argument if a vector is provided
+    args$vocabulary <- paste0(
+      "- ",
+      args$vocabulary,
+      collapse = "\n"
+    )
+  }
+
+  # Aggregate instructions if length > 1 vectors and convert into the
+  # extra_diarization_instructions argument
+  if (length(args$diarization_instructions) > 0) {
+    args$extra_diarization_instructions <- paste(
+      args$diarization_instructions, collapse = "\n"
+    )
+  }
+
+  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+
+  if (any(long_arguments)) {
+    stop("All arguments in args should have length 1:\n",
+         stringr::str_flatten_comma(names(args)[long_arguments]))
+  }
+
+  prompt <- paste(
+    "This is a segment of the transcript of an event/meeting:
+
+<transcript>\n{transcript_segment}\n</transcript>
+
+The transcript is formatted as a csv with the start and end time of each segment, the segment text and possibly, the speakers.",
+
+    if (!is.null(args$event_description)) {
+      # Uses the {event_description} argument
+      get_prompts("event_description_template")
+    },
+
+    if (!is.null(args$vocabulary)) {
+      # Uses the {vocabulary} argument
+      get_prompts("vocabulary_template")
+    },
+
+    # Uses the {extra_diarization_instructions} argument
+    if (!is.null(args$diarization_instructions)) {
+      get_prompts("diarization_template")
+    },
+
+    sep = "\n\n"
+  ) |>
+    stringr::str_glue_data(.x = args, .null = NULL) |>
+    paste(
+    'Your task is to extract a title and a short description (1-2 sentences max) for this talk, considering that it\'s part of a larger event. Assign also a label, e.g., welcome talk, conference outline, conference talk, meeting discussion, Q&A session, etc... (the start/end times can be helpful for this). Extract also the speakers and the moderators (if any). Format your output as a JSON object with the following structure: ###
+        {
+            title = "The talk title",
+            type = "A label to define the talk",
+            description = "A description of this talk",
+            speakers = ["speaker 1", "speaker 2"],
+            moderators = ["moderator 1"] # If detectable, otherwise ignore this field
+           }
+        ###',
+
+    sep = "\n\n"
+  )
 }
