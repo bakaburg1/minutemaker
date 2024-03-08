@@ -24,7 +24,8 @@ check_and_install_dependencies <- function(deps) {
         if(do_install) {
           try({
             install.packages(dep)
-            is_installed <- TRUE
+            # After successful installation, recheck if the package is now installed
+            is_installed <- requireNamespace(dep, quietly = FALSE)
           })
         }
       }
