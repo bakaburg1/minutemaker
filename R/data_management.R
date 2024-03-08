@@ -392,16 +392,6 @@ convert_agenda_times <- function(
     validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
   }
 
-  # if (
-  #   convert_to == "clocktime" &&
-  #   inherits(agenda[[1]]["from"], c("POSIXct", "character"))) {
-  #
-  #   warning("Agenda already in clock time format.",
-  #           call. = FALSE, immediate. = TRUE)
-  #
-  #   return(agenda_orig)
-  # }
-
   # Check if agenda times are all of the same class
   if (!all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
       !all(purrr::map_lgl(agenda, ~ {
