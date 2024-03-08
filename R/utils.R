@@ -17,9 +17,17 @@ check_and_install_dependencies <- function(deps) {
       # If not, ask the user if they want to install it
       if (interactive()) {
         # Only in interactive sessions, otherwise just stop
-        is_installed <- utils::menu(
+        do_install <- utils::menu(
           c("Yes", "No"),
           title = paste0(dep, " is not installed. Install it now?")) == 1
+
+        if(do_install) {
+          try({
+            install.packages(dep)
+            # After successful installation, recheck if the package is now installed
+            is_installed <- requireNamespace(dep, quietly = FALSE)
+          })
+        }
       }
     }
 
@@ -78,7 +86,7 @@ parse_event_time <- function(time, format = c("R", "T")) {
 #'
 time_to_numeric <- function(time, origin = NULL) {
 
-  if (!inherits(time, c("character", "POSIXct", "numeric"))) {
+  if (!inherits(time, c("character", "POSIXct", "numeric", "integer"))) {
     stop("Invalid time format for parameter 'time'")
   }
 

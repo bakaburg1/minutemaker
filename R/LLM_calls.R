@@ -35,8 +35,15 @@
 #'
 process_messages <- function(messages) {
 
-  if (missing(messages) || is.null(messages)) {
+  if (missing(messages) || is.null(messages) || length(messages) == 0) {
     stop("User messages are required.")
+  }
+
+  # Assume that a single message is from the user
+  if (length(messages) == 1 &&
+      is.character(messages) &&
+      is.null(names(messages))) {
+    messages <- c(user = messages)
   }
 
   # Convert vector to list format
@@ -199,7 +206,7 @@ interrogate_llm <- function(
 
     if (httr::status_code(response) == 429) {
       warning("Rate limit exceeded. Waiting before retrying.",
-              immediate. = TRUE)
+              immediate. = TRUE, call. = FALSE)
 
       to_wait <- as.numeric(httr::headers(response)$`retry-after`)
       message("Waiting for ", to_wait, " seconds.\n...")

@@ -44,6 +44,9 @@ quality. Otherwise, the “rolling window” summarization method can be
 used to produce summaries of consistent quality on long transcripts also
 with smaller models.
 
+In general, we suggest to use an LLM with a \>32K long context window,
+to avoid loss of information.
+
 Here is an example workflow.
 
 ### Setting up the package
@@ -294,6 +297,18 @@ transcript. The timings are not mandatory if the meeting consists of
 only one talk. The agenda object itself is not strictly necessary, but
 can be helpful for long meetings with multiple talks.
 
+An alternative approach is to generate the agenda automatically via the
+`infer_agenda_from_transcript()` function. This function uses the
+transcript to infer the different sessions of the talk, their start and
+end times and also generate a description and a title. The function can
+use contextual information to improve the quality of the generated
+agenda, such as the event description, the audience, a vocabulary, and
+the expected agenda.
+
+It’s important to review and correct the inferred agenda, since the
+function might not be able to infer the correct structure of the
+meeting.
+
 ### Summarizing a single meeting transcript
 
 The final step is summarizing the transcript. This can be done using the
@@ -525,7 +540,16 @@ speech_to_summary_workflow(
   
   # Arguments for `summarise_full_meeting`
   # Assumes an existing agenda.R file in the working directory
+  # If an agenda doesn't exist, will ask if the LLM should infer it (see
+  # following arguments)
   agenda = "agenda.R",
+  
+  # Arguments for `infer_agenda_from_transcript`
+  expected_agenda = NULL,
+  agenda_generation_window_size = 7200,
+  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
+  extra_agenda_generation_args = NULL,
+  
   summarization_output_file = "event_summary.R",
   
   event_description = event_description,
