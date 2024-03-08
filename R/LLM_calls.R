@@ -39,6 +39,13 @@ process_messages <- function(messages) {
     stop("User messages are required.")
   }
 
+  # Assume that a single message is from the user
+  if (length(messages) == 1 &&
+      is.character(messages) &&
+      is.null(names(messages))) {
+    messages <- c(user = messages)
+  }
+
   # Convert vector to list format
   vector_to_list <- function(msg_vec) {
 
