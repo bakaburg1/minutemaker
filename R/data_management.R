@@ -1083,7 +1083,7 @@ speech_to_summary_workflow <- function(
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
   agenda = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
-  agenda_generation_window_size = 7200,
+  agenda_generation_window_size = 3600,
   agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
 
