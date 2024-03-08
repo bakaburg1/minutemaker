@@ -17,9 +17,16 @@ check_and_install_dependencies <- function(deps) {
       # If not, ask the user if they want to install it
       if (interactive()) {
         # Only in interactive sessions, otherwise just stop
-        is_installed <- utils::menu(
+        do_install <- utils::menu(
           c("Yes", "No"),
           title = paste0(dep, " is not installed. Install it now?")) == 1
+
+        if(do_install) {
+          try({
+            install.packages(dep)
+            is_installed <- TRUE
+          })
+        }
       }
     }
 
