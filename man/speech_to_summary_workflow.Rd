@@ -27,6 +27,10 @@ speech_to_summary_workflow(
   chat_file = list.files(target_dir, pattern = "Chat", full.names = T)[1],
   chat_format = "webex",
   agenda = file.path(target_dir, "agenda.R"),
+  expected_agenda = NULL,
+  agenda_generation_window_size = 7200,
+  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
+  extra_agenda_generation_args = NULL,
   event_description = NULL,
   event_audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -125,8 +129,29 @@ generate the chat file. See \code{add_chat_transcript} for more details.}
 
 \item{agenda}{The agenda of the meeting, that is, a list of agenda elements
 each with a session name, a title, speaker and moderator lists, type of
-talk and start and end times. Alternatively, the path to an R file
-containing such a list. See \code{summarise_full_meeting} for more details.}
+talk, talk description and start and end times. Alternatively, the path to
+an R file containing such a list. See \code{summarise_full_meeting} for more
+details. If NULL, the user will be asked if the system should try to
+generate the agenda automatically, using the \code{infer_agenda_from_transcript}
+function.}
+
+\item{expected_agenda}{A character string. Only used if the \code{agenda} argument
+is \code{NULL} and the user requests the automatic agenda generation. this
+string will be used to drive the LLM while generating the agenda. See
+\code{infer_agenda_from_transcript} for more details.}
+
+\item{agenda_generation_window_size}{The size of the window in seconds to
+analyze at once when generating the agenda. See
+\code{infer_agenda_from_transcript} for more details.}
+
+\item{agenda_generation_output_file}{A string with the path to the output
+file where the automatically generated agenda will be written. Should be a
+.R file. See \code{infer_agenda_from_transcript} for more details.}
+
+\item{extra_agenda_generation_args}{Additional arguments passed to the
+\code{infer_agenda_from_transcript} function. See \code{infer_agenda_from_transcript}
+for more details. Note that the \code{diarization_instructions} argument for this
+function will be taken from the \code{extra_agenda_generation_args} argument.}
 
 \item{event_description}{A string containing a description of the meeting.
 See \code{summarise_transcript} for more details.}

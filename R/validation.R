@@ -41,6 +41,11 @@ validate_agenda_element <- function(
     # Check if the times are interpretable
     for (time in c("from", "to")) {
 
+      # Convert integer times to numeric to simplify the validation
+      if (inherits(agenda_element[[time]], "integer")) {
+        agenda_element[[time]] <- as.numeric(agenda_element[[time]])
+      }
+
       if (!inherits(agenda_element[[time]],
                     c("numeric", "POSIXct", "character"))) {
         stop(stringr::str_glue(
