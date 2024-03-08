@@ -85,7 +85,7 @@ parse_event_time <- function(time, format = c("R", "T")) {
 #'
 time_to_numeric <- function(time, origin = NULL) {
 
-  if (!inherits(time, c("character", "POSIXct", "numeric"))) {
+  if (!inherits(time, c("character", "POSIXct", "numeric", "integer"))) {
     stop("Invalid time format for parameter 'time'")
   }
 
