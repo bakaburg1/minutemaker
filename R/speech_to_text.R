@@ -385,6 +385,10 @@ use_azure_whisper_stt <- function(
   # Make the HTTP request
   response <- httr::POST(url, headers, body = body)
 
+  if (response$status_code == 424) {
+    stop("Fatal error: ", httr::content(response, "text"))
+  }
+
   # Check response status
   if (response$status_code != 200) {
 
