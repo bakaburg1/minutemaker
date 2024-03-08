@@ -81,6 +81,11 @@ parse_transcript_json <- function(
            "Please remove it and try transcription again.")
     }
 
+    if (length(transcript_list[[i]]$segments) == 0) {
+      # skip this file, there was nothing to transcribe
+      next
+    }
+
     transcript_data <- transcript_list[[i]]$segments |>
       bind_rows() |>
       # Select only the columns to import
