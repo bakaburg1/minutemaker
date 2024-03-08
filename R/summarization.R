@@ -271,7 +271,7 @@ summarise_transcript <- function(
 
   args <- args[
     c("event_description", "recording_details", "audience",
-       "summary_structure", "extra_output_instructions")
+      "summary_structure", "extra_output_instructions")
   ]
 
   # Aggregate the summaries
@@ -412,6 +412,17 @@ summarise_full_meeting <- function(
         .data$start >= agenda_element$from,
         .data$start <= agenda_element$to)
 
+    if (nrow(transcript_subset) == 0) {
+      warning("The transcript subset for the talk ", id, " is empty. ",
+              if (!is.null(event_start_time)) {
+                "Did you provide the correct event start time?"
+                } else {
+                  "Did you provide the correct agenda times?"
+                }, ". Skipping.",
+              call. = FALSE, immediate. = TRUE)
+      next
+    }
+
     # Extract the details of the talk
     recording_details <- generate_recording_details(agenda_element)
 
@@ -447,6 +458,10 @@ summarise_full_meeting <- function(
 
     # Update the results file
     dput(result_tree, file = output_file)
+  }
+
+  if (length(result_tree) == 0) {
+    stop("The final result tree has lenght zero. No talks were summarised.")
   }
 
   # Return the result tree invisibly
