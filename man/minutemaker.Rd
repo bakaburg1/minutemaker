@@ -2,8 +2,8 @@
 % Please edit documentation in R/minutemaker-package.R
 \docType{package}
 \name{minutemaker}
-\alias{minutemaker}
 \alias{minutemaker-package}
+\alias{minutemaker}
 \title{minutemaker}
 \description{
 Package which uses LLM models to generate minutes from audio recordings or transcriptions of meetings.
