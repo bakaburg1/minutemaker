@@ -26,6 +26,10 @@ the event.}
 \item{vocabulary}{A character vector of specific vocabulary words, names,
 definitions, to help the LLM recognise misspellings and abbreviations.}
 
+\item{diarization_instructions}{Instructions for the diarization of the
+transcript. Default is NULL. If provided, it will help the LLM in
+recognizing the speakers in the transcript.}
+
 \item{start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
 format. Necessary to convert the agenda times from seconds to an easier to
 read format.}

@@ -2,6 +2,7 @@
 
 export(add_chat_transcript)
 export(clean_transcript)
+export(entity_extractor)
 export(extract_text_from_transcript)
 export(format_summary_tree)
 export(generate_recording_details)

@@ -13,7 +13,7 @@ summarise_full_meeting(
   output_length = 3,
   event_start_time = getOption("minutemaker_event_start_time"),
   event_description = NULL,
-  event_audience = "An audience with understanding of the topic",
+  audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
   summary_structure = get_prompts("summary_structure"),
@@ -52,7 +52,7 @@ time is not the start time of the event.}
 \item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}
 
-\item{event_audience}{The audience of the event See \code{summarise_transcript}
+\item{audience}{The audience of the event See \code{summarise_transcript}
 for more details.}
 
 \item{vocabulary}{The vocabulary used in the meeting. See
