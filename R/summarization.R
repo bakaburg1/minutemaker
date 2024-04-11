@@ -458,6 +458,7 @@ summarise_full_meeting <- function(
 
     # Update the results file
     dput(result_tree, file = output_file)
+    styler::style_file(output_file)
   }
 
   if (length(result_tree) == 0) {
@@ -844,6 +845,7 @@ infer_agenda_from_transcript <- function(
 
   if (!is.null(output_file)) {
     dput(agenda, file = output_file)
+    styler::style_file(output_file)
   }
 
   options(
