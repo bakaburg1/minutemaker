@@ -16,6 +16,7 @@ Imports:
     readr (>= 2.1.4),
     rlang (>= 1.1.2),
     stringr (>= 1.5.1),
+    styler (>= 1.10.2),
     tools (>= 4.3.2),
     vctrs (>= 0.6.5)
 Config/testthat/edition: 3
