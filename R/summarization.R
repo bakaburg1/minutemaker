@@ -316,7 +316,7 @@ summarise_transcript <- function(
 #'   time is not the start time of the event.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
-#' @param event_audience The audience of the event See `summarise_transcript`
+#' @param audience The audience of the event See `summarise_transcript`
 #'   for more details.
 #' @param vocabulary The vocabulary used in the meeting. See
 #'   `summarise_transcript` for more details.
@@ -346,7 +346,7 @@ summarise_full_meeting <- function(
 
     event_start_time = getOption("minutemaker_event_start_time"),
     event_description = NULL,
-    event_audience = "An audience with understanding of the topic",
+    audience = "An audience with understanding of the topic",
     vocabulary = NULL,
     consider_diarization = TRUE,
 
@@ -437,7 +437,7 @@ summarise_full_meeting <- function(
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
-      audience = event_audience,
+      audience = audience,
       consider_diarization = consider_diarization,
 
       summary_structure = summary_structure,
