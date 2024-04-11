@@ -1002,7 +1002,7 @@ add_chat_transcript <- function(
 #'   an R file containing such a list. See `summarise_full_meeting` for more
 #'   details. If NULL, the user will be asked if the system should try to
 #'   generate the agenda automatically, using the `infer_agenda_from_transcript`
-#'   function.
+#'   function. If FALSE, the agenda will not be used.
 #' @param expected_agenda A character string. Only used if the `agenda` argument
 #'   is `NULL` and the user requests the automatic agenda generation. this
 #'   string will be used to drive the LLM while generating the agenda. See
@@ -1021,7 +1021,7 @@ add_chat_transcript <- function(
 #'   use. See `summarise_full_meeting` for more details.
 #' @param event_description A string containing a description of the meeting.
 #'   See `summarise_transcript` for more details.
-#' @param event_audience A string containing a description of the audience of
+#' @param audience A string containing a description of the audience of
 #'   the meeting and what to focus on in the summary. See `summarise_transcript`
 #'   for more details.
 #' @param vocabulary A character vector of specific vocabulary words, names,
@@ -1102,7 +1102,7 @@ speech_to_summary_workflow <- function(
   extra_agenda_generation_args = NULL,
 
   event_description = NULL,
-  event_audience = "An audience with understanding of the topic",
+  audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
   summary_structure = get_prompts("summary_structure"),
@@ -1265,9 +1265,21 @@ speech_to_summary_workflow <- function(
 
   ## Perform summarization ##
 
+  if (length(agenda) > 1) {
+    stop("The agenda argument should be of length 1.")
+  }
+
+  # If the agenda argument is a character and the file does not exist, stop the
+  # process
+  if (!isFALSE(agenda) && !purrr::is_empty(agenda) &&
+      is.character(agenda) && !file.exists(agenda)) {
+    stop("The agenda file does not exist. Use agenda = FALSE to not use an
+         agenda in the creation of the summary, or agenda = NULL to generate
+         the agenda automatically (may take time).")
+  }
+
   # Agenda is not provided, ask whether to generate a default agenda
-  if (purrr::is_empty(agenda) ||
-      (is.character(agenda) && !file.exists(agenda))) {
+  if (!isFALSE(agenda) && purrr::is_empty(agenda)) {
 
     cat("No agenda was provided or found in the target directory.\n")
 
@@ -1281,34 +1293,42 @@ speech_to_summary_workflow <- function(
       choice <- utils::menu(
         choices = c(
           "Generate the agenda automatically (You will need to review it before proceeding)",
+          "Do not generate an agenda and proceed with one overall summary.",
           "Exit (write your own agenda)"
         ),
         title = "How do you want to proceed?"
       )
     }
 
-    if (choice != 1) {
+    if (choice == 2) {
+      message("Proceeding without an agenda. We suggest to use the rolling
+              window summarization method for recordings longer than 1 hour.")
+      agenda <- FALSE
+    } else if (choice != 1) {
       message("Aborted by user. Returning transcript data only (invisibly).")
       return(invisible(transcript_data))
+    } else {
+
+      # Generate a default agenda with 1 talk/meeting if none is provided
+      agenda_infer_args <- c(list(
+        transcript = transcript_data,
+        event_description = event_description,
+        vocabulary = vocabulary,
+        diarization_instructions = extra_diarization_instructions,
+        start_time = event_start_time,
+        expected_agenda = expected_agenda,
+        window_size = agenda_generation_window_size,
+        output_file = if (!purrr::is_empty(agenda) && is.character(agenda)) {
+                          file.path(target_dir, basename(agenda))
+          } else file.path(target_dir, "agenda.R"),
+        provider = llm_provider
+      ), extra_agenda_generation_args)
+
+      agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
+
+      message("Agenda generated. Please review it before proceeding.")
+      return(invisible(transcript_data))
     }
-
-    # Generate a default agenda with 1 talk/meeting if none is provided
-    agenda_infer_args <- c(list(
-      transcript = transcript_data,
-      event_description = event_description,
-      vocabulary = vocabulary,
-      diarization_instructions = extra_diarization_instructions,
-      start_time = event_start_time,
-      expected_agenda = expected_agenda,
-      window_size = agenda_generation_window_size,
-      output_file = file.path(target_dir, "agenda.R"),
-      provider = llm_provider
-    ), extra_agenda_generation_args)
-
-    agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
-
-    message("Agenda generated. Please review it before proceeding.")
-    return(invisible(transcript_data))
   }
 
   message("\n### Summarizing transcript...\n")
@@ -1317,19 +1337,44 @@ speech_to_summary_workflow <- function(
     stop("No LLM provider defined.")
   }
 
+  # Manage situations where the formatted output file exists
+  if (!is.null(formatted_output_file) &&
+      isFALSE(overwrite_formatted_output) &&
+      file.exists(formatted_output_file)) {
+
+    if (interactive()) {
+      choice <- utils::menu(
+        choices = c(
+          "Overwrite the existing formatted summary file",
+          "Abort the process"
+        ),
+        title = "The formatted summary output file already exists and overwrite is FALSE. What do you want to do?"
+      )
+
+      if (choice == 2) {
+        message("Aborted by user.")
+        return(invisible(transcript_data))
+
+      } else {
+        message("Overwriting the existing formatted summary file.")
+      }
+    } else {
+      message("The formatted summary output file already exists and overwrite is FALSE.\nSet overwrite_formatted_output = TRUE to overwrite it or remove it.")
+      return(invisible(transcript_data))
+    }
+
+  }
+
+  # Common summarization arguments
   summarization_args <- c(list(
     transcript_data = transcript_data,
-    agenda = agenda,
     method = summarization_method,
 
     window_size = summarization_window_size,
     output_length = summarization_output_length,
 
-    output_file = summarization_output_file,
-
-    event_start_time = event_start_time,
     event_description = event_description,
-    event_audience = event_audience,
+    audience = audience,
     vocabulary = vocabulary,
     consider_diarization = consider_diarization,
 
@@ -1337,29 +1382,43 @@ speech_to_summary_workflow <- function(
     extra_diarization_instructions = extra_diarization_instructions,
     extra_output_instructions = extra_output_instructions,
 
-    provider = llm_provider,
-    overwrite = overwrite_summary_tree
+    provider = llm_provider
   ), extra_summarise_args)
 
+  if (isFALSE(agenda)) {
+    # Summarize as single talk
 
-  summary_tree <- do.call(summarise_full_meeting, summarization_args)
+    formatted_summary <- do.call(summarise_transcript, summarization_args)
 
-  ## Format summary tree ##
+    return_vec <- c("transcript_data", "formatted_summary")
 
-  if (overwrite_formatted_output || !file.exists(formatted_output_file)) {
+  } else {
 
+    # Summarize as multiple talks
+
+    # Necessary extra arguments for the summarization of whole events
+    summarization_args$agenda <- agenda
+    summarization_args$overwrite <- overwrite_summary_tree
+    summarization_args$output_file <- summarization_output_file
+    summarization_args$event_start_time <- event_start_time
+
+    summary_tree <- do.call(summarise_full_meeting, summarization_args)
+
+    ## Format summary tree ##
     message("\n### Formatting summary tree...\n")
 
     formatted_summary <- format_summary_tree(
       summary_tree = summary_tree,
       agenda = agenda,
       event_start_time = event_start_time,
-      output_file = formatted_output_file)
+      output_file = NULL)
 
-  } else {
-    message("\n### Loading existing formatted summary...\n")
-    formatted_summary <- readr::read_file(formatted_output_file)
+    return_vec <- c("transcript_data", "summary_tree", "formatted_summary")
   }
 
-  mget(c("transcript_data", "summary_tree", "formatted_summary"))
+  message("\n### Writing to file...\n")
+
+  readr::write_lines(formatted_summary, formatted_output_file)
+
+  return(mget(return_vec))
 }
