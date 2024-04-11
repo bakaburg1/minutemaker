@@ -623,7 +623,10 @@ import_transcript_from_file <- function(
       as.numeric()
 
     # Extract the text
-    text <- lines[.x + 1]
+    text <- lines[.x + 1] |>
+      # MS Teams vtt has an xml tag with speaker info
+      stringr::str_remove_all("</?v.*?>") |>
+      stringr::str_squish()
 
     # Return the data
     extract <- data.frame(
@@ -633,12 +636,23 @@ import_transcript_from_file <- function(
     )
 
     # If the transcript is diarized, extract the speaker
-    if (import_diarization && lines[.x - 1] != "") {
+    if (import_diarization) {
       # Extract the speaker
-      cur_speaker <- lines[.x - 1] |>
+      cur_speaker <- lines[.x - 1]
+
+      # Normal VTT style
+      if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
         # the name is between double quotes
         stringr::str_extract_all('(?<=").*(?=")') |>
         unlist()
+      } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
+        # MS Teams vtt style: <v speaker first name [second name]>
+        cur_speaker <- stringr::str_extract_all(
+          lines[.x + 1], '(?<=<v ).*?(?=>)') |>
+        unlist()
+      } else {
+        cur_speaker <- NA
+      }
 
       # In the unlikely case that there are multiple speakers, join them
       if (length(cur_speaker) > 1) {
