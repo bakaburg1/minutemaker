@@ -854,3 +854,79 @@ infer_agenda_from_transcript <- function(
 
   agenda
 }
+
+#' Extract entities from a text
+#'
+#' This function takes a text and extracts entities from it. The entities can be
+#' people, acronyms, organizations, and concepts. The function returns a vector
+#' with the entities found in the text. Can be useful to build vocabularies for
+#' the LLMs starting from an event description or a transcript.
+#'
+#' @param text The text from which to extract the entities.
+#' @param entities A character vector with the entities to extract. Can be
+#'   "people", "acronyms", "organizations", and "concepts". Default is all of
+#'   them.
+#' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
+#'   interrogated. Default is FALSE.
+#' @param ... Additional arguments passed to the `interrogate_llm` function.
+#'
+#' @return A vector with the entities found in the text.
+#'
+#' @export
+#'
+entity_extractor <- function(
+    text,
+    entities = c("people", "acronyms", "organizations", "concepts"),
+    prompt_only = FALSE,
+    ...
+    ) {
+
+  text <- paste(text, collapse = "--------\n\n\n")
+
+  acro_or_concepts <- entities[entities %in% c("acronyms", "concepts")]
+
+  task <- paste0(
+    "You will be passed one or more text documents. For each document, you ",
+    "should extract the following entities from the text:\n\n",
+    sprintf("-`%s`;", entities) |> paste(collapse = "\n"),
+    "\n\nYou should return a JSON object of the entities found in the text, with each ",
+    "entity type as a key and a list of the entities of that type as the ",
+    "value. For example, if you find two people and one organization in the ",
+    "text, you should return a list with two keys, 'people' and 'organizations', ",
+    "and the corresponding lists of entities as values.\n\n",
+    if (length(acro_or_concepts) > 0) {
+      paste0("If you find", paste(acro_or_concepts, collapse = " or "),
+      "they should be returned list of strings, with each element ",
+      "formatted as 'entity: definition'",
+      "trying to infer the definition from the context. ",
+      "If you are not 100% sure, or it's self explanatory, just list the concepts",
+      "as strings.\n\n")
+    },
+    "Here is an example of the expected output:\n\n",
+    '```json
+ {
+   "people": ["John Doe", "Jane Smith"],
+   "organizations": ["Acme Corp"],
+   "acronyms": [
+     "LLM: Large Language Model",
+     "NLP: Natural Language Processing"
+   ],
+   "concepts": [
+     "Arxiv: Open access repository of scientific articles",
+     "Escherichia coli"
+   ]
+ }
+ ```\n\n',
+    "Here is the text from which you should extract the entities:\n\n####\n\n",
+    text, "\n\n####\n\nProvide your JSON output below.")
+
+  if (prompt_only) {
+    return(task)
+  }
+
+  interrogate_llm(
+    c("system" = get_prompts("persona"), "user" = task),
+    force_json = TRUE, ...) |>
+    jsonlite::fromJSON() |>
+    unlist() |> unname()
+}
