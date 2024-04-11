@@ -646,10 +646,18 @@ The transcript is formatted as a csv with the start and end time of each segment
             title = "The talk title",
             type = "A label to define the talk",
             description = "A description of this talk",
-            speakers = ["speaker 1", "speaker 2"],
-            moderators = ["moderator 1"] # If detectable, otherwise ignore this field
+            speakers = ["a list of speakers"] # If detectable, otherwise ignore this,
+            moderators = ["a list of moderatora"] # If detectable/appropriate, otherwise ignore this field
            }
         ###',
+
+    if (!is.null(args$expected_agenda_element)) {
+      paste("The event expected agenda is the following, so try to match the extracted talk to this structure. But feel free to describe a novel element if you cannot find a logical match, since there could have been unexpected changes in the agenda: ###\n",
+            args$expected_agenda_element,
+            "\n###")
+    },
+
+    "Provide your output.",
 
     sep = "\n\n"
   )

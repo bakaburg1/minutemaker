@@ -316,7 +316,7 @@ summarise_transcript <- function(
 #'   time is not the start time of the event.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
-#' @param event_audience The audience of the event See `summarise_transcript`
+#' @param audience The audience of the event See `summarise_transcript`
 #'   for more details.
 #' @param vocabulary The vocabulary used in the meeting. See
 #'   `summarise_transcript` for more details.
@@ -346,7 +346,7 @@ summarise_full_meeting <- function(
 
     event_start_time = getOption("minutemaker_event_start_time"),
     event_description = NULL,
-    event_audience = "An audience with understanding of the topic",
+    audience = "An audience with understanding of the topic",
     vocabulary = NULL,
     consider_diarization = TRUE,
 
@@ -437,7 +437,7 @@ summarise_full_meeting <- function(
       event_description = event_description,
       recording_details = recording_details,
       vocabulary = vocabulary,
-      audience = event_audience,
+      audience = audience,
       consider_diarization = consider_diarization,
 
       summary_structure = summary_structure,
@@ -458,6 +458,7 @@ summarise_full_meeting <- function(
 
     # Update the results file
     dput(result_tree, file = output_file)
+    styler::style_file(output_file)
   }
 
   if (length(result_tree) == 0) {
@@ -480,6 +481,9 @@ summarise_full_meeting <- function(
 #'   the event.
 #' @param vocabulary A character vector of specific vocabulary words, names,
 #'   definitions, to help the LLM recognise misspellings and abbreviations.
+#' @param diarization_instructions Instructions for the diarization of the
+#'   transcript. Default is NULL. If provided, it will help the LLM in
+#'   recognizing the speakers in the transcript.
 #' @param start_time The start time of the event in the HH:MM(:SS)( AM/PM)
 #'   format. Necessary to convert the agenda times from seconds to an easier to
 #'   read format.
@@ -538,11 +542,11 @@ infer_agenda_from_transcript <- function(
   }
 
   transcript_data <- transcript_data |>
-    select(start, end, text, any_of("speaker")) |>
+    select("start", "end", "text", any_of("speaker")) |>
     mutate(
-      across(c(start, end), ~ round(.x)),
+      across(all_of(c("start", "end")), ~ round(.x)),
     ) |>
-    filter(!is_silent(text))
+    filter(!is_silent(.data$text))
 
   breakpoints <- seq(
     transcript_data$start[1], max(transcript_data$start), by = window_size)
@@ -551,8 +555,8 @@ infer_agenda_from_transcript <- function(
 
   pauses <- transcript_data |>
     filter(
-      start - lag(end, default = 0) > pause_duration
-    ) |> pull(start)
+      .data$start - lag(.data$end, default = 0) > pause_duration
+    ) |> pull("start")
 
   breakpoints <- c(breakpoints, pauses) |> sort()
 
@@ -844,6 +848,7 @@ infer_agenda_from_transcript <- function(
 
   if (!is.null(output_file)) {
     dput(agenda, file = output_file)
+    styler::style_file(output_file)
   }
 
   options(
@@ -853,4 +858,80 @@ infer_agenda_from_transcript <- function(
   )
 
   agenda
+}
+
+#' Extract entities from a text
+#'
+#' This function takes a text and extracts entities from it. The entities can be
+#' people, acronyms, organizations, and concepts. The function returns a vector
+#' with the entities found in the text. Can be useful to build vocabularies for
+#' the LLMs starting from an event description or a transcript.
+#'
+#' @param text The text from which to extract the entities.
+#' @param entities A character vector with the entities to extract. Can be
+#'   "people", "acronyms", "organizations", and "concepts". Default is all of
+#'   them.
+#' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
+#'   interrogated. Default is FALSE.
+#' @param ... Additional arguments passed to the `interrogate_llm` function.
+#'
+#' @return A vector with the entities found in the text.
+#'
+#' @export
+#'
+entity_extractor <- function(
+    text,
+    entities = c("people", "acronyms", "organizations", "concepts"),
+    prompt_only = FALSE,
+    ...
+    ) {
+
+  text <- paste(text, collapse = "--------\n\n\n")
+
+  acro_or_concepts <- entities[entities %in% c("acronyms", "concepts")]
+
+  task <- paste0(
+    "You will be passed one or more text documents. For each document, you ",
+    "should extract the following entities from the text:\n\n",
+    sprintf("-`%s`;", entities) |> paste(collapse = "\n"),
+    "\n\nYou should return a JSON object of the entities found in the text, with each ",
+    "entity type as a key and a list of the entities of that type as the ",
+    "value. For example, if you find two people and one organization in the ",
+    "text, you should return a list with two keys, 'people' and 'organizations', ",
+    "and the corresponding lists of entities as values.\n\n",
+    if (length(acro_or_concepts) > 0) {
+      paste0("If you find", paste(acro_or_concepts, collapse = " or "),
+      "they should be returned list of strings, with each element ",
+      "formatted as 'entity: definition'",
+      "trying to infer the definition from the context. ",
+      "If you are not 100% sure, or it's self explanatory, just list the concepts",
+      "as strings.\n\n")
+    },
+    "Here is an example of the expected output:\n\n",
+    '```json
+ {
+   "people": ["John Doe", "Jane Smith"],
+   "organizations": ["Acme Corp"],
+   "acronyms": [
+     "LLM: Large Language Model",
+     "NLP: Natural Language Processing"
+   ],
+   "concepts": [
+     "Arxiv: Open access repository of scientific articles",
+     "Escherichia coli"
+   ]
+ }
+ ```\n\n',
+    "Here is the text from which you should extract the entities:\n\n####\n\n",
+    text, "\n\n####\n\nProvide your JSON output below.")
+
+  if (prompt_only) {
+    return(task)
+  }
+
+  interrogate_llm(
+    c("system" = get_prompts("persona"), "user" = task),
+    force_json = TRUE, ...) |>
+    jsonlite::fromJSON() |>
+    unlist() |> unname()
 }

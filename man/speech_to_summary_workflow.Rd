@@ -28,11 +28,11 @@ speech_to_summary_workflow(
   chat_format = "webex",
   agenda = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
-  agenda_generation_window_size = 7200,
+  agenda_generation_window_size = 3600,
   agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
   event_description = NULL,
-  event_audience = "An audience with understanding of the topic",
+  audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
   summary_structure = get_prompts("summary_structure"),
@@ -133,7 +133,7 @@ talk, talk description and start and end times. Alternatively, the path to
 an R file containing such a list. See \code{summarise_full_meeting} for more
 details. If NULL, the user will be asked if the system should try to
 generate the agenda automatically, using the \code{infer_agenda_from_transcript}
-function.}
+function. If FALSE, the agenda will not be used.}
 
 \item{expected_agenda}{A character string. Only used if the \code{agenda} argument
 is \code{NULL} and the user requests the automatic agenda generation. this
@@ -156,7 +156,7 @@ function will be taken from the \code{extra_agenda_generation_args} argument.}
 \item{event_description}{A string containing a description of the meeting.
 See \code{summarise_transcript} for more details.}
 
-\item{event_audience}{A string containing a description of the audience of
+\item{audience}{A string containing a description of the audience of
 the meeting and what to focus on in the summary. See \code{summarise_transcript}
 for more details.}
 
