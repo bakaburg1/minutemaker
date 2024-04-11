@@ -481,6 +481,9 @@ summarise_full_meeting <- function(
 #'   the event.
 #' @param vocabulary A character vector of specific vocabulary words, names,
 #'   definitions, to help the LLM recognise misspellings and abbreviations.
+#' @param diarization_instructions Instructions for the diarization of the
+#'   transcript. Default is NULL. If provided, it will help the LLM in
+#'   recognizing the speakers in the transcript.
 #' @param start_time The start time of the event in the HH:MM(:SS)( AM/PM)
 #'   format. Necessary to convert the agenda times from seconds to an easier to
 #'   read format.
@@ -539,11 +542,11 @@ infer_agenda_from_transcript <- function(
   }
 
   transcript_data <- transcript_data |>
-    select(start, end, text, any_of("speaker")) |>
+    select("start", "end", "text", any_of("speaker")) |>
     mutate(
-      across(c(start, end), ~ round(.x)),
+      across(all_of(c("start", "end")), ~ round(.x)),
     ) |>
-    filter(!is_silent(text))
+    filter(!is_silent(.data$text))
 
   breakpoints <- seq(
     transcript_data$start[1], max(transcript_data$start), by = window_size)
@@ -552,8 +555,8 @@ infer_agenda_from_transcript <- function(
 
   pauses <- transcript_data |>
     filter(
-      start - lag(end, default = 0) > pause_duration
-    ) |> pull(start)
+      .data$start - lag(.data$end, default = 0) > pause_duration
+    ) |> pull("start")
 
   breakpoints <- c(breakpoints, pauses) |> sort()
 
