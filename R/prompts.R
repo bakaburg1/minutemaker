@@ -651,6 +651,14 @@ The transcript is formatted as a csv with the start and end time of each segment
            }
         ###',
 
+    if (!is.null(args$expected_agenda_element)) {
+      paste("The event expected agenda is the following, so try to match the extracted talk to this structure. But feel free to describe a novel element if you cannot find a logical match, since there could have been unexpected changes in the agenda: ###\n",
+            args$expected_agenda_element,
+            "\n###")
+    },
+
+    "Provide your output.",
+
     sep = "\n\n"
   )
 }
