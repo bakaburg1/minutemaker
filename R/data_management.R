@@ -1327,7 +1327,16 @@ speech_to_summary_workflow <- function(
       agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
 
       message("Agenda generated. Please review it before proceeding.")
-      return(invisible(transcript_data))
+
+      if (!interactive()) {
+        return(invisible(transcript_data))
+      }
+
+      choice <- utils::menu(c("Yes", "No"), title = "Do you want to proceed?")
+
+      if (choice == 2) {
+        stop("Aborted by user.", call. = FALSE)
+      }
     }
   }
 
