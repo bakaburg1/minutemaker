@@ -95,6 +95,12 @@ options(
   # Local LLM model (for text summary)
   minutemaker_local_endpoint_gpt = "local-host-path-to-model"
 )
+
+# Set the preferred LLM globally
+
+options(
+  minutemaker_llm_provider = "***" # E.g. "openai", "azure", "local" or custom 
+)
 ```
 
 These setting can be also passed manually to the various functions, but
@@ -335,6 +341,10 @@ summarization process; but it’s possible to use the function with only
 the transcript data to get a summary. The other arguments only provide
 additional contextual information to improve the summary.
 
+For example an agenda generated via `infer_agenda_from_transcript()` can
+be formatted into text using `format_agenda()` and then added to
+`summary_structure` argument (see example below).
+
 ``` r
 
 # Construct the path to the transcript file
@@ -386,7 +396,7 @@ recording_details <- generate_recording_details(
 
 ## The audience of the meeting/conference, which helps the summarisation to
 ## focus on specific topics and helps setting the tone of the summary.
-event_audience <- "An audience with some expertise in the topic
+audience <- "An audience with some expertise in the topic
     of the conference and with a particular interest in this and that."
 
 # Not mandatory but may help, for example with hybrid events where the room
@@ -402,8 +412,20 @@ context if not reported"
 # summarisation section with:
 summary_structure <- paste0(
   get_prompts("summary_structure"),
-  "\n- My Extra section"
+  "\n- My extra summarisation instruction"
 )
+
+# The use can also use the summarisation instruction to add and agenda to drive
+# the summarisation focus:
+agenda <- format_agenda(agenda)
+summary_structure <- get_prompts("summary_structure")
+
+summary_structure <- stringr::str_glue("
+  {summary_structure}
+  Here is an agenda of the event to keep into account while summarizing:
+  {agenda}
+  Stricly follow the agenda to understand which information is worth summarizing.
+")
 
 # Finally, the user can add extra output instructions to the default ones (check
 # them using get_prompts("output_summarisation") for the summarisation and
@@ -419,7 +441,7 @@ talk_summary <- summarise_transcript(
   method = method,
   event_description = event_description,
   recording_details = recording_details,
-  audience = event_audience,
+  audience = audience,
   vocabulary = vocabulary,
   
   summary_structure = summary_structure, # Or don't pass it to use the default
@@ -458,7 +480,7 @@ conference_summaries <- summarise_full_meeting(
   output_file = "path-to-output-file.R",
   
   event_description = event_description,
-  event_audience = event_audience,
+  audience = audience,
   vocabulary = vocabulary,
   
   summary_structure = summary_structure,
@@ -509,7 +531,7 @@ can be used to perform all the steps in one go.
 
 ``` r
 
-# initial_prompt, event_description, event_audience,
+# initial_prompt, event_description, audience,
 # vocabulary, diarization_instructions are defined in the previous examples
 
 # Perform the whole audio files to formatted summary workflow. Most arguments
@@ -550,17 +572,23 @@ speech_to_summary_workflow(
   agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
   
+  # Whether to produce a summary for each agenda items (TRUE) or just an overall
+  # summary considering keeping the agenda into account to focus the
+  # summarization (FALSE). By default is TRUE if the agenda exists and is in the
+  # correct format.
+  multipart_summary = validate_agenda(agenda),
+  
   summarization_output_file = "event_summary.R",
   
   event_description = event_description,
-  event_audience = event_audience,
+  audience = audience,
   vocabulary = vocabulary,
   
   # you can pass summary_sections, diarization_instructions, or
   # output_instructions to override the default prompts
   diarization_instructions = diarization_instructions,
   
-  llm_provider = "my-LLM-provider-of-choice",
+  llm_provider = getOption("minutemaker_llm_provider"),
   
   overwrite_summary_tree = FALSE,
   
