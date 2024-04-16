@@ -156,7 +156,7 @@ process_messages <- function(messages) {
 #'
 interrogate_llm <- function(
     messages = NULL,
-    provider = c("openai", "azure", "local"),
+    provider = getOption("minutemaker_llm_provider"),
     params = list(
       temperature = 0
     ),
@@ -166,6 +166,12 @@ interrogate_llm <- function(
 
   messages <- process_messages(messages)
   provider <- match.arg(provider)
+
+  if (is.null(provider)) {
+    stop("Language model provider is not set. ",
+         "You can use the following option to set it globally:\n",
+         "minutemaker_llm_provider.")
+  }
 
   if (log_request) {
     check_and_install_dependencies("tictoc")
