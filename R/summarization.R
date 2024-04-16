@@ -358,6 +358,10 @@ summarise_full_meeting <- function(
     ...
 ) {
 
+  if (!validate_agenda(agenda)) {
+    stop("The agenda is not valid.")
+  }
+
   # Import agenda from file
   if (is.character(agenda)) {
     agenda <- dget(agenda)
