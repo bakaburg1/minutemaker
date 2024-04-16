@@ -81,6 +81,59 @@ validate_agenda_element <- function(
   is_valid
 }
 
+
+#' Validates an agenda
+#'
+#' Checks if the agenda is a list (or a file path to a list) and if it is not
+#' empty and if all its elements are valid.
+#'
+#' @param agenda A list containing the agenda or a file path to it.
+#' @param ... Additional arguments to be passed to `validate_agenda_element`.
+#'
+#' @return A boolean indicating whether the agenda is valid.
+#'
+#' @export
+#'
+#' @examples
+#' validate_agenda(list(
+#'  list(
+#'   session = "Session 1",
+#'   title = "Opening Session",
+#'   speakers = "John Doe",
+#'   moderators = "Jane Doe",
+#'   type = "conference talk",
+#'   from = "09:00 AM",
+#'   to = "10:00 AM"
+#'  ),
+#'  list()
+#'  ), session = TRUE, title = TRUE, speakers = TRUE, moderators = TRUE,
+#'  type = TRUE, from = TRUE, to = TRUE)
+#'  #> [1] FALSE # Because the second element is empty
+#'
+validate_agenda <- function(
+  agenda,
+  ...
+) {
+
+  # Check if the agenda is a file path
+  if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)){
+    agenda <- dget(agenda)
+  }
+
+  # Check if the agenda is a list
+  if (!is.list(agenda)) {
+    return(FALSE)
+  }
+
+  # Check if the agenda is empty
+  if (length(agenda) == 0) {
+    return(FALSE)
+  }
+
+  # Check if the agenda elements are valid
+  purrr::map_lgl(agenda, ~ validate_agenda_element(.x, ...)) |> all()
+}
+
 #' Validate summary tree id consistency
 #'
 #' @param summary_tree A list containing the summary tree or a file path to it.

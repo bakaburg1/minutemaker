@@ -31,6 +31,7 @@ speech_to_summary_workflow(
   agenda_generation_window_size = 3600,
   agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
+  multipart_summary = validate_agenda(agenda),
   event_description = NULL,
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -38,7 +39,7 @@ speech_to_summary_workflow(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
-  llm_provider = NULL,
+  llm_provider = getOption("minutemaker_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
   summarization_output_length = 3,
@@ -150,15 +151,22 @@ file where the automatically generated agenda will be written. Should be a
 
 \item{extra_agenda_generation_args}{Additional arguments passed to the
 \code{infer_agenda_from_transcript} function. See \code{infer_agenda_from_transcript}
-for more details. Note that the \code{diarization_instructions} argument for this
-function will be taken from the \code{extra_agenda_generation_args} argument.}
+for more details. Note that the \code{diarization_instructions} argument for
+this function will be taken from the \code{extra_agenda_generation_args}
+argument.}
+
+\item{multipart_summary}{If a valid agenda is provided, this argument allows
+the user to specify whether the summarisation should be done in parts, one
+for each agenda element using the \code{summarise_full_meeting} function, or in
+one go using the \code{summarise_transcript} function. See the respective
+functions for more details.}
 
 \item{event_description}{A string containing a description of the meeting.
 See \code{summarise_transcript} for more details.}
 
-\item{audience}{A string containing a description of the audience of
-the meeting and what to focus on in the summary. See \code{summarise_transcript}
-for more details.}
+\item{audience}{A string containing a description of the audience of the
+meeting and what to focus on in the summary. See \code{summarise_transcript} for
+more details.}
 
 \item{vocabulary}{A character vector of specific vocabulary words, names,
 definitions, to help the LLM recognise misspellings and abbreviations. See

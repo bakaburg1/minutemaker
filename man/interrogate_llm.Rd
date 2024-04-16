@@ -6,7 +6,7 @@
 \usage{
 interrogate_llm(
   messages = NULL,
-  provider = c("openai", "azure", "local"),
+  provider = getOption("minutemaker_llm_provider"),
   params = list(temperature = 0),
   force_json = FALSE,
   log_request = getOption("minutemaker_log_requests", TRUE),
