@@ -1478,6 +1478,8 @@ speech_to_summary_workflow <- function(
     # Summarize as single talk
 
     if (validate_agenda(agenda)) {
+      agenda <- format_agenda(agenda)
+
       #TODO: put this prompt in the set_prompts function
       summarization_args$summary_structure <- stringr::str_glue("
       {summary_structure}
