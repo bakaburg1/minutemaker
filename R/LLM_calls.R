@@ -350,27 +350,30 @@ use_azure_llm <- function(
 
 }
 
-#' Use Local Language Model
+#' Use Custom Language Model
 #'
-#' Sends a request to a local language model endpoint using the parameters in
-#' the `body` argument. The endpoint URL should be set in the R options, with a
-#' default provided.
+#' Sends a request to a custom (local or remote) language model endpoint
+#' compatible with the OpenAi API specification, using the parameters in the
+#' `body` argument. The user can provide an API key if required.
 #'
 #' @param body The body of the request.
 #' @param endpoint The local endpoint for the language model service. Can be
 #'   obtained from R options.
+#' @param api_key Optional API key for the custom language model services that
+#'   require it. Obtained from R options.
+#'
 #' @return The function returns the response from the local language model
 #'   endpoint.
-use_local_llm <- function(
+use_custom_llm <- function(
     body,
-    endpoint = getOption("minutemaker_local_endpoint_gpt",
-                         "http://localhost:1234/v1/chat/completions")
+    endpoint = getOption("minutemaker_custom_endpoint_gpt"),
+    api_key = getOption("minutemaker_custom_api_key")
 ) {
 
   if (is.null(endpoint)) {
     stop("Local endpoint is not set. ",
          "Use the following options to set it:\n",
-         "minutemaker_local_endpoint_gpt."
+         "minutemaker_custom_endpoint_gpt"
     )
   }
 
@@ -379,7 +382,11 @@ use_local_llm <- function(
   # Prepare the request
   httr::POST(
     url = endpoint,
-    httr::add_headers(`Content-Type` = "application/json"),
+    httr::add_headers(
+      `Content-Type` = "application/json",
+      if (!is.null(api_key)) {
+        .headers = c(Authorization = paste0("Bearer ", api_key))
+      }),
     body = jsonlite::toJSON(body, auto_unbox = TRUE)
   )
 
