@@ -21,6 +21,6 @@ use_openai_llm(
 The function returns the response from the OpenAI API.
 }
 \description{
-Sends a request to the OpenAI API  using the parameters in the \code{body}
+Sends a request to the OpenAI API using the parameters in the \code{body}
 argument. It requires an API key and model identifier set in the R options.
 }
