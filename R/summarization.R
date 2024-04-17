@@ -229,7 +229,7 @@ summarise_transcript <- function(
 
     args <- args[
       c("event_description", "recording_details", "audience", "vocabulary",
-        "consider_diarization", "summary_structure",
+        "consider_diarization", "summary_structure", "output_length",
         "extra_diarization_instructions", "extra_output_instructions")
     ]
 
@@ -270,7 +270,7 @@ summarise_transcript <- function(
   message("\nAggregating summaries")
 
   args <- args[
-    c("event_description", "recording_details", "audience",
+    c("event_description", "recording_details", "audience", "output_length",
       "summary_structure", "extra_output_instructions")
   ]
 
@@ -889,6 +889,9 @@ entity_extractor <- function(
     prompt_only = FALSE,
     ...
     ) {
+
+  # Initialize the prompts
+  set_prompts()
 
   text <- paste(text, collapse = "--------\n\n\n")
 

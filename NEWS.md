@@ -1,3 +1,23 @@
+# minutemaker 0.9.0
+
+### Improve agenda review and add custom LLM support
+
+#### Enhancements
+- Improve user interaction for agenda review: the `speech_to_summary_workflow` function now displays the generated agenda in the console, facilitating review and reducing the need to locate the agenda file separately. (Commit: 3bed1cc).
+- Add support for custom language model endpoints: replace `use_local_llm()` with `use_custom_llm()` to send requests to custom (local or remote) language model endpoints compatible with the OpenAI API specification, allowing to use also API Keys. (Commit: 0fdfe57).
+- Dynamic output_length parameter as default: dynamically set `summarization_output_length` in the workflow function based on whether a multipart summary is generated (shorter outputs) or not (longer outputs), optimizing the readability and relevance of summaries. (Commit: 2511287).
+
+#### Fixes
+- Fix output_length usage: `output_length` was not being considered in the summarization process. (Commit: 08e95d1).
+- Fix agenda file validation: update the validation logic for the 'agenda' argument in the `speech_to_summary_workflow` function to handle character type inputs correctly and provide clearer error messages. (Commit: d200a55).
+- Fix agenda validation: add checks for empty agenda elements and missing required items, improve error messages for invalid time formats, and update tests. (Commit: 6d870ee).
+
+#### Documentation
+- Fix messages typos: correct typos in messages. (Commit: 0fdfe57).
+
+#### Summary
+This pull request focuses on improving the user experience and adding support for custom language model endpoints. It enhances the agenda review process, ensures dynamic output length adjustment, fixes agenda validation, and adds documentation typo corrections.
+
 # minutemaker 0.8.0
 
 ### Enhanced Agenda Management and Utilization

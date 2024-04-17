@@ -42,7 +42,7 @@ speech_to_summary_workflow(
   llm_provider = getOption("minutemaker_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
-  summarization_output_length = 3,
+  summarization_output_length = if (isTRUE(multipart_summary)) 1 else 3,
   summarization_method = c("simple", "rolling"),
   summarization_output_file = file.path(target_dir, "event_summary.R"),
   overwrite_summary_tree = FALSE,
@@ -191,7 +191,7 @@ minutes if the "rolling"  method is used. See \code{summarise_transcript} for
 more details.}
 
 \item{summarization_output_length}{An indication to the LLM regarding the
-length of the output. See \code{summarise_transcript} for more details.}
+length of the output in pages. See \code{summarise_transcript} for more details.}
 
 \item{summarization_method}{A string indicating the summarization method to
 use. See \code{summarise_full_meeting} for more details.}

@@ -30,8 +30,20 @@ validate_agenda(list(
   to = "10:00 AM"
  ),
  list()
- ), session = TRUE, title = TRUE, speakers = TRUE, moderators = TRUE,
- type = TRUE, from = TRUE, to = TRUE)
+ ))
  #> [1] FALSE # Because the second element is empty
+
+validate_agenda(list(
+  list(
+    title = "Opening Session",
+    moderators = "Jane Doe",
+    type = "conference talk",
+    from = "09:00 AM",
+    to = "10:00 AM"
+  )
+), session = TRUE, title = TRUE, speakers = TRUE, moderators = TRUE,
+type = TRUE, from = TRUE, to = TRUE)
+
+#> [1] FALSE # Because the session and speakers are missing
 
 }
