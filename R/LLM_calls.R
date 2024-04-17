@@ -207,7 +207,7 @@ interrogate_llm <- function(
 
     if (log_request) tictoc::tic()
     response <- llm_fun(body, ...)
-    if (log_request) tictoc::toc()
+    if (log_request) elapsed <- tictoc::toc()
 
     if (httr::status_code(response) == 429) {
       warning("Rate limit exceeded. Waiting before retrying.",
@@ -243,6 +243,8 @@ interrogate_llm <- function(
          paste(
            "Prompt tokens:", prompt_tokens,
            "\nResponse tokens:", completion_tokens,
+           "\nGeneration speed:", paste(
+             signif(completion_tokens/(elapsed$toc - elapsed$tic), 3), "t/s"),
            "\nTotal tokens:", total_tokens
          )
     ) |> message()
