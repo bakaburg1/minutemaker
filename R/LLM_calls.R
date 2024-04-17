@@ -261,7 +261,7 @@ interrogate_llm <- function(
 
 #' Use OpenAI Language Model
 #'
-#' Sends a request to the OpenAI API  using the parameters in the `body`
+#' Sends a request to the OpenAI API using the parameters in the `body`
 #' argument. It requires an API key and model identifier set in the R options.
 #'
 #' @param body The body of the request.
@@ -277,7 +277,7 @@ use_openai_llm <- function(
 ) {
 
   if (is.null(api_key) || is.null(model)) {
-    stop("OpenAI GPT model and API key are not set. ",
+    stop("OpenAI GPT model or API key are not set. ",
          "Use the following options to set them:\n",
          "minutemaker_openai_model_gpt, ",
          "minutemaker_open_api_key options.")
