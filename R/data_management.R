@@ -1430,30 +1430,6 @@ speech_to_summary_workflow <- function(
       stop("The overwrite_formatted_output argument must be TRUE or FALSE")
     }
 
-      # isFALSE(overwrite_formatted_output) &&
-      # file.exists(formatted_output_file)) {
-
-    # if (interactive()) {
-    #   choice <- utils::menu(
-    #     choices = c(
-    #       "Overwrite the existing formatted summary file",
-    #       "Abort the process"
-    #     ),
-    #     title = "The formatted summary output file already exists and overwrite is FALSE. What do you want to do?"
-    #   )
-    #
-    #   if (choice == 2) {
-    #     message("Aborted by user.")
-    #     return(invisible(transcript_data))
-    #
-    #   } else {
-    #     message("Overwriting the existing formatted summary file.")
-    #   }
-    # } else {
-    #   message("The formatted summary output file already exists and overwrite is FALSE.\nSet overwrite_formatted_output = TRUE to overwrite it or remove it.")
-    #   return(invisible(transcript_data))
-    # }
-
   }
 
   # Common summarization arguments
@@ -1478,6 +1454,7 @@ speech_to_summary_workflow <- function(
 
   if (isFALSE(agenda) || isFALSE(multipart_summary)) {
     # Summarize as single talk
+    message("...with single part approach...\n")
 
     if (validate_agenda(agenda)) {
       agenda <- format_agenda(agenda)
@@ -1497,6 +1474,7 @@ speech_to_summary_workflow <- function(
   } else {
 
     # Summarize as multiple talks
+    message("...with multipart approach...\n")
 
     # Necessary extra arguments for the summarization of whole events
     summarization_args$agenda <- agenda
