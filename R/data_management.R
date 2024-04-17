@@ -1390,7 +1390,9 @@ speech_to_summary_workflow <- function(
 
       # Ask the user if they want to proceed with the generated agenda or review
       # it first
-      message("Agenda generated. Please review it before proceeding.")
+      message("Agenda generated. Please review it before proceeding:")
+
+      cat("\n", format_agenda(agenda), "\n")
 
       # Don't ask the user if the process is not interactive, just stop
       if (!interactive()) {
