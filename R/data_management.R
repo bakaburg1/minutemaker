@@ -1327,8 +1327,8 @@ speech_to_summary_workflow <- function(
 
   ## Perform summarization ##
 
-  if (length(agenda) > 1) {
-    stop("The agenda argument should be of length 1.")
+  if (is.character(agenda) && length(agenda) > 1) {
+    stop("No more than one agenda file can be provided.")
   }
 
   # If the agenda argument is a character and the file does not exist, stop the
