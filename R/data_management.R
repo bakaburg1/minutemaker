@@ -1102,7 +1102,7 @@ add_chat_transcript <- function(
 #'   minutes if the "rolling"  method is used. See `summarise_transcript` for
 #'   more details.
 #' @param summarization_output_length An indication to the LLM regarding the
-#'   length of the output. See `summarise_transcript` for more details.
+#'   length of the output in pages. See `summarise_transcript` for more details.
 #' @param summarization_output_file A string with the path to the output file
 #'   where the summary tree will be written. Should be a .R file. See
 #'   `summarise_full_meeting` for more details.
@@ -1173,7 +1173,7 @@ speech_to_summary_workflow <- function(
   llm_provider = getOption("minutemaker_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
-  summarization_output_length = 3,
+  summarization_output_length = if (isTRUE(multipart_summary)) 1 else 3,
   summarization_method = c("simple", "rolling"),
 
   summarization_output_file = file.path(target_dir, "event_summary.R"),
