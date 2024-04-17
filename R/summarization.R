@@ -890,6 +890,9 @@ entity_extractor <- function(
     ...
     ) {
 
+  # Initialize the prompts
+  set_prompts()
+
   text <- paste(text, collapse = "--------\n\n\n")
 
   acro_or_concepts <- entities[entities %in% c("acronyms", "concepts")]
