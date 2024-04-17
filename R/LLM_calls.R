@@ -228,8 +228,10 @@ interrogate_llm <- function(
 
     err_message <- if (is.character(err_obj)) {
       err_obj
-    } else {
+    } else if (is.character(err_obj$message)) {
       err_obj$message
+    } else {
+      httr::content(response)
     }
 
     stop("Error in LLM request: ", err_message)
