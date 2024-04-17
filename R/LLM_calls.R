@@ -165,7 +165,6 @@ interrogate_llm <- function(
     ...) {
 
   messages <- process_messages(messages)
-  provider <- match.arg(provider)
 
   if (is.null(provider)) {
     stop("Language model provider is not set. ",
