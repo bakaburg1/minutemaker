@@ -28,13 +28,39 @@ validate_agenda_element <- function(
   # Get the arguments as a list
   args <- as.list(environment())
 
+  # Initialize the validation result
+  is_valid <- TRUE
+
+  general_warn <- paste(
+    "Agenda element validation failed:\n",
+    styler::style_text(
+      deparse(agenda_element)) |> paste(collapse = "\n"), "\n"
+    )
+
   # Remove the 'agenda_element' argument from the list
   args$agenda_element <- NULL
 
+  if (length(agenda_element) == 0) {
+    warning(
+      general_warn, "The agenda element is empty.",
+      call. = FALSE, immediate. = TRUE)
+
+    return(FALSE)
+  }
+
   # Check if the required items are present in the agenda element
-  is_valid <- purrr::imap_lgl(args, ~ {
+  el_checks <- purrr::imap_lgl(args, ~ {
     !is.null(agenda_element[[.y]]) || isFALSE(.x)
-  }) |> all()
+  })
+
+  if (!all(el_checks)) {
+    warning(
+      general_warn, "Some of the required items are missing:\n",
+      stringr::str_flatten_comma(names(args)[!el_checks]),
+      call. = FALSE, immediate. = TRUE)
+  }
+
+  is_valid <- all(el_checks)
 
   if (isTRUE(from) || isTRUE(to)) {
 
@@ -48,32 +74,47 @@ validate_agenda_element <- function(
 
       if (!inherits(agenda_element[[time]],
                     c("numeric", "POSIXct", "character"))) {
-        stop(stringr::str_glue(
-          'Agenda element "{time}" should be numeric, character or POSIXct,',
-          "but it's of class {class(agenda_element[[time]])}."
-        ))
+        warning(
+          general_warn, stringr::str_glue(
+            'Agenda element "{time}" should be numeric, character or POSIXct,',
+            "but it's of class {class(agenda_element[[time]])}."
+          ), call. = FALSE, immediate. = TRUE)
+
+        is_valid <- FALSE
       }
 
       if (!is.numeric(agenda_element[[time]]) &&
           is.na(parse_event_time(agenda_element[[time]]))
       ) {
-        stop("Agenda element \"", time, "\" time not interpretable: ",
-             agenda_element[[time]])
+        warning(
+          general_warn, "Agenda element \"", time,
+          "\" time not interpretable: ", agenda_element[[time]],
+          call. = FALSE, immediate. = TRUE)
+
+        is_valid <- FALSE
       }
     }
 
     if (class(agenda_element$from) != class(agenda_element$to)) {
-      stop("The agenda element times are not of the same class:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
+      warning(
+        general_warn, "The agenda element times are not of the same class:",
+        " from: ", agenda_element$from,
+        " to: ", agenda_element$to,
+        call. = FALSE, immediate. = TRUE)
+
+      is_valid <- FALSE
     }
 
     if (
       time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
     ) {
-      stop("Agenda element \"from\" time should preceed \"to\" time:",
-           " from: ", agenda_element$from,
-           " to: ", agenda_element$to)
+      warning(
+        general_warn, "Agenda element \"from\" time should preceed \"to\" time:",
+        " from: ", agenda_element$from,
+        " to: ", agenda_element$to,
+        call. = FALSE, immediate. = TRUE)
+
+      is_valid <- FALSE
     }
   }
 
@@ -106,14 +147,52 @@ validate_agenda_element <- function(
 #'   to = "10:00 AM"
 #'  ),
 #'  list()
-#'  ), session = TRUE, title = TRUE, speakers = TRUE, moderators = TRUE,
-#'  type = TRUE, from = TRUE, to = TRUE)
+#'  ))
 #'  #> [1] FALSE # Because the second element is empty
 #'
+#' validate_agenda(list(
+#'   list(
+#'     title = "Opening Session",
+#'     moderators = "Jane Doe",
+#'     type = "conference talk",
+#'     from = "09:00 AM",
+#'     to = "10:00 AM"
+#'   )
+#' ), session = TRUE, title = TRUE, speakers = TRUE, moderators = TRUE,
+#' type = TRUE, from = TRUE, to = TRUE)
+#'
+#' #> [1] FALSE # Because the session and speakers are missing
+#'
 validate_agenda <- function(
-  agenda,
-  ...
+    agenda,
+    ...
 ) {
+
+  general_warn <- "Agenda validation failed:\n"
+
+  # Check if the agenda is FALSE
+  if (isFALSE(agenda)) {
+    return(FALSE)
+  }
+
+  # Initialize the validation result
+  is_valid <- TRUE
+
+  if (purrr::is_empty(agenda)) {
+    warning(
+      general_warn, "The agenda is empty.",
+      call. = FALSE, immediate. = TRUE)
+
+    return(FALSE)
+  }
+
+  if (!class(agenda) %in% c("list", "character")) {
+    warning(
+      general_warn, "The agenda is not a list or a file path.",
+      call. = FALSE, immediate. = TRUE)
+
+    return(FALSE)
+  }
 
   # Check if the agenda is a file path
   if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)){
@@ -122,16 +201,21 @@ validate_agenda <- function(
 
   # Check if the agenda is a list
   if (!is.list(agenda)) {
-    return(FALSE)
-  }
+    warning(
+      general_warn, "The agenda is not a list.",
+      call. = FALSE, immediate. = TRUE)
 
-  # Check if the agenda is empty
-  if (length(agenda) == 0) {
     return(FALSE)
   }
 
   # Check if the agenda elements are valid
-  purrr::map_lgl(agenda, ~ validate_agenda_element(.x, ...)) |> all()
+  for (agenda_element in agenda) {
+    if (!validate_agenda_element(agenda_element, ...)) {
+      return(FALSE)
+    }
+  }
+
+  return(TRUE)
 }
 
 #' Validate summary tree id consistency
