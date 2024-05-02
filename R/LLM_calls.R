@@ -120,7 +120,7 @@ process_messages <- function(messages) {
 
 }
 
-#' Interrogate Language Model
+#' Interrogate a Language Model
 #'
 #' This function sends requests to a specified language model provider (OpenAI,
 #' Azure, or a locally running LLM server) and returns the response. It handles
@@ -183,7 +183,7 @@ prompt_llm <- function(
 
   body$messages <- messages
 
-  # Force the LLM to answer in JSON format (only openai and azure)
+  # Force the LLM to answer in JSON format (not all models support this)
   if (force_json) {
     body$response_format <- list("type" = "json_object")
   }
@@ -192,7 +192,8 @@ prompt_llm <- function(
   llm_fun <- paste0("use_", provider, "_llm")
 
   if (!exists(llm_fun, mode = "function")) {
-    stop("Unsupported LLM provider.")
+    stop("Unsupported LLM provider.
+         You can set it project-wide using the minutemaker_llm_provider option.")
   }
 
   llm_fun <- get(llm_fun)
@@ -252,13 +253,16 @@ prompt_llm <- function(
     ) |> message()
   }
 
-  answer <- parsed$choices[[1]]
+  # Return the response
+  purrr::imap_chr(parsed$choices, \(ans, i) {
+    if (ans$finish_reason == "length") {
+      i <- if (length(parsed$choices) > 1) paste0(" ", i, " ") else " "
 
-  if (answer$finish_reason == "length") {
-    stop("Answer exhausted the context window!")
-  }
+      stop("Answer", i, "exhausted the context window!")
+    }
 
-  answer$message$content
+    ans$message$content
+  })
 }
 
 #' Use OpenAI Language Model
