@@ -1097,7 +1097,7 @@ add_chat_transcript <- function(
 #' @param llm_provider A string indicating the LLM provider to use for the
 #'   summarization. See `summarise_transcript` for more details.
 #' @param extra_summarise_args Additional arguments passed to the
-#'   `interrogate_llm` function. See `summarise_transcript` for more details.
+#'   `prompt_llm` function. See `summarise_transcript` for more details.
 #' @param summarization_window_size The size of the summarization window in
 #'   minutes if the "rolling"  method is used. See `summarise_transcript` for
 #'   more details.

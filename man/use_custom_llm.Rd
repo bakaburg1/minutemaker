@@ -7,6 +7,7 @@
 use_custom_llm(
   body,
   endpoint = getOption("minutemaker_custom_endpoint_gpt"),
+  model = getOption("minutemaker_custom_model_gpt", NULL),
   api_key = getOption("minutemaker_custom_api_key")
 )
 }
@@ -15,6 +16,9 @@ use_custom_llm(
 
 \item{endpoint}{The local endpoint for the language model service. Can be
 obtained from R options.}
+
+\item{model}{Model identifier for the custom API, if needed (some API have
+one model per endpoint, some multiple ones). Obtained from R options.}
 
 \item{api_key}{Optional API key for the custom language model services that
 require it. Obtained from R options.}

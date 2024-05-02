@@ -149,12 +149,12 @@ process_messages <- function(messages) {
 #'
 #' @examples
 #' \dontrun{
-#' response <- interrogate_llm(
+#' response <- prompt_llm(
 #'  messages = c(user = "Hello there!"),
 #'  provider = "openai")
 #'  }
 #'
-interrogate_llm <- function(
+prompt_llm <- function(
     messages = NULL,
     provider = getOption("minutemaker_llm_provider"),
     params = list(

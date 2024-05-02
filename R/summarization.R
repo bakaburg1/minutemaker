@@ -111,7 +111,7 @@ generate_recording_details <- function(
 #'   get_prompts("output_rolling_aggregation") prompts depending on the task.
 #' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
 #'   interrogated. Default is FALSE.
-#' @param ... Additional arguments passed to the `interrogate_llm` function,
+#' @param ... Additional arguments passed to the `prompt_llm` function,
 #'   such as the LLM provider.
 #'
 #' @return A summary of the transcript.
@@ -252,7 +252,7 @@ summarise_transcript <- function(
     }
 
     # Interrogate the LLM
-    interrogate_llm(
+    prompt_llm(
       c(
         system = get_prompts("persona"),
         user = prompt),
@@ -280,7 +280,7 @@ summarise_transcript <- function(
     args = args
   )
 
-  interrogate_llm(
+  prompt_llm(
     c(
       system = get_prompts("persona"),
       user = aggregation_prompt),
@@ -328,7 +328,7 @@ summarise_transcript <- function(
 #'   `summarise_transcript` for more details and run `get_prompts()` to see the
 #'   defaults. See `summarise_transcript` for more details.
 #' @param overwrite Whether to overwrite existing summaries. Default is FALSE.
-#' @param ... Additional arguments passed to `interrogate_llm` function, such as
+#' @param ... Additional arguments passed to `prompt_llm` function, such as
 #'   the LLM provider.
 #'
 #' @return The result tree of the meeting summary. Also saves the results in the
@@ -503,7 +503,7 @@ summarise_full_meeting <- function(
 #'   LLM context.
 #' @param output_file An optional file to save the results to. Default is NULL,
 #'   i.e., the results are not saved to a file.
-#' @param ... Additional arguments passed to the `interrogate_llm` function.
+#' @param ... Additional arguments passed to the `prompt_llm` function.
 #'   Keep in consideration that this function needs LLMs that manages long
 #'   context and that produce valid JSON outputs. The `force_json` argument is
 #'   used with OpenAI based LLM but it's not accepted by other LLMs; therefore
@@ -686,7 +686,7 @@ infer_agenda_from_transcript <- function(
     }
 
     # Attempt to interrogate the LLM
-    result_json <- try(interrogate_llm(
+    result_json <- try(prompt_llm(
       prompt_set,
       ...,
       force_json = TRUE
@@ -834,7 +834,7 @@ infer_agenda_from_transcript <- function(
       user = prompt
     )
 
-    result_json <- interrogate_llm(
+    result_json <- prompt_llm(
       prompt_set,
       ..., force_json = TRUE
     )
@@ -877,7 +877,7 @@ infer_agenda_from_transcript <- function(
 #'   them.
 #' @param prompt_only If TRUE, only the prompt is returned, the LLM is not
 #'   interrogated. Default is FALSE.
-#' @param ... Additional arguments passed to the `interrogate_llm` function.
+#' @param ... Additional arguments passed to the `prompt_llm` function.
 #'
 #' @return A vector with the entities found in the text.
 #'
@@ -936,7 +936,7 @@ entity_extractor <- function(
     return(task)
   }
 
-  interrogate_llm(
+  prompt_llm(
     c("system" = get_prompts("persona"), "user" = task),
     force_json = TRUE, ...) |>
     jsonlite::fromJSON() |>

@@ -49,7 +49,7 @@ LLM context.}
 \item{output_file}{An optional file to save the results to. Default is NULL,
 i.e., the results are not saved to a file.}
 
-\item{...}{Additional arguments passed to the \code{interrogate_llm} function.
+\item{...}{Additional arguments passed to the \code{prompt_llm} function.
 Keep in consideration that this function needs LLMs that manages long
 context and that produce valid JSON outputs. The \code{force_json} argument is
 used with OpenAI based LLM but it's not accepted by other LLMs; therefore
