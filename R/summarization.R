@@ -690,7 +690,7 @@ infer_agenda_from_transcript <- function(
       prompt_set,
       ...,
       force_json = TRUE
-    ), silent = TRUE)
+    ) |> stringr::str_replace_all("\\n", " "), silent = TRUE)
 
     # If the interrogation fails due to too long output, retry with a smaller
     # window
