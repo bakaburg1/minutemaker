@@ -9,7 +9,8 @@ use_azure_llm(
   deployment_id = getOption("minutemaker_azure_deployment_gpt"),
   resource_name = getOption("minutemaker_azure_resource_gpt"),
   api_key = getOption("minutemaker_azure_api_key_gpt"),
-  api_version = getOption("minutemaker_azure_api_version")
+  api_version = getOption("minutemaker_azure_api_version"),
+  log_request = getOption("minutemaker_log_requests", TRUE)
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ options.}
 
 \item{api_version}{API version for the Azure language model service. Obtained
 from R options.}
+
+\item{log_request}{A boolean to log the request time. Can be set up globally
+using the \code{minutemaker_log_requests} option, which defaults to TRUE.}
 }
 \value{
 The function returns the response from the Azure API.
