@@ -255,13 +255,59 @@ prompt_llm <- function(
 
   # Return the response
   purrr::imap_chr(parsed$choices, \(ans, i) {
+    ans_content <- ans$message$content
+
+    # Manage the case when the answer is cut off due to exceeding the
+    # output token limit
     if (ans$finish_reason == "length") {
       i <- if (length(parsed$choices) > 1) paste0(" ", i, " ") else " "
 
-      stop("Answer", i, "exhausted the context window!")
-    }
+      warning("Answer", i, "exhausted the context window!")
 
-    ans$message$content
+      file_name <- paste0("output_", Sys.time(), ".txt")
+
+      warning(
+        "Answer", i, "exhausted the context window!\n",
+        "The answer has been saved to a file: ", file_name
+      )
+
+      readr::write_lines(ans_content, file_name)
+
+      choice <- utils::menu(
+        c(
+          "Try to complete the answer",
+          "Keep the incomplete answer",
+          "Stop the process"),
+        title = "How do you want to proceed?"
+      )
+
+      if (choice == 1) {
+        # Ask the model to continue the answer
+        messages_new <- c(
+          messages,
+          list(list(
+            role = "assistant",
+            content = ans_content
+          )),
+          list(list(
+            role = "user",
+            content = "continue"
+          ))
+        )
+
+        ans_new <- prompt_llm(
+          messages_new, provider = provider, params = params,
+          force_json = force_json,
+          log_request = log_request, ...
+        )
+
+        return(paste0(ans_content, ans_new))
+      } else if (choice == 2) {
+        return(ans_content)
+      } else {
+        stop("The process has been stopped.")
+      }
+    } else ans_content
   })
 }
 
