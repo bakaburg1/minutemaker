@@ -319,13 +319,16 @@ prompt_llm <- function(
 #' @param body The body of the request.
 #' @param model Model identifier for the OpenAI API. Obtained from R options.
 #' @param api_key API key for the OpenAI service. Obtained from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the OpenAI API.
 #'
 use_openai_llm <- function(
     body,
     model = getOption("minutemaker_openai_model_gpt"),
-    api_key = getOption("minutemaker_openai_api_key")
+    api_key = getOption("minutemaker_openai_api_key"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(api_key) || is.null(model)) {
@@ -333,6 +336,10 @@ use_openai_llm <- function(
          "Use the following options to set them:\n",
          "minutemaker_openai_model_gpt, ",
          "minutemaker_open_api_key options.")
+  }
+
+  if (log_request) {
+    message("Interrogating OpenAI: ", model, "...")
   }
 
   body$model = model
@@ -365,6 +372,8 @@ use_openai_llm <- function(
 #'   options.
 #' @param api_version API version for the Azure language model service. Obtained
 #'   from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the Azure API.
 use_azure_llm <- function(
@@ -372,7 +381,8 @@ use_azure_llm <- function(
     deployment_id = getOption("minutemaker_azure_deployment_gpt"),
     resource_name = getOption("minutemaker_azure_resource_gpt"),
     api_key = getOption("minutemaker_azure_api_key_gpt"),
-    api_version = getOption("minutemaker_azure_api_version")
+    api_version = getOption("minutemaker_azure_api_version"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(resource_name) || is.null(deployment_id) ||
@@ -385,6 +395,12 @@ use_azure_llm <- function(
          "minutemaker_azure_api_key_gpt, ",
          "minutemaker_azure_api_version."
     )
+  }
+
+  if (log_request) {
+    message(
+      "Interrogating Azure OpenAI: ", resource_name, "/", deployment_id,
+      " (", api_version, ")...")
   }
 
   # Prepare the request
@@ -415,6 +431,8 @@ use_azure_llm <- function(
 #'   one model per endpoint, some multiple ones). Obtained from R options.
 #' @param api_key Optional API key for the custom language model services that
 #'   require it. Obtained from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the local language model
 #'   endpoint.
@@ -422,7 +440,8 @@ use_custom_llm <- function(
     body,
     endpoint = getOption("minutemaker_custom_endpoint_gpt"),
     model = getOption("minutemaker_custom_model_gpt", NULL),
-    api_key = getOption("minutemaker_custom_api_key")
+    api_key = getOption("minutemaker_custom_api_key"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(endpoint)) {
@@ -430,6 +449,10 @@ use_custom_llm <- function(
          "Use the following options to set it:\n",
          "minutemaker_custom_endpoint_gpt"
     )
+  }
+
+  if (log_request) {
+    message("Interrogating custom LLM: ", endpoint, "/", model, "...")
   }
 
   if (!is.null(model)) {
