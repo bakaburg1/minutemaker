@@ -699,8 +699,9 @@ import_transcript_from_file <- function(
       # Normal VTT style
       if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
         # the name is between double quotes
-        stringr::str_extract_all('(?<=").*(?=")') |>
-        unlist()
+        cur_speaker <- stringr::str_extract_all(
+          cur_speaker, '(?<=").*(?=")') |>
+          unlist()
       } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
         # MS Teams vtt style: <v speaker first name [second name]>
         cur_speaker <- stringr::str_extract_all(
