@@ -1,3 +1,21 @@
+# minutemaker 0.10.0
+
+#### Enhancements
+- **Model Logging for LLM Requests**: Added a `log_request` parameter to `use_openai_llm`, `use_azure_llm`, and `use_custom_llm` functions to log the specific endpoint and model being used (Commit: [7e85f2f]).
+- **Handling Long LLM Responses**: Improved the handling of LLM responses that exceed the output token limit. Users are now prompted to decide how to proceed, and incomplete answers are saved to a file for reference (Commit: [18cfada]).
+- **Model Parameter for Custom LLM APIs**: Added a `model` parameter to LLM calls to allow specifying a model for custom APIs with multiple models (Commit: [cd4227b]).
+
+#### Fixes
+- **Restore Correct Speaker Extraction for Webex VTT**: Fixed the parsing of Webex VTT files which was broken by the implementation of MS Teams VTT parsing (Commit: [d189980]).
+- **Remove Newlines from JSON Output**: Fixed an issue where some custom LLMs produced invalid JSON with newlines, causing errors during parsing (Commit: [e9e578a]).
+- **Support JSON Mode for Custom LLMs**: Ensured that most custom LLMs now support JSON mode by keeping the JSON mode option in the call (Commit: [f4df24c]).
+
+#### Documentation
+- **Improve Code Comments and Error Handling**: Enhanced code comments and error handling for better clarity and maintenance (Commit: [4b689ff]).
+
+#### Summary
+This pull request introduces several enhancements to the LLM handling, including logging the model being used, better management of long responses, and support for specifying models in custom APIs. It also includes fixes for speaker extraction in Webex VTT files and handling of JSON outputs from custom LLMs. Additionally, code comments and error handling have been improved for better clarity.
+
 # minutemaker 0.9.0
 
 ### Improve agenda review and add custom LLM support
