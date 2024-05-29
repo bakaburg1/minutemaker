@@ -21,7 +21,7 @@ them.}
 \item{prompt_only}{If TRUE, only the prompt is returned, the LLM is not
 interrogated. Default is FALSE.}
 
-\item{...}{Additional arguments passed to the \code{interrogate_llm} function.}
+\item{...}{Additional arguments passed to the \code{prompt_llm} function.}
 }
 \value{
 A vector with the entities found in the text.

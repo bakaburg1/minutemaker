@@ -184,7 +184,7 @@ defaults. See \code{summarise_transcript} for more details.}
 summarization. See \code{summarise_transcript} for more details.}
 
 \item{extra_summarise_args}{Additional arguments passed to the
-\code{interrogate_llm} function. See \code{summarise_transcript} for more details.}
+\code{prompt_llm} function. See \code{summarise_transcript} for more details.}
 
 \item{summarization_window_size}{The size of the summarization window in
 minutes if the "rolling"  method is used. See \code{summarise_transcript} for

@@ -557,8 +557,9 @@ format_summary_tree <- function(
     agenda_element$title <- ifelse(is.null(
       agenda_element$title), "", agenda_element$title)
 
-    output_piece <- stringr::str_glue_data(agenda_element,
-                                           "Session: {session};
+    output_piece <- stringr::str_glue_data(
+      agenda_element,
+      "Session: {session};
     Title: {title};
     Speakers: {speakers};
     Moderators: {moderators};
@@ -597,8 +598,8 @@ format_summary_tree <- function(
 #'
 #' @export
 format_agenda <- function(
-  agenda,
-  event_start_time = getOption("minutemaker_event_start_time")
+    agenda,
+    event_start_time = getOption("minutemaker_event_start_time")
 ) {
 
   # Import agenda from file
@@ -624,8 +625,9 @@ format_agenda <- function(
     .x$title <- ifelse(is.null(.x$title), "", .x$title)
     .x$description <- ifelse(is.null(.x$description), "", .x$description)
 
-    stringr::str_glue_data(.x,
-                          "Session: {session};
+    stringr::str_glue_data(
+      .x,
+      "Session: {session};
     Title: {title};
     Description: {description};
     Speakers: {speakers};
@@ -697,13 +699,14 @@ import_transcript_from_file <- function(
       # Normal VTT style
       if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
         # the name is between double quotes
-        stringr::str_extract_all('(?<=").*(?=")') |>
-        unlist()
+        cur_speaker <- stringr::str_extract_all(
+          cur_speaker, '(?<=").*(?=")') |>
+          unlist()
       } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
         # MS Teams vtt style: <v speaker first name [second name]>
         cur_speaker <- stringr::str_extract_all(
           lines[.x + 1], '(?<=<v ).*?(?=>)') |>
-        unlist()
+          unlist()
       } else {
         cur_speaker <- NA
       }
@@ -1097,7 +1100,7 @@ add_chat_transcript <- function(
 #' @param llm_provider A string indicating the LLM provider to use for the
 #'   summarization. See `summarise_transcript` for more details.
 #' @param extra_summarise_args Additional arguments passed to the
-#'   `interrogate_llm` function. See `summarise_transcript` for more details.
+#'   `prompt_llm` function. See `summarise_transcript` for more details.
 #' @param summarization_window_size The size of the summarization window in
 #'   minutes if the "rolling"  method is used. See `summarise_transcript` for
 #'   more details.
@@ -1381,8 +1384,8 @@ speech_to_summary_workflow <- function(
         expected_agenda = expected_agenda,
         window_size = agenda_generation_window_size,
         output_file = if (!purrr::is_empty(agenda) && is.character(agenda)) {
-                          file.path(target_dir, basename(agenda))
-          } else file.path(target_dir, "agenda.R"),
+          file.path(target_dir, basename(agenda))
+        } else file.path(target_dir, "agenda.R"),
         provider = llm_provider
       ), extra_agenda_generation_args)
 

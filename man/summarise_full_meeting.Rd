@@ -68,7 +68,7 @@ defaults. See \code{summarise_transcript} for more details.}
 
 \item{overwrite}{Whether to overwrite existing summaries. Default is FALSE.}
 
-\item{...}{Additional arguments passed to \code{interrogate_llm} function, such as
+\item{...}{Additional arguments passed to \code{prompt_llm} function, such as
 the LLM provider.}
 }
 \value{

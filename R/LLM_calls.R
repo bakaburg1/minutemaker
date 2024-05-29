@@ -120,7 +120,7 @@ process_messages <- function(messages) {
 
 }
 
-#' Interrogate Language Model
+#' Interrogate a Language Model
 #'
 #' This function sends requests to a specified language model provider (OpenAI,
 #' Azure, or a locally running LLM server) and returns the response. It handles
@@ -149,12 +149,12 @@ process_messages <- function(messages) {
 #'
 #' @examples
 #' \dontrun{
-#' response <- interrogate_llm(
+#' response <- prompt_llm(
 #'  messages = c(user = "Hello there!"),
 #'  provider = "openai")
 #'  }
 #'
-interrogate_llm <- function(
+prompt_llm <- function(
     messages = NULL,
     provider = getOption("minutemaker_llm_provider"),
     params = list(
@@ -183,7 +183,7 @@ interrogate_llm <- function(
 
   body$messages <- messages
 
-  # Force the LLM to answer in JSON format (only openai and azure)
+  # Force the LLM to answer in JSON format (not all models support this)
   if (force_json) {
     body$response_format <- list("type" = "json_object")
   }
@@ -192,7 +192,8 @@ interrogate_llm <- function(
   llm_fun <- paste0("use_", provider, "_llm")
 
   if (!exists(llm_fun, mode = "function")) {
-    stop("Unsupported LLM provider.")
+    stop("Unsupported LLM provider.
+         You can set it project-wide using the minutemaker_llm_provider option.")
   }
 
   llm_fun <- get(llm_fun)
@@ -252,13 +253,62 @@ interrogate_llm <- function(
     ) |> message()
   }
 
-  answer <- parsed$choices[[1]]
+  # Return the response
+  purrr::imap_chr(parsed$choices, \(ans, i) {
+    ans_content <- ans$message$content
 
-  if (answer$finish_reason == "length") {
-    stop("Answer exhausted the context window!")
-  }
+    # Manage the case when the answer is cut off due to exceeding the
+    # output token limit
+    if (ans$finish_reason == "length") {
+      i <- if (length(parsed$choices) > 1) paste0(" ", i, " ") else " "
 
-  answer$message$content
+      warning("Answer", i, "exhausted the context window!")
+
+      file_name <- paste0("output_", Sys.time(), ".txt")
+
+      warning(
+        "Answer", i, "exhausted the context window!\n",
+        "The answer has been saved to a file: ", file_name
+      )
+
+      readr::write_lines(ans_content, file_name)
+
+      choice <- utils::menu(
+        c(
+          "Try to complete the answer",
+          "Keep the incomplete answer",
+          "Stop the process"),
+        title = "How do you want to proceed?"
+      )
+
+      if (choice == 1) {
+        # Ask the model to continue the answer
+        messages_new <- c(
+          messages,
+          list(list(
+            role = "assistant",
+            content = ans_content
+          )),
+          list(list(
+            role = "user",
+            content = "continue"
+          ))
+        )
+
+        ans_new <- prompt_llm(
+          messages_new, provider = provider, params = params,
+          force_json = force_json,
+          log_request = log_request, ...
+        )
+
+        return(paste0(ans_content, ans_new))
+      } else if (choice == 2) {
+        return(ans_content)
+      } else {
+        stop("The process has been stopped.")
+      }
+    } else ans_content
+  })
 }
 
 #' Use OpenAI Language Model
@@ -269,13 +319,16 @@ interrogate_llm <- function(
 #' @param body The body of the request.
 #' @param model Model identifier for the OpenAI API. Obtained from R options.
 #' @param api_key API key for the OpenAI service. Obtained from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the OpenAI API.
 #'
 use_openai_llm <- function(
     body,
     model = getOption("minutemaker_openai_model_gpt"),
-    api_key = getOption("minutemaker_openai_api_key")
+    api_key = getOption("minutemaker_openai_api_key"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(api_key) || is.null(model)) {
@@ -283,6 +336,10 @@ use_openai_llm <- function(
          "Use the following options to set them:\n",
          "minutemaker_openai_model_gpt, ",
          "minutemaker_open_api_key options.")
+  }
+
+  if (log_request) {
+    message("Interrogating OpenAI: ", model, "...")
   }
 
   body$model = model
@@ -315,6 +372,8 @@ use_openai_llm <- function(
 #'   options.
 #' @param api_version API version for the Azure language model service. Obtained
 #'   from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the Azure API.
 use_azure_llm <- function(
@@ -322,7 +381,8 @@ use_azure_llm <- function(
     deployment_id = getOption("minutemaker_azure_deployment_gpt"),
     resource_name = getOption("minutemaker_azure_resource_gpt"),
     api_key = getOption("minutemaker_azure_api_key_gpt"),
-    api_version = getOption("minutemaker_azure_api_version")
+    api_version = getOption("minutemaker_azure_api_version"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(resource_name) || is.null(deployment_id) ||
@@ -335,6 +395,12 @@ use_azure_llm <- function(
          "minutemaker_azure_api_key_gpt, ",
          "minutemaker_azure_api_version."
     )
+  }
+
+  if (log_request) {
+    message(
+      "Interrogating Azure OpenAI: ", resource_name, "/", deployment_id,
+      " (", api_version, ")...")
   }
 
   # Prepare the request
@@ -361,15 +427,21 @@ use_azure_llm <- function(
 #' @param body The body of the request.
 #' @param endpoint The local endpoint for the language model service. Can be
 #'   obtained from R options.
+#' @param model Model identifier for the custom API, if needed (some API have
+#'   one model per endpoint, some multiple ones). Obtained from R options.
 #' @param api_key Optional API key for the custom language model services that
 #'   require it. Obtained from R options.
+#' @param log_request A boolean to log the request time. Can be set up globally
+#'   using the `minutemaker_log_requests` option, which defaults to TRUE.
 #'
 #' @return The function returns the response from the local language model
 #'   endpoint.
 use_custom_llm <- function(
     body,
     endpoint = getOption("minutemaker_custom_endpoint_gpt"),
-    api_key = getOption("minutemaker_custom_api_key")
+    model = getOption("minutemaker_custom_model_gpt", NULL),
+    api_key = getOption("minutemaker_custom_api_key"),
+    log_request = getOption("minutemaker_log_requests", TRUE)
 ) {
 
   if (is.null(endpoint)) {
@@ -379,7 +451,13 @@ use_custom_llm <- function(
     )
   }
 
-  body$response_format <- NULL
+  if (log_request) {
+    message("Interrogating custom LLM: ", endpoint, "/", model, "...")
+  }
+
+  if (!is.null(model)) {
+    body$model = model
+  }
 
   # Prepare the request
   httr::POST(
@@ -393,4 +471,3 @@ use_custom_llm <- function(
   )
 
 }
-

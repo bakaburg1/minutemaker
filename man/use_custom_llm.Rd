@@ -7,7 +7,9 @@
 use_custom_llm(
   body,
   endpoint = getOption("minutemaker_custom_endpoint_gpt"),
-  api_key = getOption("minutemaker_custom_api_key")
+  model = getOption("minutemaker_custom_model_gpt", NULL),
+  api_key = getOption("minutemaker_custom_api_key"),
+  log_request = getOption("minutemaker_log_requests", TRUE)
 )
 }
 \arguments{
@@ -16,8 +18,14 @@ use_custom_llm(
 \item{endpoint}{The local endpoint for the language model service. Can be
 obtained from R options.}
 
+\item{model}{Model identifier for the custom API, if needed (some API have
+one model per endpoint, some multiple ones). Obtained from R options.}
+
 \item{api_key}{Optional API key for the custom language model services that
 require it. Obtained from R options.}
+
+\item{log_request}{A boolean to log the request time. Can be set up globally
+using the \code{minutemaker_log_requests} option, which defaults to TRUE.}
 }
 \value{
 The function returns the response from the local language model
