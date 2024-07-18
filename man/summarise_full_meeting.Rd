@@ -68,8 +68,8 @@ defaults. See \code{summarise_transcript} for more details.}
 
 \item{overwrite}{Whether to overwrite existing summaries. Default is FALSE.}
 
-\item{...}{Additional arguments passed to \code{prompt_llm} function, such as
-the LLM provider.}
+\item{...}{Additional arguments passed to \code{llmR::prompt_llm} function, such
+as the LLM provider.}
 }
 \value{
 The result tree of the meeting summary. Also saves the results in the
