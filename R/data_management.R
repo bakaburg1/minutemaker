@@ -1173,7 +1173,7 @@ speech_to_summary_workflow <- function(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
-  llm_provider = getOption("minutemaker_llm_provider"),
+  llm_provider = getOption("llmr_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
   summarization_output_length = if (isTRUE(multipart_summary)) 1 else 3,
