@@ -212,7 +212,7 @@ split_audio <- function(
 ) {
 
   # Check if the av package is installed and ask to install it if not
-  check_and_install_dependencies("av")
+  rlang::check_installed("av")
 
   # Calculate segment length in seconds
   segment_length_sec <- segment_duration * 60
@@ -278,7 +278,7 @@ use_whisper_ctranslate2_stt <- function(
     n_threads = NULL
 ) {
 
-  check_and_install_dependencies("parallel")
+  rlang::check_installed("parallel")
 
   if (is.null(n_threads)) {
     n_threads <- parallel::detectCores()
@@ -315,11 +315,6 @@ use_whisper_ctranslate2_stt <- function(
 
   jsonlite::read_json(output_file_path)
 
-  # In console, synchronous version, no logging
-  # p <- processx::process$run(
-  #   "whisper-ctranslate2",
-  #   args = args,
-  #   echo_cmd = T, stdout = "|")
 }
 
 #' Use Azure Whisper Model for Speech-to-Text

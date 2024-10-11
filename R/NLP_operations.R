@@ -11,7 +11,7 @@
 #'
 tokenize_text <- function(text) {
 
-  check_and_install_dependencies("text2vec")
+  rlang::check_installed("text2vec")
 
   # Convert text to lowercase, remove special characters and extra spaces, and
   # tokenize
@@ -50,7 +50,7 @@ generate_glove_model <- function(
     overwrite = FALSE
 ) {
 
-  check_and_install_dependencies("parallel")
+  rlang::check_installed("parallel")
 
   # Create a hash of the data and the model parameters
   data_hash <- rlang::hash(list(
@@ -177,7 +177,7 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
 #
 #   if (method == "word2vec") {
 #
-#     check_and_install_dependencies("word2vec")
+#     rlang::check_installed("word2vec")
 #
 #     # Word2vec returns NA if a segment is a single word with a punctuation
 #     # mark at the end, don't know why
@@ -191,7 +191,7 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
 #       word2vec::doc2vec(model, x_text)) |>
 #       as.vector()
 #   } else {
-#     check_and_install_dependencies("stringdist")
+#     rlang::check_installed("stringdist")
 #
 #     y_probes$similarity <- stringdist::stringsim(
 #       x_text, y_probes$text, method = "cosine")
