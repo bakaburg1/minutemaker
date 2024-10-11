@@ -71,7 +71,7 @@ get_prompts("output_rolling_aggregation") prompts depending on the task.}
 \item{prompt_only}{If TRUE, only the prompt is returned, the LLM is not
 interrogated. Default is FALSE.}
 
-\item{...}{Additional arguments passed to the \code{prompt_llm} function,
+\item{...}{Additional arguments passed to the \code{llmR::prompt_llm} function,
 such as the LLM provider.}
 }
 \value{

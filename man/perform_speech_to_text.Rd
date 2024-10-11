@@ -7,7 +7,7 @@
 perform_speech_to_text(
   audio_path,
   output_dir = file.path(dirname(audio_path), "transcription_output_data"),
-  model,
+  model = getOption("minutemaker_stt_model", "whisper_local"),
   initial_prompt = NULL,
   overwrite = FALSE,
   language = "en",

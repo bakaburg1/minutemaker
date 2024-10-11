@@ -1,6 +1,6 @@
 Package: minutemaker
 Title: GenAI-based meeting and conferences minutes generator
-Version: 0.10.0
+Version: 0.12.0
 Authors@R: 
     person("Angelo", "D'Ambrosio", , "a.dambrosioMD@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2045-5155"))
@@ -11,6 +11,7 @@ Imports:
     dplyr (>= 1.1.4),
     httr (>= 1.4.7),
     jsonlite (>= 1.8.8),
+    llmR (>= 1.1.0),
     lubridate (>= 1.9.3),
     purrr (>= 1.0.2),
     readr (>= 2.1.4),
@@ -19,14 +20,17 @@ Imports:
     styler (>= 1.10.2),
     tools (>= 4.3.2),
     vctrs (>= 0.6.5)
+Remotes: 
+    github::bakaburg1/llmR
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Suggests: 
     av (>= 0.9.0),
     devtools (>= 2.4.5),
     parallel (>= 4.3.2),
+    reticulate (>= 1.38.0),
     testthat (>= 3.0.0),
     text2vec (>= 0.6.4),
     tictoc (>= 1.2),

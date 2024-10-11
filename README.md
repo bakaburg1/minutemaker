@@ -51,62 +51,64 @@ Here is an example workflow.
 
 ### Setting up the package
 
-You need to set up the API keys for the speech-to-text and text
-summarization APIs. You can do this by setting the following options:
+You need to set up the infrastructure for the speech-to-text and text
+summarization APIs. The LLM-powered summarization requires the
+`bakaburg1/llmR` package which is installed (from GitHub) together with
+`minutemaker`.
+
+You can do this by setting the following options:
 
 ``` r
-
-# Load the package
+# Load the necessary packages
 library(minutemaker)
 
-# Set the API information for the speech-to-text API of choice
+# Set up LLM model of choice using llmR functions
 
-# OpenAI example
-
-options(
-  
-  # OpenAI API Key (for both text-to-speech and text summary)
-  minutemaker_openai_api_key = "***",
-  
-  minutemaker_openai_model_gpt = "gpt-4"
+# Example: Setting up OpenAI GPT-4 model
+llmR::record_llmr_model(
+  label = "openai",
+  provider = "openai",
+  model = "gpt-4",
+  api_key = "your_openai_api_key"
 )
 
-# Azure example
-
-options(
-  
-  # Azure Whisper API (for text-to-speech)
-  minutemaker_azure_resource_whisper = "***",
-  minutemaker_azure_deployment_whisper = "***",
-  minutemaker_azure_api_key_whisper = "***",
-  
-  # Azure GPT API (for text summary)
-  minutemaker_azure_resource_gpt = "***",
-  minutemaker_azure_deployment_gpt = "***",
-  minutemaker_azure_api_key_gpt = "***",
-  
-  # Azure common parameters (common)
-  minutemaker_azure_api_version = "***"
+# Example: Setting up Azure GPT model
+llmR::record_llmr_model(
+  label = "azure_gpt",
+  provider = "azure",
+  model = "your_azure_deployment_id",
+  endpoint = "https://your-resource-name.openai.azure.com",
+  api_key = "your_azure_api_key",
+  api_version = "2024-06-01"
 )
 
-# Local GPT model example
+# Set the preferred LLM globally using one of the labels defined above
+llmR::set_llmr_model("openai")
+
+# Set up the speech-to-text (STT) options
 
 options(
-  # Local LLM model (for text summary)
-  minutemaker_local_endpoint_gpt = "local-host-path-to-model"
-)
-
-# Set the preferred LLM globally
-
-options(
-  minutemaker_llm_provider = "***" # E.g. "openai", "azure", "local" or custom 
+  # Choose the STT model among online models: "azure_whisper" or "openai_whisper"
+  # or local models:  "whisper_local", "mlx_whisper_local" (python based),
+  # (use "mlx_whisper_local" for Apple Silicon)
+  # "whisper_ctranslate2" (cli based, install ctranslate2 separately)
+  minutemaker_stt_model = "whisper_local",
+  
+  # OpenAI Whisper API Key (for remote OpenAI whisper model)
+  minutemaker_openai_api_key = "your_openai_api_key",
+  
+  # Azure Whisper API credentials (for remote Azure whisper model)
+  minutemaker_azure_resource_whisper = "your_azure_resource_name",
+  minutemaker_azure_deployment_whisper = "your_azure_deployment_id",
+  minutemaker_azure_api_key_whisper = "your_azure_api_key",
+  minutemaker_azure_api_version = "2024-06-01"
 )
 ```
 
-These setting can be also passed manually to the various functions, but
-the option system is more convenient. Of course you just need to set the
-options for the APIs you want to use (e.g., you don’t need the
-speech-to-text API options if you already have a transcript).
+These settings can also be passed manually to the various functions, but
+the option system is more convenient. You only need to set the options
+for the APIs you want to use (e.g., you don’t need the speech-to-text
+API options if you already have a transcript).
 
 ### Transcribing the audio
 

@@ -39,7 +39,7 @@ speech_to_summary_workflow(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
-  llm_provider = getOption("minutemaker_llm_provider"),
+  llm_provider = getOption("llmr_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
   summarization_output_length = if (isTRUE(multipart_summary)) 1 else 3,
@@ -184,7 +184,7 @@ defaults. See \code{summarise_transcript} for more details.}
 summarization. See \code{summarise_transcript} for more details.}
 
 \item{extra_summarise_args}{Additional arguments passed to the
-\code{prompt_llm} function. See \code{summarise_transcript} for more details.}
+\code{llmR::prompt_llm} function. See \code{summarise_transcript} for more details.}
 
 \item{summarization_window_size}{The size of the summarization window in
 minutes if the "rolling"  method is used. See \code{summarise_transcript} for

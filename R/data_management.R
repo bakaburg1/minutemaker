@@ -1100,7 +1100,7 @@ add_chat_transcript <- function(
 #' @param llm_provider A string indicating the LLM provider to use for the
 #'   summarization. See `summarise_transcript` for more details.
 #' @param extra_summarise_args Additional arguments passed to the
-#'   `prompt_llm` function. See `summarise_transcript` for more details.
+#'   `llmR::prompt_llm` function. See `summarise_transcript` for more details.
 #' @param summarization_window_size The size of the summarization window in
 #'   minutes if the "rolling"  method is used. See `summarise_transcript` for
 #'   more details.
@@ -1173,7 +1173,7 @@ speech_to_summary_workflow <- function(
   summary_structure = get_prompts("summary_structure"),
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
-  llm_provider = getOption("minutemaker_llm_provider"),
+  llm_provider = getOption("llmr_llm_provider"),
   extra_summarise_args = NULL,
   summarization_window_size = 15,
   summarization_output_length = if (isTRUE(multipart_summary)) 1 else 3,
@@ -1239,6 +1239,7 @@ speech_to_summary_workflow <- function(
   ) {
 
     message("\n### Performing speech to text...\n")
+    message("(stt model: ", stt_model, ")\n")
 
     # A speech-to-text model is required
     if (is.null(stt_model)) {
