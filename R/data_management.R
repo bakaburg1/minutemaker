@@ -1239,6 +1239,7 @@ speech_to_summary_workflow <- function(
   ) {
 
     message("\n### Performing speech to text...\n")
+    message("(stt model: ", stt_model, ")\n")
 
     # A speech-to-text model is required
     if (is.null(stt_model)) {
