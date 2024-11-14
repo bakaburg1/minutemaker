@@ -850,6 +850,61 @@ infer_agenda_from_transcript <- function(
         event_start_time = start_time)
   }
 
+  # Check for and resolve duplicate titles
+  titles <- sapply(agenda, function(x) x$title)
+  dup_indices <- which(duplicated(titles))
+  
+  if (length(dup_indices) > 0) {
+    message("- Resolving duplicated agenda item titles")
+    
+    for (idx in dup_indices) {
+      dup_title <- titles[idx]
+      # Find the original item (first occurrence of this title)
+      orig_idx <- which(titles == dup_title)[1]
+      
+      # Get the transcript segments for both items
+      item_transcript <- transcript_data |>
+        filter(
+          .data$start >= agenda[[idx]]$from,
+          .data$end <= agenda[[idx]]$to
+        ) |> 
+        readr::format_csv()
+      
+      # Create prompt to regenerate title
+      prompt_set <- c(
+        user = sprintf(
+          "This agenda item title '%s' is already used for another item. 
+          We need a new, more specific title for the second item.
+          Original item:
+          %s
+
+          Second item transcript:
+          %s
+          
+          Provide a new title for the second item in this exact JSON structure:
+          {\"new_title\": \"your title here\"}",
+          dup_title,
+          jsonlite::toJSON(agenda[[orig_idx]], auto_unbox = TRUE, pretty = TRUE),
+          item_transcript
+        ),
+        assistant = "{" # Trick to force a JSON output
+      )
+      
+      # Get new title from LLM
+      new_title <- (llmR::prompt_llm(
+        prompt_set,
+        ...,
+        force_json = TRUE
+      ) |> 
+        jsonlite::fromJSON()
+      )$new_title
+      
+      # Update the agenda item with new title
+      agenda[[idx]]$title <- new_title
+    }
+  }
+
+  # Save the results if requested
   if (!is.null(output_file)) {
     dput(agenda, file = output_file)
     styler::style_file(output_file)
