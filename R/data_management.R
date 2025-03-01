@@ -1165,7 +1165,7 @@ speech_to_summary_workflow <- function(
   extra_agenda_generation_args = NULL,
 
   # Arguments for the actual summarization
-  multipart_summary = validate_agenda(agenda),
+  multipart_summary = TRUE,
   event_description = NULL,
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -1218,7 +1218,8 @@ speech_to_summary_workflow <- function(
       message("\n### Splitting audio file...\n")
 
       # Split the audio file. The splitted audio will be saved in the
-      # "recording_parts" folder in the same directory as the original audio file
+      # "recording_parts" folder in the same directory as the original audio
+      # file
       split_audio(
         audio_file = source_audio,
         output_folder = stt_audio_dir,
@@ -1460,17 +1461,6 @@ speech_to_summary_workflow <- function(
     # Summarize as single talk
     message("...with single part approach...\n")
 
-    if (validate_agenda(agenda)) {
-      agenda <- format_agenda(agenda)
-
-      #TODO: put this prompt in the set_prompts function
-      summarization_args$summary_structure <- stringr::str_glue("
-      {summary_structure}
-      Here is an agenda of the event to keep into account while summarizing:
-      {agenda}
-      Stricly follow the agenda to understand which information is worth summarizing.")
-    }
-
     formatted_summary <- do.call(summarise_transcript, summarization_args)
 
     return_vec <- c("transcript_data", "formatted_summary")
@@ -1480,12 +1470,24 @@ speech_to_summary_workflow <- function(
     # Summarize as multiple talks
     message("...with multipart approach...\n")
 
+    if (!validate_agenda(agenda)) {
+      stop("The agenda is not valid.")
+    }
+
+    # agenda <- format_agenda(agenda)
+
+    #TODO: put this prompt in the set_prompts function
+    summarization_args$summary_structure <- stringr::str_glue("
+    {summary_structure}
+    Here is an agenda of the event to keep into account while summarizing:
+    {agenda}
+    Stricly follow the agenda to understand which information is worth summarizing.")
+
     # Necessary extra arguments for the summarization of whole events
     summarization_args$agenda <- agenda
     summarization_args$overwrite <- overwrite_summary_tree
     summarization_args$output_file <- summarization_output_file
     summarization_args$event_start_time <- event_start_time
-
     summary_tree <- do.call(summarise_full_meeting, summarization_args)
 
     ## Format summary tree ##
