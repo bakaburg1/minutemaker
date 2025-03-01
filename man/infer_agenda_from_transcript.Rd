@@ -11,7 +11,7 @@ infer_agenda_from_transcript(
   diarization_instructions = NULL,
   start_time = NULL,
   expected_agenda = NULL,
-  window_size = 3600,
+  window_size = 7200,
   output_file = NULL,
   ...
 )

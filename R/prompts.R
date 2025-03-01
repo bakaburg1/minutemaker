@@ -158,6 +158,7 @@ set_prompts <- function(
       "{output_instructions}",
       "- Speak at the present tense when describing what was said during the talk/meeting.",
       "- Your summary must be around {output_length} pages long.",
+      "- Remove structural html tags such as <summary_sections>",
       "</output_instructions>",
       "\nNow provide your output."
     ),
