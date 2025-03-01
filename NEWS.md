@@ -1,3 +1,23 @@
+# minutemaker 0.13.0
+
+#### Enhancements
+- **Support for Local Whisper Models**: Added functions `use_whisper_local_stt` and `use_mlx_whisper_local_stt` to support local Whisper models via Python with reticulate, with the second being optimized for Mac OS with Apple Silicon (Commit: [69e4f5e](https://github.com/bakaburg1/minutemaker/commit/69e4f5e59518da51d7f757a5076511d4224c6d65)).
+- **Integration with llmR**: Refactored the code to rely on the `llmR` package for LLM interactions, removing redundant LLM-related functions (Commit: [2331b46](https://github.com/bakaburg1/minutemaker/commit/2331b463e0606cd4ee49ecb353b89b163da06d9e)).
+- **Enhanced Speech-to-Text Workflow**: Updated `perform_speech_to_text` to use `whisper_local` as the default model and enhanced `speech_to_summary_workflow` to display the selected speech-to-text model (Commit: [69e4f5e](https://github.com/bakaburg1/minutemaker/commit/69e4f5e59518da51d7f757a5076511d4224c6d65)).
+- **Duplicate Agenda Item Title Resolution**: Added functionality to `infer_agenda_from_transcript` to detect and resolve duplicate agenda item titles using LLM-generated suggestions (Commit: [22ed720](https://github.com/bakaburg1/minutemaker/commit/22ed720bb3e8ad3a7e257b55411ed7b6c45db67d)).
+
+#### Fixes
+- **Dependency Management**: Replaced custom dependency check function with `rlang::check_installed` for better package management (Commit: [3227b0d](https://github.com/bakaburg1/minutemaker/commit/3227b0d7dba8785949c1d66c83d232bb38438c08)).
+- **Entity Extraction and Prompt Generation**: Enhanced `entity_extractor` function prompt construction and modified text concatenation for more precise entity extraction tasks (Commit: [5517a28](https://github.com/bakaburg1/minutemaker/commit/5517a28118d0ad497092b8f3e4938946917408f2)).
+- **Audio File Pattern Matching**: Improved audio file pattern matching to support more file extensions and removed extra whitespace in file name cleaning (Commit: [e03a0dc](https://github.com/bakaburg1/minutemaker/commit/e03a0dccd8a79ba1435ac9ae8a591786df08ae4c)).
+
+#### Documentation
+- **Updated README**: Revised README to describe the use of `llmR` for summarization and the addition of new local models for speech-to-text (Commit: [8bff883](https://github.com/bakaburg1/minutemaker/commit/8bff88380c5dc977a52c2207f1ef380904784bf4)).
+- **Version Bump**: Updated version to 0.12.0 and added relevant changes to NEWS.md (Commit: [e6a10e6](https://github.com/bakaburg1/minutemaker/commit/e6a10e6b2203cc4a86c3cd43c85f91f50658fb2b)).
+
+#### Summary
+This pull request introduces significant enhancements to the `minutemaker` package by adding support for local Whisper models, integrating the `llmR` package for LLM interactions, and improving the speech-to-text workflow. Additionally, it fixes dependency management issues and updates the documentation to reflect these changes.
+
 # minutemaker 0.12.0
 
 #### Enhancements
