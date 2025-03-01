@@ -1,4 +1,3 @@
-
 #' Generate Recording Details
 #'
 #' This function generates a formatted string containing details about a
@@ -181,7 +180,7 @@ summarise_transcript <- function(
       breakpoints <- seq(
         transcript_data$start[1], max(transcript_data$start), by = window_size)
 
-      last_segment <- max(transcript_data$start) - tail(breakpoints, n=1)
+      last_segment <- max(transcript_data$start) - tail(breakpoints, n = 1)
 
       # Adjust if the last segment is less than window_size / 2 seconds
       if (last_segment < (window_size / 2)) {
@@ -197,7 +196,7 @@ summarise_transcript <- function(
           transcript_data |>
             dplyr::filter(
               .data$start >= breakpoints[bp],
-              .data$start < breakpoints[bp+1])
+              .data$start < breakpoints[bp + 1])
         })
 
     } else {
@@ -521,7 +520,7 @@ infer_agenda_from_transcript <- function(
     diarization_instructions = NULL,
     start_time = NULL,
     expected_agenda = NULL,
-    window_size = 3600,
+    window_size = 7200,
     output_file = NULL,
     ...
 ) {
@@ -576,7 +575,7 @@ infer_agenda_from_transcript <- function(
 
   last_segment <- max(transcript_data$start) - tail(breakpoints, n=1)
 
-  # Adjust if the last segment is less than window_size / 2 seconds
+  # Adjust if the last segment is less than (window_size / 2) seconds
   if (last_segment < (window_size / 2)) {
     breakpoints <- utils::head(breakpoints, -1)
   }
@@ -853,34 +852,34 @@ infer_agenda_from_transcript <- function(
   # Check for and resolve duplicate titles
   titles <- sapply(agenda, function(x) x$title)
   dup_indices <- which(duplicated(titles))
-  
+
   if (length(dup_indices) > 0) {
     message("- Resolving duplicated agenda item titles")
-    
+
     for (idx in dup_indices) {
       dup_title <- titles[idx]
       # Find the original item (first occurrence of this title)
       orig_idx <- which(titles == dup_title)[1]
-      
+
       # Get the transcript segments for both items
       item_transcript <- transcript_data |>
         filter(
           .data$start >= agenda[[idx]]$from,
           .data$end <= agenda[[idx]]$to
-        ) |> 
+        ) |>
         readr::format_csv()
-      
+
       # Create prompt to regenerate title
       prompt_set <- c(
         user = sprintf(
-          "This agenda item title '%s' is already used for another item. 
+          "This agenda item title '%s' is already used for another item.
           We need a new, more specific title for the second item.
           Original item:
           %s
 
           Second item transcript:
           %s
-          
+
           Provide a new title for the second item in this exact JSON structure:
           {\"new_title\": \"your title here\"}",
           dup_title,
@@ -889,16 +888,16 @@ infer_agenda_from_transcript <- function(
         ),
         assistant = "{" # Trick to force a JSON output
       )
-      
+
       # Get new title from LLM
       new_title <- (llmR::prompt_llm(
         prompt_set,
         ...,
         force_json = TRUE
-      ) |> 
+      ) |>
         jsonlite::fromJSON()
       )$new_title
-      
+
       # Update the agenda item with new title
       agenda[[idx]]$title <- new_title
     }
@@ -953,11 +952,14 @@ entity_extractor <- function(
 
   acro_or_concepts <- entities[entities %in% c("acronyms", "concepts")]
 
-  task <- paste0(
+  task <- paste(
     "You will be passed one or more text documents. For each document, you ",
     "should extract the following entities from the text:\n\n",
     sprintf("-`%s`;", entities) |> paste(collapse = "\n"),
-    "\n\nYou should return a JSON object of the entities found in the text, with each ",
+    "Here is the text from which you should extract the entities:\n\n####\n\n",
+    text,
+    "\n\n####\n\n",
+    "You should return a JSON object of the entities found in the text, with each ",
     "entity type as a key and a list of the entities of that type as the ",
     "value. For example, if you find two people and one organization in the ",
     "text, you should return a list with two keys, 'people' and 'organizations', ",
@@ -984,9 +986,8 @@ entity_extractor <- function(
      "Escherichia coli"
    ]
  }
- ```\n\n',
-    "Here is the text from which you should extract the entities:\n\n####\n\n",
-    text, "\n\n####\n\nProvide your JSON output below.")
+ ```',
+    "\n\n####\n\nProvide your JSON output below.")
 
   if (prompt_only) {
     return(task)
