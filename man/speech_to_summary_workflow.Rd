@@ -31,7 +31,7 @@ speech_to_summary_workflow(
   agenda_generation_window_size = 3600,
   agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
-  multipart_summary = validate_agenda(agenda),
+  multipart_summary = TRUE,
   event_description = NULL,
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
