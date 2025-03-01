@@ -45,7 +45,7 @@ perform_speech_to_text <- function(
   # Check if file_path is a folder
   if (dir.exists(audio_path)) {
     # Get all audio files in the folder
-    audio_files <- list.files(audio_path, pattern = "\\.(mp3|wav)$")
+    audio_files <- list.files(audio_path, pattern = "\\.(m\\da|mp\\d|wav)$")
 
     # Reorder the files by the number in the file name, otherwise they will be
     # processed in alphabetical order putting e.g. segment 10 before segment 2
@@ -102,7 +102,7 @@ perform_speech_to_text <- function(
         stringr::str_replace_all("\\.+", ".") |>
         stringr::str_remove("^\\. $")
 
-      if (requireNamespace("tictoc", quietly = TRUE))  tictoc::tic()
+      if (requireNamespace("tictoc", quietly = TRUE)) tictoc::tic()
 
       # Run the model
       transcript_json <- model_fun(
@@ -112,7 +112,7 @@ perform_speech_to_text <- function(
         ...
       )
 
-      if (requireNamespace("tictoc", quietly = TRUE))  tictoc::toc()
+      if (requireNamespace("tictoc", quietly = TRUE)) tictoc::toc()
 
       # Store the transcript on disk
       jsonlite::write_json(transcript_json, output_file_name)
