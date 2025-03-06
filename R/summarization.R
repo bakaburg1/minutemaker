@@ -564,6 +564,11 @@ infer_agenda_from_transcript <- function(
   breakpoints <- c(breakpoints, pauses) |> sort()
 
   for (i in which(breakpoints %in% pauses)) {
+    if (i == 1 || i == length(breakpoints)) {
+      breakpoints <- breakpoints[-i]
+      next
+    }
+
     if (breakpoints[i] - breakpoints[i - 1] < pause_duration) {
       breakpoints <- breakpoints[-(i - 1)]
     }
