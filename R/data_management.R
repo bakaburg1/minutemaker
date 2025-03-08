@@ -1053,23 +1053,18 @@ add_chat_transcript <- function(
 #'   `event_start_time` must be set if `chat_file` is not NULL.
 #' @param chat_format A string indicating the online meeting platform used to
 #'   generate the chat file. See `add_chat_transcript` for more details.
-#' @param agenda The agenda of the meeting, that is, a list of agenda elements
-#'   each with a session name, a title, speaker and moderator lists, type of
-#'   talk, talk description and start and end times. Alternatively, the path to
-#'   an R file containing such a list. See `summarise_full_meeting` for more
-#'   details. If NULL, the user will be asked if the system should try to
-#'   generate the agenda automatically, using the `infer_agenda_from_transcript`
-#'   function. If FALSE, the agenda will not be used.
-#' @param expected_agenda A character string. Only used if the `agenda` argument
-#'   is `NULL` and the user requests the automatic agenda generation. this
-#'   string will be used to drive the LLM while generating the agenda. See
-#'   `infer_agenda_from_transcript` for more details.
+#' @param use_agenda Controls whether to use an agenda for summarization.
+#'   Possible values are "ask" (interactive prompting), "yes" (use or generate
+#'   agenda), or "no" (don't use an agenda).
+#' @param agenda_file The path to an agenda file. If use_agenda="yes" and this
+#'   file exists, it will be used; otherwise a new agenda will be generated and
+#'   saved to this path.
+#' @param expected_agenda A character string. Only used if a new agenda is being
+#'   generated. This string will be used to guide the LLM while generating the
+#'   agenda. See `infer_agenda_from_transcript` for more details.
 #' @param agenda_generation_window_size The size of the window in seconds to
 #'   analyze at once when generating the agenda. See
 #'   `infer_agenda_from_transcript` for more details.
-#' @param agenda_generation_output_file A string with the path to the output
-#'   file where the automatically generated agenda will be written. Should be a
-#'   .R file. See `infer_agenda_from_transcript` for more details.
 #' @param extra_agenda_generation_args Additional arguments passed to the
 #'   `infer_agenda_from_transcript` function. See `infer_agenda_from_transcript`
 #'   for more details. Note that the `diarization_instructions` argument for
@@ -1077,11 +1072,11 @@ add_chat_transcript <- function(
 #'   argument.
 #' @param summarization_method A string indicating the summarization method to
 #'   use. See `summarise_full_meeting` for more details.
-#' @param multipart_summary If a valid agenda is provided, this argument allows
-#'   the user to specify whether the summarisation should be done in parts, one
-#'   for each agenda element using the `summarise_full_meeting` function, or in
-#'   one go using the `summarise_transcript` function. See the respective
-#'   functions for more details.
+#' @param multipart_summary If TRUE and an agenda is being used, summarisation
+#'   will be done in parts, one for each agenda element using the
+#'   `summarise_full_meeting` function. If FALSE, or if use_agenda="no",
+#'   summarization will be done in one go using the `summarise_transcript`
+#'   function. See the respective functions for more details.
 #' @param event_description A string containing a description of the meeting.
 #'   See `summarise_transcript` for more details.
 #' @param audience A string containing a description of the audience of the
@@ -1102,7 +1097,7 @@ add_chat_transcript <- function(
 #' @param extra_summarise_args Additional arguments passed to the
 #'   `llmR::prompt_llm` function. See `summarise_transcript` for more details.
 #' @param summarization_window_size The size of the summarization window in
-#'   minutes if the "rolling"  method is used. See `summarise_transcript` for
+#'   minutes if the "rolling" method is used. See `summarise_transcript` for
 #'   more details.
 #' @param summarization_output_length An indication to the LLM regarding the
 #'   length of the output in pages. See `summarise_transcript` for more details.
@@ -1148,20 +1143,22 @@ speech_to_summary_workflow <- function(
   overwrite_transcript = FALSE,
 
   # Arguments for `merge_transcripts`
-  transcript_to_merge = list.files(target_dir, pattern = "\\.(vtt|srt)"
-                                   , full.names = T)[1],
+  transcript_to_merge = list.files(
+    target_dir, pattern = "\\.(vtt|srt)",
+    full.names = T)[1],
   import_diarization_on_merge = TRUE,
 
   # Arguments for `add_chat_transcript`
-  chat_file = list.files(target_dir, pattern = "Chat"
-                         , full.names = T)[1],
+  chat_file = list.files(
+    target_dir, pattern = "Chat",
+    full.names = T)[1],
   chat_format = "webex",
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
-  agenda = file.path(target_dir, "agenda.R"),
+  use_agenda = c("ask", "yes", "no"),
+  agenda_file = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
   agenda_generation_window_size = 3600,
-  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
 
   # Arguments for the actual summarization
@@ -1188,6 +1185,10 @@ speech_to_summary_workflow <- function(
 ) {
 
   summarization_method <- match.arg(summarization_method)
+  use_agenda <- match.arg(use_agenda)
+  
+  # Initialize agenda variable to track the actual agenda content
+  agenda <- NULL
 
   ## Perform audio splitting ##
 
@@ -1326,57 +1327,35 @@ speech_to_summary_workflow <- function(
     message("\n### Loading existing transcript from ",
             basename(transcript_file), "...\n")
 
-    transcript_data <- readr::read_csv(transcript_file,
-                                       show_col_types = FALSE)
+    transcript_data <- readr::read_csv(
+      transcript_file,
+      show_col_types = FALSE)
   }
 
-  ## Perform summarization ##
+  ## Handle agenda selection/generation based on use_agenda parameter ##
 
-  if (is.character(agenda) && length(agenda) > 1) {
-    stop("No more than one agenda file can be provided.")
-  }
-
-  # If the agenda argument is a character and the file does not exist, stop the
-  # process
-  if (!isFALSE(agenda) && !purrr::is_empty(agenda) &&
-      is.character(agenda) && !file.exists(agenda)) {
-    stop("The agenda file does not exist. Use agenda = FALSE to not use an
-         agenda in the creation of the summary, or agenda = NULL to generate
-         the agenda automatically (may take time).")
-  }
-
-  # Agenda is not provided, ask whether to generate a default agenda
-  if (!isFALSE(agenda) && purrr::is_empty(agenda)) {
-
-    cat("No agenda was provided or found in the target directory.\n")
-
-    # If interactive() ask the user whether to generate a dummy agenda otherwise
-    # stop the process.
-    if (!interactive()) {
-
-      stop("Create an agenda using the information in the transcript.\n")
-
-    } else {
-      choice <- utils::menu(
-        choices = c(
-          "Generate the agenda automatically (You will need to review it before proceeding)",
-          "Do not generate an agenda and proceed with one overall summary.",
-          "Exit (write your own agenda)"
-        ),
-        title = "How do you want to proceed?"
-      )
+  # If use_agenda is "no", set agenda to FALSE and force multipart_summary to
+  # FALSE
+  if (use_agenda == "no") {
+    message("\n### Proceeding without using an agenda, as requested.\n")
+    agenda <- FALSE
+    multipart_summary <- FALSE
+  } else {
+    # Check if agenda file exists
+    agenda_file_exists <- is.character(agenda_file) && file.exists(agenda_file)
+    
+    # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
+    if (use_agenda == "ask" && !interactive()) {
+      message("\n### Non-interactive session with use_agenda='ask'; ",
+              "treating as `use_agenda = \"yes\"`.\n")
+      use_agenda <- "yes"
     }
-
-    if (choice == 2) {
-      message("Proceeding without an agenda. We suggest to use the rolling
-              window summarization method for recordings longer than 1 hour.")
-      agenda <- FALSE
-    } else if (choice != 1) {
-      message("Aborted by user. Returning transcript data only (invisibly).")
-      return(invisible(transcript_data))
-    } else {
-
-      # Generate a default agenda with 1 talk/meeting if none is provided
+    
+    # Define actions as a function to avoid code duplication
+    generate_new_agenda <- function() {
+      message("\n### Generating ", if(use_agenda == "yes") "a" else "new", " agenda...\n")
+      
+      # Generate a new agenda
       agenda_infer_args <- c(list(
         transcript = transcript_data,
         event_description = event_description,
@@ -1385,31 +1364,86 @@ speech_to_summary_workflow <- function(
         start_time = event_start_time,
         expected_agenda = expected_agenda,
         window_size = agenda_generation_window_size,
-        output_file = if (!purrr::is_empty(agenda) && is.character(agenda)) {
-          file.path(target_dir, basename(agenda))
-        } else file.path(target_dir, "agenda.R"),
+        output_file = agenda_file,
         provider = llm_provider
       ), extra_agenda_generation_args)
-
-      agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
-
-      # Ask the user if they want to proceed with the generated agenda or review
-      # it first
-      message("Agenda generated. Please review it before proceeding:")
-
-      cat("\n", format_agenda(agenda), "\n")
-
-      # Don't ask the user if the process is not interactive, just stop
-      if (!interactive()) {
-        return(invisible(transcript_data))
+      
+      new_agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
+      
+      # Display the generated agenda for reference
+      message("Agenda generated and saved to ", basename(agenda_file))
+      cat("\n", format_agenda(new_agenda), "\n")
+      
+      return(new_agenda)
+    }
+    
+    # Handle "ask" mode with interactive menu
+    if (use_agenda == "ask") {
+      # Create dynamic choice list based on whether agenda file exists
+      choices <- character(0)
+      
+      if (agenda_file_exists) {
+        choices <- c(choices, sprintf("Use existing agenda file: %s", basename(agenda_file)))
       }
+      
+      choices <- c(
+        choices,
+        "Generate a new agenda automatically",
+        "Proceed without an agenda and create one overall summary",
+        "Exit"
+      )
+      
+      # Show the menu
+      choice <- utils::menu(choices, title = "How do you want to proceed with the agenda?")
+      
+      # Track what each choice means - this makes the logic cleaner below
+      # 0 = exit (always)
+      # 1 = use existing (if file exists) or generate new (if no file)
+      # 2 = generate new (if file exists) or no agenda (if no file)
+      # 3 = no agenda (if file exists) or exit (if no file)
+      # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options when no file exists
+      
+      # Handle the choice
+      if (choice == 0 || 
+          (choice == 3 && !agenda_file_exists) || 
+          (choice == 4 && agenda_file_exists)) {
+        # Exit
+        message("Aborted by user. Returning transcript data only (invisibly).")
+        return(invisible(transcript_data))
+      } else if ((choice == 1 && agenda_file_exists)) {
+        # Use existing agenda file
+        message(sprintf(
+          "\n### Using existing agenda file: %s\n", basename(agenda_file))
+        )
+        agenda <- dget(agenda_file)
+      } else if ((choice == 1 && !agenda_file_exists) || 
+                (choice == 2 && agenda_file_exists)) {
+        # Generate new agenda
+        agenda <- generate_new_agenda()
+      } else if ((choice == 2 && !agenda_file_exists) || 
+                (choice == 3 && agenda_file_exists)) {
+        # No agenda
+        message("\n### Proceeding without an agenda.\n")
+        agenda <- FALSE
+        multipart_summary <- FALSE
+      }
+    } else if (use_agenda == "yes") {
+      # Handle "yes" mode - use existing file or generate new one
+      if (agenda_file_exists) {
+        message(sprintf(
+          "\n### Using existing agenda file: %s\n", basename(agenda_file)))
 
-      choice <- utils::menu(c("Yes", "No"), title = "Do you want to proceed?")
-
-      if (choice == 2) {
-        stop("Aborted by user.", call. = FALSE)
+        agenda <- dget(agenda_file)
+      } else {
+        agenda <- generate_new_agenda()
       }
     }
+  }
+
+  # If we're not using an agenda (agenda is FALSE), force multipart_summary to
+  # FALSE
+  if (isFALSE(agenda)) {
+    multipart_summary <- FALSE
   }
 
   message("\n### Summarizing transcript...\n")
@@ -1427,14 +1461,13 @@ speech_to_summary_workflow <- function(
               "Stop the process if you want to keep the existing file.")
     } else if (isFALSE(overwrite_formatted_output)) {
       message(
-        "The formatted summary output file already exists and",
+        "The formatted summary output file already exists and ",
         "overwrite is FALSE.\n",
         "Set overwrite_formatted_output = TRUE to overwrite it or remove it.")
       return(invisible(transcript_data))
     } else {
       stop("The overwrite_formatted_output argument must be TRUE or FALSE")
     }
-
   }
 
   # Common summarization arguments
@@ -1466,7 +1499,6 @@ speech_to_summary_workflow <- function(
     return_vec <- c("transcript_data", "formatted_summary")
 
   } else {
-
     # Summarize as multiple talks
     message("...with multipart approach...\n")
 
@@ -1474,9 +1506,7 @@ speech_to_summary_workflow <- function(
       stop("The agenda is not valid.")
     }
 
-    # agenda <- format_agenda(agenda)
-
-    #TODO: put this prompt in the set_prompts function
+    # TODO: put this prompt in the set_prompts function
     summarization_args$summary_structure <- stringr::str_glue("
     {summary_structure}
     Here is an agenda of the event to keep into account while summarizing:

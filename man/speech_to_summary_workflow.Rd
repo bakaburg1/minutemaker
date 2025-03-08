@@ -26,10 +26,10 @@ speech_to_summary_workflow(
   import_diarization_on_merge = TRUE,
   chat_file = list.files(target_dir, pattern = "Chat", full.names = T)[1],
   chat_format = "webex",
-  agenda = file.path(target_dir, "agenda.R"),
+  use_agenda = c("ask", "yes", "no"),
+  agenda_file = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
   agenda_generation_window_size = 3600,
-  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
   extra_agenda_generation_args = NULL,
   multipart_summary = TRUE,
   event_description = NULL,
@@ -128,26 +128,21 @@ file importation. See \code{add_chat_transcript} for more details. Note that
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}
 
-\item{agenda}{The agenda of the meeting, that is, a list of agenda elements
-each with a session name, a title, speaker and moderator lists, type of
-talk, talk description and start and end times. Alternatively, the path to
-an R file containing such a list. See \code{summarise_full_meeting} for more
-details. If NULL, the user will be asked if the system should try to
-generate the agenda automatically, using the \code{infer_agenda_from_transcript}
-function. If FALSE, the agenda will not be used.}
+\item{use_agenda}{Controls whether to use an agenda for summarization.
+Possible values are "ask" (interactive prompting), "yes" (use or generate
+agenda), or "no" (don't use an agenda).}
 
-\item{expected_agenda}{A character string. Only used if the \code{agenda} argument
-is \code{NULL} and the user requests the automatic agenda generation. this
-string will be used to drive the LLM while generating the agenda. See
-\code{infer_agenda_from_transcript} for more details.}
+\item{agenda_file}{The path to an agenda file. If use_agenda="yes" and this
+file exists, it will be used; otherwise a new agenda will be generated and
+saved to this path.}
+
+\item{expected_agenda}{A character string. Only used if a new agenda is being
+generated. This string will be used to guide the LLM while generating the
+agenda. See \code{infer_agenda_from_transcript} for more details.}
 
 \item{agenda_generation_window_size}{The size of the window in seconds to
 analyze at once when generating the agenda. See
 \code{infer_agenda_from_transcript} for more details.}
-
-\item{agenda_generation_output_file}{A string with the path to the output
-file where the automatically generated agenda will be written. Should be a
-.R file. See \code{infer_agenda_from_transcript} for more details.}
 
 \item{extra_agenda_generation_args}{Additional arguments passed to the
 \code{infer_agenda_from_transcript} function. See \code{infer_agenda_from_transcript}
@@ -155,11 +150,11 @@ for more details. Note that the \code{diarization_instructions} argument for
 this function will be taken from the \code{extra_agenda_generation_args}
 argument.}
 
-\item{multipart_summary}{If a valid agenda is provided, this argument allows
-the user to specify whether the summarisation should be done in parts, one
-for each agenda element using the \code{summarise_full_meeting} function, or in
-one go using the \code{summarise_transcript} function. See the respective
-functions for more details.}
+\item{multipart_summary}{If TRUE and an agenda is being used, summarisation
+will be done in parts, one for each agenda element using the
+\code{summarise_full_meeting} function. If FALSE, or if use_agenda="no",
+summarization will be done in one go using the \code{summarise_transcript}
+function. See the respective functions for more details.}
 
 \item{event_description}{A string containing a description of the meeting.
 See \code{summarise_transcript} for more details.}
@@ -187,7 +182,7 @@ summarization. See \code{summarise_transcript} for more details.}
 \code{llmR::prompt_llm} function. See \code{summarise_transcript} for more details.}
 
 \item{summarization_window_size}{The size of the summarization window in
-minutes if the "rolling"  method is used. See \code{summarise_transcript} for
+minutes if the "rolling" method is used. See \code{summarise_transcript} for
 more details.}
 
 \item{summarization_output_length}{An indication to the LLM regarding the
