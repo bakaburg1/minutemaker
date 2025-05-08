@@ -682,3 +682,226 @@ use_mlx_whisper_local_stt <- function(
     segments = segments
   )
 }
+
+#' Use Parakeet MLX CLI for Speech-to-Text
+#'
+#' This function uses the `parakeet-mlx` command-line tool to transcribe audio.
+#' It assumes `parakeet-mlx` is installed and accessible in the system's PATH.
+#' `parakeet-mlx` is an implementation of Nvidia's Parakeet ASR models using
+#' MLX. This function also requires `ffmpeg` to be installed for audio
+#' processing by `parakeet-mlx`. See https://github.com/senstella/parakeet-mlx
+#' for CLI installation and usage.
+#'
+#' @param audio_file The path to the audio file to transcribe.
+#' @param initial_prompt This parameter is accepted for API consistency with
+#'   other STT functions but is currently ignored as `parakeet-mlx` CLI does not
+#'   support an initial prompt via its command-line arguments. Defaults to `""`.
+#' @param language This parameter is accepted for API consistency with other STT
+#'   functions but is currently ignored as `parakeet-mlx` CLI typically
+#'   auto-detects language or relies on model-specific capabilities.
+#' @param hf_model_name The Hugging Face repository name of the Parakeet model
+#'   to use with the CLI's `--model` option. Defaults to
+#'   `"mlx-community/parakeet-tdt-0.6b-v2"`.
+#' @param ... Additional arguments, currently ignored by this function, but
+#'   accepted for API consistency when called from `perform_speech_to_text`.
+#'
+#' @return A list containing the full transcribed text (`text`) and a list of
+#'   transcription segments (`segments`), where each segment has an `id`,
+#'   `start` time, `end` time, and `text`.
+#'
+#' @export
+#'
+use_parakeet_mlx_stt <- function(
+    audio_file,
+    initial_prompt = "", # Accepted for API consistency, not used by CLI
+    language = NULL, # Accepted for API consistency, not directly used by parakeet-mlx CLI
+    hf_model_name = "mlx-community/parakeet-tdt-0.6b-v2",
+    ...
+) {
+
+  # Helper for default value if NULL
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+
+  # 1. Check if parakeet-mlx CLI is available
+  cli_path <- Sys.which("parakeet-mlx")
+  if (cli_path == "") {
+    # Check if uv is installed
+    uv_path <- Sys.which("uv")
+    if (uv_path == "") {
+      stop(
+        "uv package manager not found in PATH. Please install it first. \n",
+        "Refer to https://github.com/astral-sh/uv for installation. \n"
+      )
+    }
+    
+    # Try to install parakeet-mlx using uv
+    message("Installing parakeet-mlx CLI tool...")
+    install_status <- system2(
+      command = uv_path,
+      args = c("tool", "install", "parakeet-mlx", "-U"),
+      stdout = TRUE,
+      stderr = TRUE
+    )
+    
+    # Check if installation was successful
+    cli_path <- Sys.which("parakeet-mlx")
+    if (cli_path == "") {
+      stop(
+        "Failed to install parakeet-mlx CLI. Installation output: \n",
+        paste(install_status, collapse = "\n"), "\n",
+        "Ensure ffmpeg is also installed and in PATH."
+      )
+    }
+    
+    message("Successfully installed parakeet-mlx CLI.")
+  }
+
+  # 2. Prepare temporary output directory and files for stdout/stderr
+  temp_output_dir <- tempfile(pattern = "parakeet_json_")
+  dir.create(temp_output_dir)
+  
+  stdout_file_path <- tempfile(pattern = "parakeet_stdout_")
+  stderr_file_path <- tempfile(pattern = "parakeet_stderr_")
+
+  # Ensure cleanup of all temporary files and directory on exit
+  on.exit({
+    unlink(temp_output_dir, recursive = TRUE, force = TRUE)
+    unlink(stdout_file_path, force = TRUE)
+    unlink(stderr_file_path, force = TRUE)
+  }, add = TRUE)
+
+  # 3. Construct command arguments
+  # shQuote is important for paths that might contain spaces
+  quoted_audio_file <- shQuote(audio_file)
+  quoted_output_dir <- shQuote(temp_output_dir)
+
+  args <- c(
+    quoted_audio_file,
+    "--model", hf_model_name,
+    "--output-format", "json",
+    "--chunk-duration", "0", # As per user request to disable internal chunking
+    "--output-dir", quoted_output_dir
+    # Add "--verbose", "False" if CLI is too chatty, or make it an option
+  )
+
+  # 4. Execute the command
+  stdout_arg <- stdout_file_path # Default to file capture
+  stderr_arg <- stderr_file_path # Default to file capture
+
+  if (interactive()) {
+    message("Running parakeet-mlx CLI.")
+    stdout_arg <- "" # Send to R console
+    stderr_arg <- "" # Send to R console
+  }
+
+  exit_status <- system2(
+    command = cli_path,
+    args = args,
+    stdout = stdout_arg,
+    stderr = stderr_arg
+  )
+
+  # 5. Determine the expected JSON output file path
+  # parakeet-mlx CLI creates a JSON file named after the input audio file (without ext) + .json
+  output_json_filename <- paste0(tools::file_path_sans_ext(basename(audio_file)), ".json")
+  output_json_path <- file.path(temp_output_dir, output_json_filename)
+
+  # Check for command execution errors or missing output file
+  if (exit_status != 0 || !file.exists(output_json_path)) {
+    error_intro <- paste0(
+        "parakeet-mlx command failed or did not produce the expected output JSON file.\n",
+        "Command: ", cli_path, " ", paste(shQuote(args), collapse = " "), "\n", # shQuote args for display
+        "Exit Status: ", exit_status, "\n",
+        "Expected JSON path: ", shQuote(output_json_path), " (exists: ", file.exists(output_json_path), ")\n"
+    )
+    if (interactive()) {
+        # In interactive mode, user saw the output (or lack thereof)
+        error_message <- paste0(error_intro, "Please check the R console output above for details from parakeet-mlx.")
+    } else {
+        # In non-interactive mode, read from captured files
+        stdout_content <- if(file.exists(stdout_file_path) && file.size(stdout_file_path) > 0) paste(readLines(stdout_file_path), collapse = "\n") else "(stdout empty or not found)"
+        stderr_content <- if(file.exists(stderr_file_path) && file.size(stderr_file_path) > 0) paste(readLines(stderr_file_path), collapse = "\n") else "(stderr empty or not found)"
+        error_message <- paste0(
+            error_intro,
+            "Stdout:\n", stdout_content, "\n",
+            "Stderr:\n", stderr_content
+        )
+    }
+    stop(error_message)
+  }
+
+  # 6. Read and parse the JSON output
+  json_data <- tryCatch({
+    jsonlite::read_json(output_json_path, simplifyVector = TRUE)
+  }, error = function(e) {
+    stop("Failed to parse JSON output from parakeet-mlx: ", e$message, 
+         "\nJSON file path: ", output_json_path)
+  })
+
+  # 7. Transform JSON data to the required R list structure
+  if (is.null(json_data$text) || is.null(json_data$sentences)) {
+    error_intro <- paste0(
+        "parakeet-mlx JSON output is missing expected 'text' or 'sentences' field.\n",
+        "JSON content structure received (max.level=2):\n", paste(utils::capture.output(utils::str(json_data, max.level = 2)), collapse = "\n")
+    )
+     if (interactive() && exit_status == 0) {
+         error_message <- paste0(error_intro, "\nThe CLI command seemed to succeed, but its JSON output (from ", shQuote(output_json_path) ,") is malformed. Check console for any CLI messages during execution.")
+    } else if (!interactive() && exit_status == 0) {
+        # If non-interactive and CLI succeeded but JSON is bad, captured stdout/stderr might be informative
+        stdout_content <- if(file.exists(stdout_file_path) && file.size(stdout_file_path) > 0) paste(readLines(stdout_file_path), collapse = "\n") else "(stdout empty or not found)"
+        stderr_content <- if(file.exists(stderr_file_path) && file.size(stderr_file_path) > 0) paste(readLines(stderr_file_path), collapse = "\n") else "(stderr empty or not found)"
+        error_message <- paste0(
+            error_intro,
+            "\nStdout (from command that produced bad JSON at ", shQuote(output_json_path) ,"):\n", stdout_content, "\n",
+            "Stderr (from command that produced bad JSON at ", shQuote(output_json_path) ,"):\n", stderr_content
+        )
+    } else { # This implies CLI failed (exit_status != 0), which should have been caught by the previous error block.
+        error_message <- paste0(error_intro, "\nCLI command failed (exit status: ", exit_status, "), review earlier error messages or console output if interactive.")
+    }
+    stop(error_message)
+  }
+
+  segments <- list()
+  if (!is.null(json_data$sentences) && length(json_data$sentences) > 0) {
+      if (is.data.frame(json_data$sentences)) {
+          required_cols <- c("text", "start", "end")
+          if (!all(required_cols %in% names(json_data$sentences))) {
+              stop("json_data$sentences (data.frame) is missing one or more required columns: text, start, end. Columns found: ", paste(names(json_data$sentences), collapse=", "))
+          }
+          segments <- lapply(1:nrow(json_data$sentences), function(i) {
+              row <- json_data$sentences[i, ]
+              list(
+                  id = i - 1, # 0-indexed ID
+                  start = row$start,
+                  end = row$end,
+                  text = row$text
+              )
+          })
+      } else if (is.list(json_data$sentences) && all(sapply(json_data$sentences, is.list))) {
+          segments <- lapply(seq_along(json_data$sentences), function(i) {
+              seg <- json_data$sentences[[i]]
+              if (is.null(seg$text) || is.null(seg$start) || is.null(seg$end)) {
+                  stop(paste0("Sentence item at index ", i, " in json_data$sentences is missing one or more required fields: text, start, end. Found: ", paste(names(seg), collapse=", ")))
+              }
+              list(
+                  id = i - 1,
+                  start = seg$start,
+                  end = seg$end,
+                  text = seg$text
+              )
+          })
+      } else {
+          warning("json_data$sentences is not in an expected format (data.frame or list of lists with text, start, end). Segment data may be incomplete.")
+      }
+  } else if (is.null(json_data$sentences)) {
+      warning("json_data$sentences is NULL. Only full text transcription will be available, segments will be empty.")
+  } # If length is 0, segments remains an empty list, which is valid.
+
+
+  return(
+    list(
+      text = json_data$text %||% "", # Ensure text is at least an empty string if NULL
+      segments = segments
+    )
+  )
+}
