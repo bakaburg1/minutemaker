@@ -1,13 +1,13 @@
 Package: minutemaker
 Title: GenAI-based meeting and conferences minutes generator
 Version: 0.13.0
-Authors@R: 
+Authors@R:
     person("Angelo", "D'Ambrosio", , "a.dambrosioMD@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2045-5155"))
 Description: Generate meeting minutes starting from an audio recording or a
     transcripts using speech-to-text and LLMs.
 License: MIT + file LICENSE
-Imports: 
+Imports:
     dplyr (>= 1.1.4),
     httr (>= 1.4.7),
     jsonlite (>= 1.8.8),
@@ -20,17 +20,17 @@ Imports:
     styler (>= 1.10.2),
     tools (>= 4.3.2),
     vctrs (>= 0.6.5)
-Remotes: 
+Remotes:
     github::bakaburg1/llmR
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-Suggests: 
+Suggests:
     av (>= 0.9.0),
+    reticulate (>= 1.42.0),
     devtools (>= 2.4.5),
     parallel (>= 4.3.2),
-    reticulate (>= 1.38.0),
     testthat (>= 3.0.0),
     text2vec (>= 0.6.4),
     tictoc (>= 1.2),
