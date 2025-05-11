@@ -101,7 +101,12 @@ options(
   minutemaker_azure_resource_whisper = "your_azure_resource_name",
   minutemaker_azure_deployment_whisper = "your_azure_deployment_id",
   minutemaker_azure_api_key_whisper = "your_azure_api_key",
-  minutemaker_azure_api_version = "2024-06-01"
+  minutemaker_azure_api_version = "2024-06-01",
+  
+  # LLM for transcript correction
+  minutemaker_correction_llm_model = "your_preferred_correction_llm_label"
+  # Whether the correction LLM should include "reasoning" to increase the quality of the correction on non-reasoning models (e.g., OpenAi o3 or Google Gemini 2.5 series)
+  minutemaker_include_llm_reasoning = TRUE 
 )
 ```
 
@@ -241,6 +246,50 @@ final_transcript <- add_chat_transcript(
 readr::write_csv(final_transcript, file.path(work_dir, day, "transcript.csv"))
 ```
 
+### LLM-based Transcript Correction
+
+After obtaining a transcript, you may want to use a Large Language Model
+to correct potential errors in spelling, grammar, or term usage. The
+function `apply_llm_correction()` is designed for this purpose. It
+processes transcript JSON files (either a single file or all JSON files
+in a directory), applies corrections using an LLM, and saves the
+corrected version.
+
+Key features:
+
+- **Selective Processing**: It can skip files already marked as
+  corrected if `overwrite = FALSE`.
+- **Term Guidance**: You can provide a list of important `terms` (names,
+  acronyms, etc.) to guide the LLM.
+- **Model Choice**: The LLM used for correction is determined by the R
+  option `minutemaker_correction_llm_model`.
+- **Reasoning Output**: If `minutemaker_include_llm_reasoning` is `TRUE`
+  (or passed directly as an argument), the LLM’s reasoning for
+  corrections can be included in the output, which is useful for
+  debugging.
+
+``` r
+# Example: Correcting transcripts in a directory
+corrected_files <- apply_llm_correction(
+  input_path = "transcription_output_data", # Directory with transcript JSONs
+  terms = c(
+    "Specific Term",
+    "Participant name",
+    "ACRONYM: explanation"), # Explanations give context to the LLM but are not used for the corrections
+  overwrite = TRUE # Set to FALSE to skip already corrected files
+)
+
+# Example: Correcting a single transcript file
+corrected_file <- apply_llm_correction(
+  input_path = "transcription_output_data/segment_1.json",
+  terms = vocabulary, # Use a pre-defined vocabulary
+  overwrite = FALSE
+)
+```
+
+This step is also integrated into the main
+`speech_to_summary_workflow()` function, as shown later.
+
 ### Creation of the “Agenda” object
 
 The next step is the creation of the “Agenda” object. This is a list of
@@ -320,7 +369,7 @@ meeting.
 ### Summarizing a single meeting transcript
 
 The final step is summarizing the transcript. This can be done using the
-`summarize_transcript()` function. The first choice is to decide which
+`summarise_transcript()` function. The first choice is to decide which
 summarization method to use. The package currently supports two
 summarization methods: “simple” and “rolling”. The “simple” method
 ingest the whole transcript at once and produces a summary of the whole
@@ -378,8 +427,9 @@ event_description <- "***Title of the Conference***
   
   Description of the conference."
 
-## A vocabulary of terms to keep in mind when summarizing the transcript. Can
-## be useful also to make the summarization robust to transcription errors.
+## A vocabulary of terms to keep in mind when summarizing the transcript AND
+## for LLM-based transcript correction. Can be useful also to make the 
+## summarization robust to transcription errors.
 vocabulary <- c("Term1", "ACRONYM: description", "Jack Black", "etc")
 
 ## Specific talk details, like title and speakers. Can be built using
@@ -414,26 +464,27 @@ context if not reported"
 # summarisation section with:
 summary_structure <- paste0(
   get_prompts("summary_structure"),
-  "\n- My extra summarisation instruction"
+  "
+- My extra summarisation instruction"
 )
 
 # The use can also use the summarisation instruction to add and agenda to drive
 # the summarisation focus:
-agenda <- format_agenda(agenda)
-summary_structure <- get_prompts("summary_structure")
-
-summary_structure <- stringr::str_glue("
-  {summary_structure}
+agenda_text <- format_agenda(agenda) # Renamed from agenda to avoid conflict
+summary_structure_with_agenda <- stringr::str_glue("
+  {get_prompts("summary_structure")}
   Here is an agenda of the event to keep into account while summarizing:
-  {agenda}
+  {agenda_text}
   Stricly follow the agenda to understand which information is worth summarizing.
 ")
+
 
 # Finally, the user can add extra output instructions to the default ones (check
 # them using get_prompts("output_summarisation") for the summarisation and
 # get_prompts("output_rolling_aggregation") for the rolling aggregation). For
 # example, one can add an extra output instruction with:
-output_instructions <- "\n- Focus on and report quantitative details when they
+output_instructions <- "
+- Focus on and report quantitative details when they
 are discussed."
 
 # Get the summary
@@ -446,7 +497,7 @@ talk_summary <- summarise_transcript(
   audience = audience,
   vocabulary = vocabulary,
   
-  summary_structure = summary_structure, # Or don't pass it to use the default
+  summary_structure = summary_structure_with_agenda, # Or don't pass it to use the default
   extra_diarization_instructions = diarization_instructions,
   extra_output_instructions = output_instructions,
   
@@ -480,15 +531,15 @@ conference_summaries <- summarise_full_meeting(
   method = method,
   agenda = agenda,
   output_file = "path-to-output-file.R",
-  
+
   event_description = event_description,
   audience = audience,
   vocabulary = vocabulary,
-  
-  summary_structure = summary_structure,
+
+  summary_structure = summary_structure_with_agenda, # Using the one with agenda
   extra_diarization_instructions = diarization_instructions,
   extra_output_instructions = output_instructions,
-  
+
   provider = "my-LLM-provider-of-choice",
 )
 ```
@@ -507,7 +558,7 @@ the agenda. The `agenda` provide information about each talk.
 ``` r
 
 formatted_summary <- format_summary_tree(
-  summary_tree = talk_summary,
+  summary_tree = conference_summaries, # Use the output from summarise_full_meeting
   agenda = agenda,
   output_file = "path-to-output-file.txt" # Optional file to save the summary
 )
@@ -523,10 +574,10 @@ not `NULL`.
 The package is built around a typical workflow that starts from a source
 audio file and ends with a formatted summary file. The workflow includes
 all the steps described above, from the splitting of the audio file (if
-requested, necessary for the Whisper API), to the transcription of the
-audio segments, to the merging of externally generated transcripts
-and/or chat files, to the summarization of the transcript, to the
-formatting of the summary.
+requested, necessary for most STT APIs), to the transcription of the
+audio segments (with LLM-supported correction), to the merging of
+externally generated transcripts and/or chat files, to the summarization
+of the transcript, to the formatting of the summary.
 
 The `speech_to_summary_workflow()` function implements this workflow and
 can be used to perform all the steps in one go.
@@ -534,7 +585,8 @@ can be used to perform all the steps in one go.
 ``` r
 
 # initial_prompt, event_description, audience,
-# vocabulary, diarization_instructions are defined in the previous examples
+# vocabulary, diarization_instructions, summary_structure_with_agenda
+# are defined in the previous examples
 
 # Perform the whole audio files to formatted summary workflow. Most arguments
 # are omitted since the defaults are fine but some (e.g. the output paths and
@@ -542,60 +594,69 @@ can be used to perform all the steps in one go.
 speech_to_summary_workflow(
   # Arguments for `perform_speech_to_text`
   audio_path = "recording_parts",
-  
+
   stt_intermediate_dir = "transcripts",
   stt_overwrite_intermediate_files = FALSE,
   stt_model = getOption("minutemaker_stt_model"),
-  
+
   stt_initial_prompt = initial_prompt,
-  
+
+  # Arguments for LLM-based transcript correction
+  # This step is run after STT and before merging/chat addition
+  enable_llm_correction = TRUE, # Defaults to TRUE
+  # `vocabulary` is also used for `terms` in `apply_llm_correction`
+  # llm_correction_model = getOption("minutemaker_correction_llm_model") # Implicitly used
+  # llm_correction_include_reasoning = getOption("minutemaker_include_llm_reasoning") # Implicitly used
+
   # Arguments for `merge_transcripts`
   # Assumes an existing .vtt transcript file in the working directory
   transcript_to_merge = list.files(pattern = "\\.vtt")[[1]],
-  
+
   # Arguments for `add_chat_transcript`
   # Assumes an existing Chat.txt file in the name in the working
   # directory
   chat_file = list.files(pattern = "Chat")[[1]],
   chat_start_time = "09:00 AM", # or e.g. 14:00:00
-  
+
   transcript_output_file = "transcript.csv",
   overwrite_transcript = FALSE,
-  
+
   # Arguments for `summarise_full_meeting`
   # Assumes an existing agenda.R file in the working directory
   # If an agenda doesn't exist, will ask if the LLM should infer it (see
   # following arguments)
-  agenda = "agenda.R",
-  
+  agenda_file = "agenda.R", # Changed from agenda to agenda_file for clarity if path
+
   # Arguments for `infer_agenda_from_transcript`
   expected_agenda = NULL,
   agenda_generation_window_size = 7200,
-  agenda_generation_output_file = file.path(target_dir, "agenda.R"),
+  agenda_generation_output_file = file.path(target_dir, "agenda.R"), # ensure target_dir is defined
   extra_agenda_generation_args = NULL,
   
   # Whether to produce a summary for each agenda items (TRUE) or just an overall
   # summary considering keeping the agenda into account to focus the
   # summarization (FALSE). By default is TRUE if the agenda exists and is in the
   # correct format.
-  multipart_summary = validate_agenda(agenda),
+  multipart_summary = TRUE, # Example: explicitly set, or use validate_agenda(dget(agenda_file))
   
   summarization_output_file = "event_summary.R",
   
   event_description = event_description,
   audience = audience,
-  vocabulary = vocabulary,
+  vocabulary = vocabulary, # Used for summarization AND LLM correction
   
   # you can pass summary_sections, diarization_instructions, or
   # output_instructions to override the default prompts
+  # Using summary_structure_with_agenda from previous example
+  summary_structure = summary_structure_with_agenda, 
   diarization_instructions = diarization_instructions,
   
-  llm_provider = getOption("minutemaker_llm_provider"),
+  llm_provider = getOption("minutemaker_llm_provider"), # This should be llmR::get_llmr_model_name() or similar
   
   overwrite_summary_tree = FALSE,
   
   # Arguments for `format_summary_tree`
-  formatted_output = "event_summary.txt",
+  formatted_output_file = "event_summary.txt", # Renamed from formatted_output
   overwrite_formatted_output = FALSE
 )
 ```
