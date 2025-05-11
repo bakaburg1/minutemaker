@@ -47,8 +47,10 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Custom files
 .Rproj.user
 .Rdata
 .DS_Store
 .quarto
-test.R
+experiments/
