@@ -14,8 +14,9 @@
 #' @param terms A character vector of important terms, names, or acronyms that
 #'   the LLM should pay special attention to. Can be NULL.
 #' @param include_reasoning Logical, if \code{TRUE}, the LLM will be asked to
-#'   provide its reasoning before the JSON output. This reasoning will be
-#'   messaged. Defaults to \code{getOption("minutemaker_include_llm_reasoning",
+#'   provide its reasoning before the JSON output. This approach improves
+#'   quality with non-reasoning models. This reasoning will be messaged to the
+#'   console. Defaults to \code{getOption("minutemaker_include_llm_reasoning",
 #'   TRUE)}.
 #' @param overwrite Logical, if \code{TRUE}, existing files will be overwritten
 #'   with the corrected transcript. Defaults to \code{FALSE}.
@@ -211,12 +212,36 @@ correct_transcription_errors <- function(
   include_reasoning = TRUE,
   llm_extra_params = list()
 ) {
+  # Validate include_reasoning
+  if (!rlang::is_scalar_logical(include_reasoning)) {
+    cli::cli_abort(
+      c(
+        "x" = "Parameter {.arg include_reasoning} must be a single logical
+        value (TRUE or FALSE)."
+      ),
+      wrap = TRUE
+    )
+  }
+
   # Get the correction model from options, preferring
   # 'minutemaker_correction_llm_model' if set.
   correction_model_label <- getOption(
     "minutemaker_correction_llm_model",
     getOption("llmr_current_model")
   )
+  
+  # Warn if minutemaker_correction_llm_model is not set and we're defaulting to current model
+  if (is.null(getOption("minutemaker_correction_llm_model")) && !is.null(getOption("llmr_current_model"))) {
+    cli::cli_alert_warning(
+      c(
+        "Option {.val minutemaker_correction_llm_model} not set,
+        defaulting to current model: {.val {getOption('llmr_current_model')}}",
+        "i" = "Consider setting {.val minutemaker_correction_llm_model}
+        for more consistent results."
+      ),
+      wrap = TRUE
+    )
+  }
 
   # If no model is set, stop with an error.
   if (is.null(correction_model_label)) {
@@ -310,6 +335,7 @@ correct_transcription_errors <- function(
         params = final_llm_params,
         force_json = force_json_value # Varies based on include_reasoning flag
       )
+
     },
     error = \(e) {
       stringr::str_glue("LLM call failed: {e$message}") |>
@@ -325,6 +351,7 @@ correct_transcription_errors <- function(
       is.null(llm_response_str) ||
       !nzchar(stringr::str_trim(llm_response_str))
   ) {
+
     # Return original if LLM call issues or empty response.
     return(transcript_data)
   }
@@ -369,12 +396,6 @@ correct_transcription_errors <- function(
     stringr::str_remove("\\s*```\\s*$") |>
     # Trim any remaining whitespace
     stringr::str_trim()
-
-  # cat(
-  #   "\n>>>> DEBUG: json_to_parse IMMEDIATELY BEFORE fromJSON, after cleaning:\n"
-  # )
-  # cat(json_to_parse)
-  # cat("\n<<<< END DEBUG: json_to_parse IMMEDIATELY BEFORE fromJSON\n\n")
 
   corrections_map <- NULL
   # Check if the string looks like a JSON object before attempting to parse.

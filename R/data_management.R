@@ -1307,7 +1307,6 @@ speech_to_summary_workflow <- function(
     apply_llm_correction(
       input_path = stt_output_dir,
       terms = vocabulary, # Use the 'vocabulary' from speech_to_summary_workflow args
-      overwrite = TRUE    # Ensure corrected files are used for parsing
     )
     cli::cli_alert_info("LLM-based correction step completed.")
   }
