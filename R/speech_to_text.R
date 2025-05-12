@@ -320,8 +320,6 @@ use_whisper_ctranslate2_stt <- function(
   }
 
   output_dir <- tempdir()
-  output_file <- basename(audio_file) |>
-    stringr::str_remove("\\..*$")
 
   args <- c(
     audio_file,

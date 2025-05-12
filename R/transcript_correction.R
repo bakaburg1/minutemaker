@@ -298,7 +298,9 @@ correct_transcription_errors <- function(
   }
 
   reasoning_instructions <- ""
-  json_wrapper_start <- "<json_corrections_output>" # XML tags for robust parsing.
+  
+  # XML tags for robust parsing.
+  json_wrapper_start <- "<json_corrections_output>"
   json_wrapper_end <- "</json_corrections_output>"
 
   if (include_reasoning) {
