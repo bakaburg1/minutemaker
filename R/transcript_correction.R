@@ -41,7 +41,8 @@ apply_llm_correction <- function(
   if (!file.exists(input_path)) {
     cli::cli_abort(
       c(
-        "The provided {.arg input_path} is not a valid file or folder: {.path {input_path}}",
+        "The provided {.arg input_path} is not a valid file or folder:
+          {.path {input_path}}",
         "x" = "Path does not exist."
       )
     )
@@ -85,7 +86,8 @@ apply_llm_correction <- function(
       error = function(e) {
         cli::cli_warn(
           c(
-            "!" = "Error reading JSON file {.file {basename(file_path)}}: {e$message}.",
+            "!" = "Error reading JSON file {.file {basename(file_path)}}:
+              {e$message}.",
             "i" = "Skipping this file."
           )
         )
@@ -99,7 +101,9 @@ apply_llm_correction <- function(
     # FALSE
     if (isTRUE(transcript_data$corrected) && !overwrite) {
       cli::cli_alert_warning(
-        "Skipping file, already marked as corrected and overwrite is FALSE: {.file {basename(file_path)}}"
+        "Skipping file, already marked as corrected and overwrite is FALSE:
+          {.file {basename(file_path)}}",
+        wrap = TRUE
       )
       return(file_path) # Return the path as it was processed (skipped)
     }
@@ -125,7 +129,8 @@ apply_llm_correction <- function(
       error = \(e) {
         cli::cli_warn(
           c(
-            "Correction step failed for {.file {basename(file_path)}}: {e$message}.",
+            "Correction step failed for {.file {basename(file_path)}}:
+              {e$message}.",
             "i" = "Original transcript data kept."
           )
         )
@@ -149,8 +154,10 @@ apply_llm_correction <- function(
             jsonlite::write_json(
               corrected_transcript_data,
               file_path,
-              auto_unbox = TRUE, # Ensure single-element arrays become scalars in JSON.
-              pretty = TRUE # Make the JSON human-readable.
+              # Ensure single-element arrays become scalars in JSON.
+              auto_unbox = TRUE,
+              # Make the JSON human-readable.
+              pretty = TRUE
             )
             cli::cli_alert_success(
               ifelse(
@@ -230,7 +237,8 @@ correct_transcription_errors <- function(
     getOption("llmr_current_model")
   )
 
-  # Warn if minutemaker_correction_llm_model is not set and we're defaulting to current model
+  # Warn if minutemaker_correction_llm_model is not set and we're defaulting to
+  # current model
   if (
     is.null(getOption("minutemaker_correction_llm_model")) &&
       !is.null(getOption("llmr_current_model"))
@@ -251,8 +259,10 @@ correct_transcription_errors <- function(
     cli::cli_abort(
       c(
         "LLM model for correction not set.",
-        "x" = "Option {.val minutemaker_correction_llm_model} nor {.val llmr_current_model} is set.",
-        "i" = "Please set one of these R options to specify the LLM model for corrections."
+        "x" = "Option {.val minutemaker_correction_llm_model} nor
+          {.val llmr_current_model} is set.",
+        "i" = "Please set one of these R options to specify the LLM model
+          for corrections."
       )
     )
   }
@@ -334,7 +344,8 @@ correct_transcription_errors <- function(
 
   tryCatch(
     {
-      # Single LLM call with force_json parameter varying based on include_reasoning
+      # Single LLM call with force_json parameter varying based on
+      # include_reasoning
       llm_response_str <- llmR::prompt_llm(
         messages = messages_payload,
         params = final_llm_params,
@@ -378,10 +389,6 @@ correct_transcription_errors <- function(
     match_result <- stringr::str_match(llm_response_str, xml_pattern)
     json_to_parse <- match_result[, 2]
 
-    # cat("\n>>>> DEBUG: Full content of match_result[, 2] directly via cat:\n")
-    # cat(match_result[, 2]) # Print the whole thing
-    # cat("\n<<<< END DEBUG: Full content of match_result[, 2]\n\n")
-
     if (is.na(json_to_parse)) {
       cli::cli_warn(
         c(
@@ -423,7 +430,8 @@ correct_transcription_errors <- function(
         cli::cli_warn(
           c(
             "!" = "JSON parsing failed: {e$message}.",
-            "i" = "JSON content (first 200 chars): {.val {substr(json_to_parse, 1, 200)}}..."
+            "i" = "JSON content (first 200 chars):
+              {.val {substr(json_to_parse, 1, 200)}}..."
           ),
           wrap = TRUE
         )
@@ -434,7 +442,8 @@ correct_transcription_errors <- function(
     cli::cli_warn(
       c(
         "!" = "Final string for parsing doesn't look like a JSON object.",
-        "i" = "Content (first 200 chars): {.val {substr(json_to_parse, 1, 200)}}..."
+        "i" = "Content (first 200 chars):
+          {.val {substr(json_to_parse, 1, 200)}}..."
       )
     )
     # String doesn't appear to be JSON, corrections_map remains NULL.
