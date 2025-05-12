@@ -19,7 +19,8 @@ Imports:
     stringr (>= 1.5.1),
     styler (>= 1.10.2),
     tools (>= 4.3.2),
-    vctrs (>= 0.6.5)
+    vctrs (>= 0.6.5),
+    cli (>= 3.6.5)
 Remotes:
     github::bakaburg1/llmR
 Config/testthat/edition: 3
@@ -31,7 +32,7 @@ Suggests:
     reticulate (>= 1.42.0),
     devtools (>= 2.4.5),
     parallel (>= 4.3.2),
-    testthat (>= 3.0.0),
+    testthat (>= 3.2.1.1),
     text2vec (>= 0.6.4),
     tictoc (>= 1.2),
     usethis (>= 2.2.3)
