@@ -477,8 +477,8 @@ correct_transcription_errors <- function(
 #' Apply a set of corrections to a text string
 #'
 #' This helper function applies a map of corrections to a text string. It sorts
-#' the correction keys by length in descending order to prevent shorter incorrect
-#' terms from disrupting longer ones during replacement.
+#' the correction keys by length in descending order to prevent shorter
+#' incorrect terms from disrupting longer ones during replacement.
 #'
 #' @param text A character string to which corrections will be applied.
 #' @param corr_map A named list where names are incorrect terms and values are
@@ -486,10 +486,10 @@ correct_transcription_errors <- function(
 #'
 #' @return The corrected text string with all replacements applied.
 #'
-#' @examples
-#' text <- "This is a smple text with misspellings"
-#' corrections <- list("smple" = "simple", "misspellings" = "misspellings")
-#' apply_single_correction_set(text, corrections)
+#' @examples text <- "This is a smple text with misspellings" corrections <-
+#'   list("smple" = "simple", "misspellings" = "misspellings")
+#'   apply_single_correction_set(text, corrections)
+#'
 apply_single_correction_set <- function(text, corr_map) {
   if (rlang::is_empty(text) || !nzchar(text) || rlang::is_empty(corr_map)) {
     return(text)
