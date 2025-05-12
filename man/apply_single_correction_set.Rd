@@ -20,9 +20,3 @@ This helper function applies a map of corrections to a text string. It sorts
 the correction keys by length in descending order to prevent shorter
 incorrect terms from disrupting longer ones during replacement.
 }
-\examples{
-text <- "This is a smple text with misspellings" corrections <-
-  list("smple" = "simple", "misspellings" = "misspellings")
-  apply_single_correction_set(text, corrections)
-
-}

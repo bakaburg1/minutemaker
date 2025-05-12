@@ -486,10 +486,6 @@ correct_transcription_errors <- function(
 #'
 #' @return The corrected text string with all replacements applied.
 #'
-#' @examples text <- "This is a smple text with misspellings" corrections <-
-#'   list("smple" = "simple", "misspellings" = "misspellings")
-#'   apply_single_correction_set(text, corrections)
-#'
 apply_single_correction_set <- function(text, corr_map) {
   if (rlang::is_empty(text) || !nzchar(text) || rlang::is_empty(corr_map)) {
     return(text)
