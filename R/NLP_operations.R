@@ -66,12 +66,14 @@ generate_glove_model <- function(
     # Use the hash of the data and the model parameters to check if the model
     # has already been generated
     if (data_hash == previous_hash) {
-      message("Using previously generated Glove model.")
+      cli::cli_alert_info(
+        "Using previously generated GloVe model (matching hash found)."
+      )
       return(previous_model)
     }
   }
 
-  message("Generating the Glove model...")
+  cli::cli_alert("Generating the GloVe model...")
 
   # Store the hash of the data and the model parameters
   options(minutemaker_data_merge_hash = data_hash)

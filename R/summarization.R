@@ -149,20 +149,27 @@ summarise_transcript <- function(
       (is.data.frame(transcript_data) && !"start" %in% names(transcript_data)) ||
       (!is.data.frame(transcript_data) && length(transcript_data) == 1)
   ) {
-    stop(
-      "To apply the \"rolling window\" method, the `transcript_data` argument ",
-      "must be a transcript data frame with segments' start times or ",
-      "a list of transcript data frames, or a vector of transcript text."
+    cli::cli_abort(
+      c(
+        "Invalid input for rolling window method.",
+        "x" = "Rolling window method requires {.arg transcript_data}
+          to be either:",
+        "*" = "A data frame with a {.field start} column.",
+        "*" = "A list of such data frames.",
+        "*" = "A character vector of transcript texts
+          (each element is a window).",
+        "i" = "Current type: {.cls {class(transcript_data)}}."
+      )
     )
-
   }
 
   if (method == "simple" && !is.data.frame(transcript_data) &&
       length(transcript_data) > 1) {
-    stop(
-      "To apply the \"simple\" summarisation method, ",
-      "the `transcript_data` argument ",
-      "must be a transcript data frame or a single transcript text."
+    cli::cli_abort(
+      c("Invalid input for simple summarisation method.",
+        "x" = "Simple method requires {.arg transcript_data} to be
+          a single data frame or a single character string.",
+        "i" = "Received a list or vector of length {length(transcript_data)}.")
     )
   }
 
@@ -200,11 +207,12 @@ summarise_transcript <- function(
         })
 
     } else {
-      warning(
-        "The transcript is too short (< 1.5 * window_size) ",
-        "to apply the \"rolling window method\". ",
-        "\nReverting to the \"simple\" summarisation method.",
-        call. = FALSE, immediate. = TRUE
+      cli::cli_warn(
+        c("Transcript too short for rolling window method.",
+          "i" = "Transcript duration ({round(transcript_duration/60,1)} min)
+            is less than 1.5 times window size
+            ({round(window_size/60,1)} min).",
+          "i" = "Reverting to {.val simple} summarisation method.")
       )
 
       method <- "simple"
@@ -246,8 +254,9 @@ summarise_transcript <- function(
   # Generate the summaries
   summaries <- purrr::imap(prompts, \(prompt, i) {
     if (method == "rolling") {
-      message("Processing transcript segment ", i,
-              " of ", length(transcript_data))
+      cli::cli_alert(
+        "Processing transcript segment {i}/{length(transcript_data)}..."
+      )
     }
 
     # Interrogate the LLM
@@ -266,7 +275,7 @@ summarise_transcript <- function(
   }
 
   # If the method is "rolling", aggregate the summaries
-  message("\nAggregating summaries")
+  cli::cli_alert("Aggregating transcript summaries...")
 
   args <- args[
     c("event_description", "recording_details", "audience", "output_length",
@@ -358,7 +367,7 @@ summarise_full_meeting <- function(
 ) {
 
   if (!validate_agenda(agenda)) {
-    stop("The agenda is not valid.")
+    cli::cli_abort("The agenda is not valid.")
   }
 
   # Import agenda from file
@@ -389,7 +398,7 @@ summarise_full_meeting <- function(
       next
     }
 
-    message("\n# Talk: ", id)
+    cli::cli_inform("\n# Talk: {id}")
 
     # Get the index of the current talk in the agenda
     i <- which(talks_ids == id)
@@ -404,8 +413,9 @@ summarise_full_meeting <- function(
     )
 
     if (!is_valid_agenda) {
-      warning("The agenda element ", id, " is not valid. Skipping.",
-              call. = FALSE, immediate. = TRUE)
+      cli::cli_warn(
+        "The agenda element {.val {id}} is not valid. Skipping."
+      )
       next
     }
 
@@ -416,13 +426,14 @@ summarise_full_meeting <- function(
         .data$start <= agenda_element$to)
 
     if (nrow(transcript_subset) == 0) {
-      warning("The transcript subset for the talk ", id, " is empty. ",
-              if (!is.null(event_start_time)) {
-                "Did you provide the correct event start time?"
-                } else {
-                  "Did you provide the correct agenda times?"
-                }, ". Skipping.",
-              call. = FALSE, immediate. = TRUE)
+      cli::cli_warn(
+        c("The transcript subset for the talk {.val {id}} is empty.",
+          "i" = if (!is.null(event_start_time)) {
+            "Did you provide the correct event start time?"
+          } else {
+            "Did you provide the correct agenda times?"
+          }, "x" = "Skipping.")
+      )
       next
     }
 
@@ -465,7 +476,8 @@ summarise_full_meeting <- function(
   }
 
   if (length(result_tree) == 0) {
-    stop("The final result tree has lenght zero. No talks were summarised.")
+    cli::cli_abort(
+      "The final result tree has lenght zero. No talks were summarised.")
   }
 
   # Return the result tree invisibly
@@ -541,7 +553,9 @@ infer_agenda_from_transcript <- function(
   } else if (is.data.frame(transcript)) {
     transcript_data <- transcript
   } else {
-    stop("The transcript must be a file path or a data frame.")
+    cli::cli_abort(
+      "The transcript must be a file path or a data frame."
+    )
   }
 
   transcript_data <- transcript_data |>
@@ -613,7 +627,7 @@ infer_agenda_from_transcript <- function(
       "minutemaker_temp_agenda_last_bp" = NULL
     )
   } else {
-    message("A temporary agenda was found. Resuming the inference.")
+    cli::cli_inform("A temporary agenda was found. Resuming the inference.")
   }
 
   options("minutemaker_temp_agenda_hash" = arg_hash)
@@ -627,7 +641,7 @@ infer_agenda_from_transcript <- function(
     options("minutemaker_temp_agenda" = cur_agenda)
   }
 
-  message("- Inferring the agenda from the transcript")
+  cli::cli_alert("- Inferring the agenda from the transcript")
 
   while (isFALSE(stop)) {
 
@@ -701,9 +715,7 @@ infer_agenda_from_transcript <- function(
     if (inherits(result_json, "try-error") &&
         grepl("Answer exhausted the context window", result_json)) {
 
-      warning(
-        "Answer exhausted the context window. retrying...",
-        immediate. = T, call. = F)
+      cli::cli_warn("Answer exhausted the context window. Retrying...")
 
       # Add a new breakpoint in the middle of the current segment
       new_bp <- (bp_left + bp_right) / 2
@@ -715,16 +727,17 @@ infer_agenda_from_transcript <- function(
       next
     } else if (inherits(result_json, "try-error")) {
 
-      stop(result_json)
+      cli::cli_abort("LLM interrogation failed with error: {result_json}")
 
     }
 
-    cat(result_json)
+    cli::cli_verbatim(result_json)
 
     # Attempt to parse the result json
     parsed_result <- try(
       jsonlite::fromJSON(result_json, simplifyDataFrame = F)$start_times,
-      silent = TRUE)
+      silent = TRUE
+      )
 
     # If the parsing fails...
     if (inherits(parsed_result, "try-error")) {
@@ -732,18 +745,18 @@ infer_agenda_from_transcript <- function(
       # If this is the first parsing error, retry with instructions to fix the
       # output
       if (!json_error) {
-        warning(
-          "Output not a valid JSON. retrying...",
-          immediate. = T, call. = F)
+        cli::cli_warn(
+          "Output not a valid JSON. retrying..."
+          )
 
         json_error <- TRUE
       }
       # If this is the second parsing error, shorten the window
       else {
 
-        warning(
-          "Output not a valid JSON. Shortening the window...",
-          immediate. = T, call. = F)
+        cli::cli_warn(
+          "Output not a valid JSON. Shortening the window..."
+          )
 
         json_error <- FALSE
 
@@ -775,8 +788,7 @@ infer_agenda_from_transcript <- function(
   agenda_times <- getOption("minutemaker_temp_agenda", list())
 
   if (length(agenda_times) == 0) {
-    warning("No agenda was inferred from the transcript.",
-            immediate. = T, call. = F)
+    cli::cli_warn("No agenda was inferred from the transcript.")
     return(NULL)
   }
 
@@ -793,7 +805,7 @@ infer_agenda_from_transcript <- function(
     return(this_time)
   }) |> unlist()
 
-  message("- Extracting agenda items details")
+  cli::cli_alert("- Extracting agenda items details")
 
   # Extract the talks' details from the transcript
   agenda <- purrr::imap(agenda_times, \(start, i) {
@@ -859,7 +871,7 @@ infer_agenda_from_transcript <- function(
   dup_indices <- which(duplicated(titles))
 
   if (length(dup_indices) > 0) {
-    message("- Resolving duplicated agenda item titles")
+    cli::cli_alert("- Resolving duplicated agenda item titles")
 
     for (idx in dup_indices) {
       dup_title <- titles[idx]

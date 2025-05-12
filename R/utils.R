@@ -27,8 +27,12 @@ silent <- function() {
 #'
 parse_event_time <- function(time, format = c("R", "T")) {
   if (!inherits(time, c("POSIXct", "character"))) {
-    stop("Invalid time format. Should be either a valid HH:MM(:SS)( AM/PM) ",
-         "character or already in POSIXct format.")
+    cli::cli_abort(
+      c("Invalid time format provided.",
+        "x" = "Expected a character string in HH:MM(:SS)
+          or HH:MM(:SS) AM/PM format, or a POSIXct object.",
+        "i" = "Received object of class: {.cls {class(time)}}")
+    )
   }
 
   if (inherits(time, "POSIXct")) {
@@ -50,12 +54,20 @@ parse_event_time <- function(time, format = c("R", "T")) {
 time_to_numeric <- function(time, origin = NULL) {
 
   if (!inherits(time, c("character", "POSIXct", "numeric", "integer"))) {
-    stop("Invalid time format for parameter 'time'")
+    cli::cli_abort(
+      c("Invalid format for {.arg time} argument.",
+        "x" = "Expected character, POSIXct, numeric, or integer.",
+        "i" = "Received object of class: {.cls {class(time)}}")
+    )
   }
 
   if (!is.null(origin)) {
     if (!inherits(origin, c("character", "POSIXct", "numeric"))) {
-      stop("Invalid time format for parameter 'origin'")
+      cli::cli_abort(
+        c("Invalid format for {.arg origin} argument.",
+          "x" = "Expected character, POSIXct, or numeric.",
+          "i" = "Received object of class: {.cls {class(origin)}}")
+      )
     }
 
     if (
@@ -64,7 +76,13 @@ time_to_numeric <- function(time, origin = NULL) {
       (is.numeric(time) && !is.numeric(origin)) ||
       (!is.numeric(time) && is.numeric(origin))
     ) {
-      stop("time and origin arguments are not compatible")
+      cli::cli_abort(
+        c("{.arg time} and {.arg origin} arguments have incompatible types.",
+          "x" = "Both must be numeric or both must be non-numeric
+            (character or POSIXct).",
+          "i" = "time class: {.cls {class(time)}}, origin class:
+            {.cls {class(origin)}}")
+      )
     }
   }
 
@@ -85,7 +103,12 @@ time_to_numeric <- function(time, origin = NULL) {
   diff <- as.numeric(time) - as.numeric(origin)
 
   if (diff < 0) {
-    stop("Time difference in seconds is negative")
+    cli::cli_abort(
+      c("Calculated time difference is negative.",
+        "x" = "{.arg time} ({.val {time}}) cannot be
+          earlier than {.arg origin} ({.val {origin}}).",
+        "i" = "Resulting difference: {diff} seconds.")
+    )
   }
 
   diff

@@ -205,8 +205,9 @@ set_prompts <- function(
 
       # Raise a warning if the new prompt is different from the current one
       if (!is.null(current_prompt) && !identical(current_prompt, prompt)) {
-        warning("The prompt for '", prompt_name, "' is being overwritten.",
-                call. = FALSE, immediate. = TRUE)
+        cli::cli_warn(
+          "Overwriting existing prompt for {.val {prompt_name}} because
+            {.code force = TRUE}.")
       }
 
       prompt |>
@@ -237,7 +238,11 @@ get_prompts <- function(which = NULL) {
 
   # Check if the requested prompts are valid
   if (!is.null(which) && any(!which %in% valid_options)) {
-    stop("Invalid prompt name: ", which[!which %in% valid_options])
+    invalid_prompts <- which[!which %in% valid_options]
+    cli::cli_abort(
+      c("Invalid prompt name(s) requested:",
+        "x" = "Unknown prompt name{?s}: {.val {invalid_prompts}}.",
+        "i" = "Valid prompt names are: {.val {valid_options}}."))
   }
 
   # If no prompts are requested, return all the prompts
@@ -364,8 +369,9 @@ generate_summarisation_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{stringr::str_flatten_comma(names(args)[long_arguments])}")
   }
 
   # leaving .null as default produces character(0) if any of the {vars} is
@@ -459,8 +465,9 @@ generate_rolling_aggregation_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{stringr::str_flatten_comma(names(args)[long_arguments])}")
   }
 
   # leaving .null as default produces character(0) if any of the {vars} is
@@ -512,8 +519,9 @@ generate_agenda_inference_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{stringr::str_flatten_comma(names(args)[long_arguments])}")
   }
 
   prompt <- paste(
@@ -612,8 +620,9 @@ generate_agenda_element_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{stringr::str_flatten_comma(names(args)[long_arguments])}")
   }
 
   prompt <- paste(

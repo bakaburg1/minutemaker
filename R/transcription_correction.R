@@ -356,11 +356,12 @@ correct_transcription_errors <- function(
     return(transcript_data)
   }
 
-  # Debugging: Print the LLM response.
-  cat("--- LLM correction response ---")
-  cat(llm_response_str)
-  cat("--- End of LLM correction response ---")
+  # Optional: Print the raw LLM response for debugging
+  cli::cli_inform(c("i" = "--- LLM correction response ---"))
+  cli::cli_verbatim(llm_response_str) # Use verbatim for raw output
+  cli::cli_inform(c("i" = "--- End of LLM correction response ---"))
 
+  # Attempt to parse the JSON response
   json_to_parse <- llm_response_str # Start with the full response.
 
   if (include_reasoning) {
@@ -385,7 +386,8 @@ correct_transcription_errors <- function(
           "i" = "Attempting to parse entire response as JSON."
         )
       )
-      # If wrapper not found, proceed assuming the whole response might be parsable JSON or LLM forgot tags.
+      # If wrapper not found, proceed assuming the whole response might be
+      # parsable JSON or LLM forgot tags.
       json_to_parse <- llm_response_str
     }
   }

@@ -42,7 +42,14 @@ parse_transcript_json <- function(
       tryCatch(
         purrr::map(json_files, jsonlite::read_json),
         error = function(e) {
-          stop("Error parsing JSON file: ", e$message)
+          cli::cli_abort(
+            c(
+              "Error parsing JSON file(s) from directory {.path {transcript_json}}:",
+              "x" = "{e$message}",
+              "i" = "Ensure all JSON files in the directory are valid."
+            ),
+            parent = e
+          )
         })
     } else if (file.exists(transcript_json)) { # Is the string a path to a file?
 
@@ -52,19 +59,33 @@ parse_transcript_json <- function(
       tryCatch(
         list(jsonlite::read_json(transcript_json)),
         error = function(e) {
-          stop("Error parsing JSON file: ", e$message)
+          cli::cli_abort(
+            c(
+              "Error parsing JSON file {.path {transcript_json}}:",
+              "x" = "{e$message}"
+            ),
+            parent = e
+          )
         })
     } else { # Is the string a JSON string?
       tryCatch(
         list(jsonlite::fromJSON(transcript_json)),
         error = function(e) {
-          stop("Error parsing JSON: ", e$message)
+          cli::cli_abort(
+            c(
+              "Error parsing JSON string input:",
+              "x" = "{e$message}"
+            ),
+            parent = e
+          )
         })
     }
   } else if (vctrs::obj_is_list(transcript_json)) {
     list(transcript_json)
   } else {
-    stop("Unsupported transcript format.")
+    cli::cli_abort("Unsupported transcript format provided to
+      {.fn parse_transcript_json}.
+      Expecting a JSON string, file path, directory path, or list.")
   }
 
   full_transcript <- data.frame()
@@ -77,12 +98,24 @@ parse_transcript_json <- function(
 
     # Raise an error if the JSON file does not contain any data
     if (!"segments" %in% names(transcript_list[[i]])) {
-      stop("File ", basename(json_files[i]), " does not contain any data. ",
-           "Please remove it and try transcription again.")
+      cli::cli_abort(
+        c(
+          "JSON file is missing expected 'segments' data.",
+          "x" = "File {.file {basename(json_files[i])}}
+            does not contain transcription segments.",
+          "i" = "Please remove this file or ensure it has the correct format
+            and try again."
+        ),
+        wrap = TRUE
+      )
     }
 
     if (length(transcript_list[[i]]$segments) == 0) {
       # skip this file, there was nothing to transcribe
+      cli::cli_inform(
+        c("!" = "Skipping empty file (no segments found):
+        {.file {basename(json_files[i])}}"))
+        
       next
     }
 
@@ -119,7 +152,15 @@ parse_transcript_json <- function(
     event_start_time <- parse_event_time(event_start_time)
 
     if (is.na(event_start_time)) {
-      stop("Start time not interpretable. Use the HH:MM(:SS)( AM/PM) format.")
+      cli::cli_abort(
+        c("Event start time
+          {.val {getOption(\"minutemaker_event_start_time\")}}
+          is not interpretable.",
+          "x" = "Failed to parse the start time.",
+          "i" = "Please use the HH:MM(:SS) or HH:MM(:SS) AM/PM format
+            (e.g., \"09:30\" or \"2:00 PM\")."
+        )
+      )
     }
 
     full_transcript <- full_transcript |>
@@ -252,21 +293,26 @@ extract_text_from_transcript <- function(
     duration <- max(transcript_data$end) - min(transcript_data$start)
 
     if (duration > 3600) {
-      warning(
-        "Summarising a transcript covering more than 1 hour may ",
-        "result in a loss of details. ",
-        "Consider treating it as a collection of taks/meetings to ",
-        "summarise separately. Cfr. `summarise_full_meeting()`"
-        , call. = FALSE, immediate. = TRUE)
+      cli::cli_warn(
+        c(
+          "Summarising a transcript covering more than 1 hour may result
+            in a loss of details.",
+          "i" = "Consider treating it as a collection of tasks/meetings
+            to summarise separately.",
+          "i" = "See {.fn summarise_full_meeting} for more details."
+        )
+      )
     }
   }
 
   # If an agenda element is provided, its start and end times are used
   if (!is.null(agenda_element)) {
     if (!is.numeric(agenda_element$from) || !is.numeric(agenda_element$to)) {
-      stop("The agenda element must contain 'from' and 'to' ",
-           "fields in numeric format. Use convert_agenda_times() to convert ",
-           "the agenda element times to numeric format.")
+      cli::cli_abort(
+        "Agenda element must contain 'from' and 'to'
+        fields in numeric format. Use convert_agenda_times() to convert
+        the agenda element times to numeric format."
+      )
     }
 
     start_time <- agenda_element$from
@@ -398,7 +444,8 @@ convert_agenda_times <- function(
         inherits(.x$from, c("POSIXct", "character"))
       }))
   ) {
-    stop("Agenda times must be all of the same class across the agenda.")
+    cli::cli_abort(
+      "Agenda times must be all of the same class across the agenda.")
   }
 
   if (!is.null(event_start_time)) {
@@ -409,13 +456,14 @@ convert_agenda_times <- function(
       temp <- parse_event_time(event_start_time)
 
       if (is.na(temp)) {
-        stop("Agenda time conversion failed: ", event_start_time)
+        cli::cli_abort("Agenda time conversion failed:
+          {.val {event_start_time}}")
       }
 
       event_start_time <- temp
     } else {
       # Only character and POSIXct event start times are supported
-      stop("Invalid event start time format.")
+      cli::cli_abort("Invalid event start time format.")
     }
 
   } else if (
@@ -426,15 +474,21 @@ convert_agenda_times <- function(
     event_start_time <- agenda[[1]]$from |>
       parse_event_time()
 
-    warning("No start time provided.\n",
-            "Using the start time of the first agenda element.",
-            call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c("No start time provided.\n",
+        "Using the start time of the first agenda element.",
+        "i" = "Consider setting the event start time using
+          {.fn set_event_start_time}.")
+    )
   } else {
     event_start_time <- lubridate::origin
 
-    warning("No start time provided.\n",
-            "Using \"00:00:00\" as start time.",
-            call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c("No start time provided.\n",
+        "Using \"00:00:00\" as start time.",
+        "i" = "Consider setting the event start time using
+          {.fn set_event_start_time}.")
+    )
   }
 
   for (i in seq_along(agenda)) {
@@ -535,7 +589,7 @@ format_summary_tree <- function(
     # If no summary is found for the current talk, issue a warning and skip to
     # the next talk
     if (is.null(talk_summary)) {
-      warning("No summary found for ", id, ". Skipping.", call. = FALSE)
+      cli::cli_warn("No summary found for {.val {id}}. Skipping.")
       next
     }
 
@@ -665,7 +719,8 @@ import_transcript_from_file <- function(
   file_extension <- tools::file_ext(transcript_file)
 
   if (!file_extension %in% c("srt", "vtt")) {
-    stop("Unsupported file format. Supported formats are SRT and VTT.")
+    cli::cli_abort(
+      "Unsupported file format. Supported formats are SRT and VTT.")
   }
 
   times_pos <- which(stringr::str_detect(lines, "-->"))
@@ -752,7 +807,7 @@ merge_transcripts <- function(
   empty_segments <- which(transcript_x$text %in% c("", "[...]"))
 
   if (length(empty_segments) == 0 && !import_diarization) {
-    message("No empty segments found in the transcript.")
+    cli::cli_inform("No empty segments found in the transcript.")
     return(transcript_x)
   }
 
@@ -762,7 +817,7 @@ merge_transcripts <- function(
 
   if (import_diarization) {
     # This message is useful only if also diarization is imported
-    message("Merging...")
+    cli::cli_inform("Merging...")
 
     # The actual transcript_y will be modified, so a copy is stored for the
     # diarization import
@@ -823,8 +878,8 @@ merge_transcripts <- function(
 
   transcript_x$seen <- NULL
 
-  cat("Added", added, "segments.\n")
-  cat("Removed", removed, "segments.\n")
+  cli::cli_inform(c("v" = "Added {added} segments.",
+                    "i" = "Removed {removed} segments."))
 
   if (import_diarization) {
 
@@ -833,7 +888,7 @@ merge_transcripts <- function(
       purrr::discard(is_silent) |>
       generate_glove_model()
 
-    message("Importing diarization...")
+    cli::cli_inform("Importing diarization...")
 
     transcript_y <- stored_y
     transcript_x$speaker <- NA
@@ -932,7 +987,7 @@ add_chat_transcript <- function(
   if (is.character(chat_transcript)) {
 
     if (!file.exists(chat_transcript)) {
-      stop("Chat file not found.")
+      cli::cli_abort("Chat file not found.")
     }
 
     # Parse the start time
@@ -973,15 +1028,24 @@ add_chat_transcript <- function(
           speaker = paste(.data$speaker, "(from chat)")
         )},
       error = \(e) {
-        stop("Error parsing chat file: ", basename(chat_transcript), "\n\n", e)
+        cli::cli_abort(
+          c(
+            "Error parsing chat file: {.file {basename(chat_transcript)}}",
+            "x" = "{e$message}",
+            "i" = "Ensure the chat file is in a supported format."
+          ),
+          parent = e
+        )
       })
   } else if (is.data.frame(chat_transcript)) {
     # Check if the chat data has the required columns
     if (!all(c("start", "speaker", "text") %in% names(chat_transcript))) {
-      stop("Chat data must contain 'start', 'speaker' and 'text' columns.")
+      cli::cli_abort(
+        "Chat data must contain {.var start}, {.var speaker}
+        and {.var text} columns.")
     }
   } else {
-    stop("Unsupported chat data format.")
+    cli::cli_abort("Unsupported chat data format.")
   }
 
   # Add the chat messages to the transcript
@@ -1201,7 +1265,7 @@ speech_to_summary_workflow <- function(
   ) {
 
     if (purrr::is_empty(source_audio)) {
-      stop("\nNo valid source audio file provided.\n")
+      cli::cli_abort("No valid source audio file provided.")
     }
 
 
@@ -1213,13 +1277,14 @@ speech_to_summary_workflow <- function(
         dir.create(stt_audio_dir)
       }
 
-      message("\n### Moving source audio file to ", stt_audio_dir,
-              ", without modification...\n")
+      cli::cli_inform(
+        c(i = "Moving source audio file to {.path {stt_audio_dir}},
+        without modification..."))
 
       file.copy(source_audio, stt_audio_dir)
     } else {
 
-      message("\n### Splitting audio file...\n")
+      cli::cli_alert("Splitting audio file...")
 
       # Split the audio file. The splitted audio will be saved in the
       # "recording_parts" folder in the same directory as the original audio
@@ -1231,8 +1296,10 @@ speech_to_summary_workflow <- function(
       )
     }
   } else {
-    message("\n### Loading existing splitted audio files from ",
-            basename(stt_audio_dir), "...\n")
+    cli::cli_alert(
+      "Loading existing splitted audio files from
+      {.path {basename(stt_audio_dir)}}..." |> stringr::str_squish()
+    )
   }
 
   ## Perform speech to text ##
@@ -1243,17 +1310,17 @@ speech_to_summary_workflow <- function(
     length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
   ) {
 
-    message("\n### Performing speech to text...\n")
-    message("(stt model: ", stt_model, ")\n")
+    cli::cli_alert("Performing speech to text...")
+    cli::cli_alert_info("(stt model: {stt_model})")
 
     # A speech-to-text model is required
     if (is.null(stt_model)) {
-      stop("No speech-to-text model provided.")
+      cli::cli_abort("No speech-to-text model provided.")
     }
 
     # Check if the splitted audio files exist
     if (purrr::is_empty(list.files(stt_audio_dir))) {
-      stop("No audio files found in ", stt_audio_dir)
+      cli::cli_abort("No audio files found in {.path {stt_audio_dir}}")
     }
 
     stt_args <- c(list(
@@ -1267,16 +1334,20 @@ speech_to_summary_workflow <- function(
 
     # Use do.call to pass extra_stt_args to the ... argument
     do.call(perform_speech_to_text, stt_args)
+    cli::cli_alert_success("Speech-to-text step completed.")
   } else {
-    message("\n### Loading existing transcript data files from ",
-            basename(target_dir), "...\n")
+    cli::cli_alert(
+      "Loading existing transcript data files from
+      {.path {basename(target_dir)}}..." |> stringr::str_squish()
+    )
   }
 
   # Check if the STT step was successful
   if (purrr::is_empty(list.files(stt_output_dir))) {
     cli::cli_abort(
       c(
-        "Skipping LLM correction: STT output directory is missing or empty: {.path {stt_output_dir}}",
+        "Skipping LLM correction: STT output directory is missing or empty:
+        {.path {stt_output_dir}}",
         "i" = "Ensure the speech-to-text process completed successfully"
       )
     )
@@ -1284,10 +1355,12 @@ speech_to_summary_workflow <- function(
 
   ## Perform LLM-based transcript correction (if enabled) ##
   if (isTRUE(enable_llm_correction)) {
-    message("\n### Applying LLM-based correction to transcript JSON files...\n")
+    cli::cli_alert("Applying LLM-based correction to transcript JSON files...")
 
     # Check if reasoning is enabled via options and issue an advisory message
-    minutemaker_reasoning_option <- getOption("minutemaker_include_llm_reasoning", TRUE)
+    minutemaker_reasoning_option <- getOption(
+      "minutemaker_include_llm_reasoning", TRUE)
+      
     if (isTRUE(minutemaker_reasoning_option)) {
       cli::cli_alert_info(
         paste(
@@ -1308,7 +1381,7 @@ speech_to_summary_workflow <- function(
       input_path = stt_output_dir,
       terms = vocabulary, # Use the 'vocabulary' from speech_to_summary_workflow args
     )
-    cli::cli_alert_info("LLM-based correction step completed.")
+    cli::cli_alert_success("LLM-based correction step completed.")
   }
 
 
@@ -1325,10 +1398,10 @@ speech_to_summary_workflow <- function(
     # Merge transcripts
     if (!purrr::is_empty(transcript_to_merge) && !is.na(transcript_to_merge)) {
 
-      message("\n### Merging transcripts...\n ")
+      cli::cli_alert("Merging transcripts...")
 
       if (!file.exists(transcript_to_merge)) {
-        stop("Transcript file to merge not valid.")
+        cli::cli_abort("Transcript file to merge not valid.")
       }
 
       # If the transcript to merge is a file path, load the data from the file
@@ -1348,10 +1421,10 @@ speech_to_summary_workflow <- function(
     # Add chat transcript
     if (!purrr::is_empty(chat_file) && !is.na(chat_file)) {
 
-      message("\n### Adding chat transcript...\n")
+      cli::cli_alert("Adding chat transcript...")
 
       if (is.null(event_start_time)) {
-        stop("Chat file found but no start time provided.")
+        cli::cli_abort("Chat file found but no start time provided.")
       }
 
       transcript_data <- add_chat_transcript(
@@ -1367,8 +1440,10 @@ speech_to_summary_workflow <- function(
       transcript_data, file = transcript_file)
 
   } else {
-    message("\n### Loading existing transcript from ",
-            basename(transcript_file), "...\n")
+    cli::cli_alert(
+      "Loading existing transcript from
+      {.path {basename(transcript_file)}}..." |> stringr::str_squish()
+    )
 
     transcript_data <- readr::read_csv(
       transcript_file,
@@ -1380,7 +1455,7 @@ speech_to_summary_workflow <- function(
   # If use_agenda is "no", set agenda to FALSE and force multipart_summary to
   # FALSE
   if (use_agenda == "no") {
-    message("\n### Proceeding without using an agenda, as requested.\n")
+    cli::cli_alert_info("Proceeding without using an agenda, as requested.")
     agenda <- FALSE
     multipart_summary <- FALSE
   } else {
@@ -1389,14 +1464,20 @@ speech_to_summary_workflow <- function(
     
     # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
     if (use_agenda == "ask" && !interactive()) {
-      message("\n### Non-interactive session with use_agenda='ask'; ",
-              "treating as `use_agenda = \"yes\"`.\n")
+      cli::cli_inform(
+        c(
+          "i" = "Non-interactive session with {.code use_agenda = 'ask'}",
+          "i" = "Treating as {.code use_agenda = 'yes'}."
+        )
+      )
       use_agenda <- "yes"
     }
     
     # Define actions as a function to avoid code duplication
     generate_new_agenda <- function() {
-      message("\n### Generating ", if(use_agenda == "yes") "a" else "new", " agenda...\n")
+      cli::cli_alert(
+        "Generating {if(use_agenda == 'yes') 'a' else 'new'} agenda..."
+      )
       
       # Generate a new agenda
       agenda_infer_args <- c(list(
@@ -1414,8 +1495,10 @@ speech_to_summary_workflow <- function(
       new_agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
       
       # Display the generated agenda for reference
-      message("Agenda generated and saved to ", basename(agenda_file))
-      cat("\n", format_agenda(new_agenda), "\n")
+      cli::cli_alert_success(
+        "Agenda generated and saved to {.path {basename(agenda_file)}}"
+      )
+      cli::cli_verbatim("\n", format_agenda(new_agenda), "\n")
       
       return(new_agenda)
     }
@@ -1447,16 +1530,18 @@ speech_to_summary_workflow <- function(
       # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options when no file exists
       
       # Handle the choice
-      if (choice == 0 || 
-          (choice == 3 && !agenda_file_exists) || 
+      if (choice == 0 ||
+          (choice == 3 && !agenda_file_exists) ||
           (choice == 4 && agenda_file_exists)) {
         # Exit
-        message("Aborted by user. Returning transcript data only (invisibly).")
+        cli::cli_alert_warning(
+          "Aborted by user. Returning transcript data only (invisibly)."
+        )
         return(invisible(transcript_data))
       } else if ((choice == 1 && agenda_file_exists)) {
         # Use existing agenda file
-        message(sprintf(
-          "\n### Using existing agenda file: %s\n", basename(agenda_file))
+        cli::cli_alert_info(
+          "Using existing agenda file: {.file {basename(agenda_file)}}"
         )
         agenda <- dget(agenda_file)
       } else if ((choice == 1 && !agenda_file_exists) || 
@@ -1466,15 +1551,16 @@ speech_to_summary_workflow <- function(
       } else if ((choice == 2 && !agenda_file_exists) || 
                 (choice == 3 && agenda_file_exists)) {
         # No agenda
-        message("\n### Proceeding without an agenda.\n")
+        cli::cli_alert_info("Proceeding without an agenda.")
         agenda <- FALSE
         multipart_summary <- FALSE
       }
     } else if (use_agenda == "yes") {
       # Handle "yes" mode - use existing file or generate new one
       if (agenda_file_exists) {
-        message(sprintf(
-          "\n### Using existing agenda file: %s\n", basename(agenda_file)))
+        cli::cli_alert_info(
+          "Using existing agenda file: {.file {basename(agenda_file)}}"
+        )
 
         agenda <- dget(agenda_file)
       } else {
@@ -1489,10 +1575,10 @@ speech_to_summary_workflow <- function(
     multipart_summary <- FALSE
   }
 
-  message("\n### Summarizing transcript...\n")
+  cli::cli_alert("Summarizing transcript...")
 
   if (is.null(llm_provider)) {
-    stop("No LLM provider defined.")
+    cli::cli_abort("No LLM provider defined.")
   }
 
   # Manage situations where the formatted output file exists
@@ -1500,16 +1586,27 @@ speech_to_summary_workflow <- function(
       file.exists(formatted_output_file)) {
 
     if (isTRUE(overwrite_formatted_output)) {
-      message("WARNING: Overwriting the existing summary output.\n",
-              "Stop the process if you want to keep the existing file.")
+      cli::cli_warn(
+        c(
+          "Overwriting the existing summary output.",
+          "i" = "Stop the process if you want to keep the existing file."
+        )
+      )
     } else if (isFALSE(overwrite_formatted_output)) {
-      message(
-        "The formatted summary output file already exists and ",
-        "overwrite is FALSE.\n",
-        "Set overwrite_formatted_output = TRUE to overwrite it or remove it.")
+      cli::cli_abort(
+        c(
+          "The formatted summary output file already exists and overwrite
+            is {.code FALSE}.",
+          "i" = "Set {.code overwrite_formatted_output = TRUE} to overwrite it
+            or remove it."
+        )
+      )
       return(invisible(transcript_data))
     } else {
-      stop("The overwrite_formatted_output argument must be TRUE or FALSE")
+      cli::cli_abort(
+        "The {.code overwrite_formatted_output} argument must be
+          {.code TRUE} or {.code FALSE}."
+      )
     }
   }
 
@@ -1535,7 +1632,7 @@ speech_to_summary_workflow <- function(
 
   if (isFALSE(agenda) || isFALSE(multipart_summary)) {
     # Summarize as single talk
-    message("...with single part approach...\n")
+    cli::cli_inform("...with single part approach...")
 
     formatted_summary <- do.call(summarise_transcript, summarization_args)
 
@@ -1543,10 +1640,10 @@ speech_to_summary_workflow <- function(
 
   } else {
     # Summarize as multiple talks
-    message("...with multipart approach...\n")
+    cli::cli_inform("...with multipart approach...")
 
     if (!validate_agenda(agenda)) {
-      stop("The agenda is not valid.")
+      cli::cli_abort("The agenda is not valid.")
     }
 
     # TODO: put this prompt in the set_prompts function
@@ -1564,7 +1661,7 @@ speech_to_summary_workflow <- function(
     summary_tree <- do.call(summarise_full_meeting, summarization_args)
 
     ## Format summary tree ##
-    message("\n### Formatting summary tree...\n")
+    cli::cli_alert("Formatting summary tree...")
 
     formatted_summary <- format_summary_tree(
       summary_tree = summary_tree,
@@ -1575,9 +1672,11 @@ speech_to_summary_workflow <- function(
     return_vec <- c("transcript_data", "summary_tree", "formatted_summary")
   }
 
-  message("\n### Writing to file...\n")
+  cli::cli_alert("Writing to file...")
 
   readr::write_lines(formatted_summary, formatted_output_file)
+
+  cli::cli_alert_success("Workflow completed successfully.")
 
   return(mget(return_vec))
 }

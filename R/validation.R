@@ -31,19 +31,19 @@ validate_agenda_element <- function(
   # Initialize the validation result
   is_valid <- TRUE
 
-  general_warn <- paste(
-    "Agenda element validation failed:\n",
-    styler::style_text(
-      deparse(agenda_element)) |> paste(collapse = "\n"), "\n"
-    )
-
   # Remove the 'agenda_element' argument from the list
   args$agenda_element <- NULL
 
   if (length(agenda_element) == 0) {
-    warning(
-      general_warn, "The agenda element is empty.",
-      call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c(
+        "Agenda element validation failed:",
+        "i" = "Element details:
+          {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+        "x" = "The agenda element is empty."
+      ),
+      wrap = TRUE
+    )
 
     return(FALSE)
   }
@@ -54,10 +54,15 @@ validate_agenda_element <- function(
   })
 
   if (!all(el_checks)) {
-    warning(
-      general_warn, "Some of the required items are missing:\n",
-      stringr::str_flatten_comma(names(args)[!el_checks]),
-      call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c(
+        "Agenda element validation failed:",
+        "i" = "Element details:
+          {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+        "x" = "Required items missing: {.field {names(args)[!el_checks]}}"
+      ),
+      wrap = TRUE
+    )
   }
 
   is_valid <- all(el_checks)
@@ -74,33 +79,52 @@ validate_agenda_element <- function(
 
       if (!inherits(agenda_element[[time]],
                     c("numeric", "POSIXct", "character"))) {
-        warning(
-          general_warn, stringr::str_glue(
-            'Agenda element "{time}" should be numeric, character or POSIXct,',
-            "but it's of class {class(agenda_element[[time]])}."
-          ), call. = FALSE, immediate. = TRUE)
+        cli::cli_warn(
+          c(
+            "Agenda element validation failed:",
+            "i" = "Element details:
+              {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+            "x" = "Agenda element field {.field {time}} must be numeric,
+            character, or POSIXct, but it's class
+            {.cls {class(agenda_element[[time]])}}."
+          ),
+          wrap = TRUE
+        )
 
         is_valid <- FALSE
       }
 
       if (!is.numeric(agenda_element[[time]]) &&
-          is.na(parse_event_time(agenda_element[[time]]))
-      ) {
-        warning(
-          general_warn, "Agenda element \"", time,
-          "\" time not interpretable: ", agenda_element[[time]],
-          call. = FALSE, immediate. = TRUE)
+          is.na(parse_event_time(agenda_element[[time]]))) {
+        cli::cli_warn(
+          c(
+            "Agenda element validation failed:",
+            "i" = "Element details:
+              {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+            "x" = "Agenda element field {.field {time}} time not interpretable:
+            {.val {agenda_element[[time]]}}"
+          ),
+          wrap = TRUE
+        )
 
         is_valid <- FALSE
       }
     }
 
     if (class(agenda_element$from) != class(agenda_element$to)) {
-      warning(
-        general_warn, "The agenda element times are not of the same class:",
-        " from: ", agenda_element$from,
-        " to: ", agenda_element$to,
-        call. = FALSE, immediate. = TRUE)
+      cli::cli_warn(
+        c(
+          "Agenda element validation failed:",
+          "i" = "Element details:
+            {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+          "x" = "The agenda element times are not of the same class:",
+          " " = "from ({.cls {class(agenda_element$from)}}):
+            {.val {agenda_element$from}}",
+          " " = "to ({.cls {class(agenda_element$to)}}):
+            {.val {agenda_element$to}}"
+        ),
+        wrap = TRUE
+      )
 
       is_valid <- FALSE
     }
@@ -108,11 +132,17 @@ validate_agenda_element <- function(
     if (
       time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
     ) {
-      warning(
-        general_warn, "Agenda element \"from\" time should preceed \"to\" time:",
-        " from: ", agenda_element$from,
-        " to: ", agenda_element$to,
-        call. = FALSE, immediate. = TRUE)
+      cli::cli_warn(
+        c(
+          "Agenda element validation failed:",
+          "i" = "Element details:
+            {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+          "x" = "Agenda element 'from' time should precede 'to' time:",
+          " " = "from: {.val {agenda_element$from}}",
+          " " = "to: {.val {agenda_element$to}}"
+        ),
+        wrap = TRUE
+      )
 
       is_valid <- FALSE
     }
@@ -168,7 +198,7 @@ validate_agenda <- function(
     ...
 ) {
 
-  general_warn <- "Agenda validation failed:\n"
+  general_warn <- "Agenda validation failed:"
 
   # Check if the agenda is FALSE
   if (isFALSE(agenda)) {
@@ -179,38 +209,53 @@ validate_agenda <- function(
   is_valid <- TRUE
 
   if (purrr::is_empty(agenda)) {
-    warning(
-      general_warn, "The agenda is empty.",
-      call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c(
+        general_warn,
+        "x" = "The provided agenda is empty."
+      )
+    )
 
     return(FALSE)
   }
 
   if (!class(agenda) %in% c("list", "character")) {
-    warning(
-      general_warn, "The agenda is not a list or a file path.",
-      call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c(
+        general_warn,
+        "x" = "The agenda must be a list or a file path, but it's class {.cls {class(agenda)}}."
+      )
+    )
 
     return(FALSE)
   }
 
   # Check if the agenda is a file path
   if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)){
+    # Potential error source if dget fails, wrap in tryCatch?
+    # For now, assuming dget works or failure is acceptable.
     agenda <- dget(agenda)
   }
 
   # Check if the agenda is a list
   if (!is.list(agenda)) {
-    warning(
-      general_warn, "The agenda is not a list.",
-      call. = FALSE, immediate. = TRUE)
+    cli::cli_warn(
+      c(
+        general_warn,
+        "x" = "After potential loading from file, the agenda is not a list,
+        it's class {.cls {class(agenda)}}."
+      ),
+      wrap = TRUE
+    )
 
     return(FALSE)
   }
 
   # Check if the agenda elements are valid
   for (agenda_element in agenda) {
+    # Pass the validation failure up the chain if an element is invalid
     if (!validate_agenda_element(agenda_element, ...)) {
+      # The warning is already issued by validate_agenda_element
       return(FALSE)
     }
   }
@@ -226,31 +271,57 @@ validate_agenda <- function(
 check_summary_tree_consistency <- function(summary_tree) {
 
   if (is.character(summary_tree)) {
+    # Potential error source if dget fails, wrap in tryCatch?
     summary_tree <- dget(summary_tree)
   }
 
   if (length(summary_tree) == 0) {
-    stop("The summary tree is empty.")
+    cli::cli_abort(
+      "The summary tree is empty and cannot be validated."
+    )
   }
 
   obs_ids <- names(summary_tree)
 
-  exp_ids <- build_ids_from_agenda(summary_tree)
-  names(exp_ids) <- NULL
+  # Need to handle potential errors within build_ids_from_agenda if it can fail
+  exp_ids <- tryCatch(
+    build_ids_from_agenda(summary_tree),
+    error = \(e) {
+      cli::cli_abort(
+        c(
+          "Failed to build expected IDs from summary tree/agenda:",
+          "x" = "{e$message}"
+        ),
+        parent = e
+      )
+    }
+  )
+  names(exp_ids) <- NULL # Remove names if they exist
 
   test <- all.equal(obs_ids, exp_ids)
 
   if (isTRUE(test)) {
-    return()
+    # Successfully validated
+    return(invisible(TRUE))
   }
 
-  stop("The summary tree IDs and titles/sessions are not consistent: ",
-       test, ".\n",
-       purrr::map(seq_along(obs_ids), \(i) {
-         if (obs_ids[i] != exp_ids[i]) {
-           sprintf('"%s" != "%s"', obs_ids[i], exp_ids[i])
-         }
-       }) |> purrr::compact() |> unlist() |> paste(collapse = "\n")
+  # Construct the detailed error message for cli_abort
+  error_details <- purrr::map(seq_along(obs_ids), \(i) {
+    if (obs_ids[i] != exp_ids[i]) {
+      # Use cli's formatting for key-value pairs
+      c("!" = "ID mismatch at index {i}:
+        {.val {obs_ids[i]}} != {.val {exp_ids[i]}}")
+    }
+  }) |>
+    purrr::compact() |>
+    unlist()
+
+  cli::cli_abort(
+    c(
+      "The summary tree IDs and titles/sessions are not consistent.",
+      "i" = "Comparison details: {test}",
+      error_details
+    )
   )
 }
 
@@ -282,11 +353,17 @@ check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
     return()
   }
 
-  stop("The agenda and summary tree are not consistent: ", test, ".\n",
-       purrr::map(seq_along(agenda_ids), \(i) {
-         if (!agenda_ids[i] %in% summary_ids[i]) {
-           sprintf('"%s" != "%s"', agenda_ids[i], summary_ids[i])
-         }
-       }) |> purrr::compact() |> unlist() |> paste(collapse = "\n")
+  cli::cli_abort(
+    c(
+      "The agenda and summary tree are not consistent: {test}",
+      purrr::map(seq_along(agenda_ids), \(i) {
+        if (!agenda_ids[i] %in% summary_ids[i]) {
+          sprintf('"%s" != "%s"', agenda_ids[i], summary_ids[i])
+        }
+      }) |>
+        purrr::compact() |>
+        unlist() |>
+        paste(collapse = "\n")
+    )
   )
 }
