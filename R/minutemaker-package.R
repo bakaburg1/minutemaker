@@ -11,4 +11,3 @@
 onLoad <- function(libname, pkgname) {
   set_prompts()
 }
-

@@ -229,9 +229,12 @@ correct_transcription_errors <- function(
     "minutemaker_correction_llm_model",
     getOption("llmr_current_model")
   )
-  
+
   # Warn if minutemaker_correction_llm_model is not set and we're defaulting to current model
-  if (is.null(getOption("minutemaker_correction_llm_model")) && !is.null(getOption("llmr_current_model"))) {
+  if (
+    is.null(getOption("minutemaker_correction_llm_model")) &&
+      !is.null(getOption("llmr_current_model"))
+  ) {
     cli::cli_alert_warning(
       c(
         "Option {.val minutemaker_correction_llm_model} not set,
@@ -335,7 +338,6 @@ correct_transcription_errors <- function(
         params = final_llm_params,
         force_json = force_json_value # Varies based on include_reasoning flag
       )
-
     },
     error = \(e) {
       stringr::str_glue("LLM call failed: {e$message}") |>
@@ -351,7 +353,6 @@ correct_transcription_errors <- function(
       is.null(llm_response_str) ||
       !nzchar(stringr::str_trim(llm_response_str))
   ) {
-
     # Return original if LLM call issues or empty response.
     return(transcript_data)
   }

@@ -15,16 +15,15 @@
 #' @return A boolean indicating whether the agenda element is valid.
 #'
 validate_agenda_element <- function(
-    agenda_element,
-    session = FALSE,
-    title = FALSE,
-    speakers = FALSE,
-    moderators = FALSE,
-    type = FALSE,
-    from = FALSE,
-    to = FALSE
+  agenda_element,
+  session = FALSE,
+  title = FALSE,
+  speakers = FALSE,
+  moderators = FALSE,
+  type = FALSE,
+  from = FALSE,
+  to = FALSE
 ) {
-
   # Get the arguments as a list
   args <- as.list(environment())
 
@@ -49,9 +48,12 @@ validate_agenda_element <- function(
   }
 
   # Check if the required items are present in the agenda element
-  el_checks <- purrr::imap_lgl(args, ~ {
-    !is.null(agenda_element[[.y]]) || isFALSE(.x)
-  })
+  el_checks <- purrr::imap_lgl(
+    args,
+    ~ {
+      !is.null(agenda_element[[.y]]) || isFALSE(.x)
+    }
+  )
 
   if (!all(el_checks)) {
     cli::cli_warn(
@@ -68,17 +70,16 @@ validate_agenda_element <- function(
   is_valid <- all(el_checks)
 
   if (isTRUE(from) || isTRUE(to)) {
-
     # Check if the times are interpretable
     for (time in c("from", "to")) {
-
       # Convert integer times to numeric to simplify the validation
       if (inherits(agenda_element[[time]], "integer")) {
         agenda_element[[time]] <- as.numeric(agenda_element[[time]])
       }
 
-      if (!inherits(agenda_element[[time]],
-                    c("numeric", "POSIXct", "character"))) {
+      if (
+        !inherits(agenda_element[[time]], c("numeric", "POSIXct", "character"))
+      ) {
         cli::cli_warn(
           c(
             "Agenda element validation failed:",
@@ -94,8 +95,10 @@ validate_agenda_element <- function(
         is_valid <- FALSE
       }
 
-      if (!is.numeric(agenda_element[[time]]) &&
-          is.na(parse_event_time(agenda_element[[time]]))) {
+      if (
+        !is.numeric(agenda_element[[time]]) &&
+          is.na(parse_event_time(agenda_element[[time]]))
+      ) {
         cli::cli_warn(
           c(
             "Agenda element validation failed:",
@@ -194,10 +197,9 @@ validate_agenda_element <- function(
 #' #> [1] FALSE # Because the session and speakers are missing
 #'
 validate_agenda <- function(
-    agenda,
-    ...
+  agenda,
+  ...
 ) {
-
   general_warn <- "Agenda validation failed:"
 
   # Check if the agenda is FALSE
@@ -231,7 +233,7 @@ validate_agenda <- function(
   }
 
   # Check if the agenda is a file path
-  if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)){
+  if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)) {
     # Potential error source if dget fails, wrap in tryCatch?
     # For now, assuming dget works or failure is acceptable.
     agenda <- dget(agenda)
@@ -269,7 +271,6 @@ validate_agenda <- function(
 #'
 #' @return Nothing, will throw an error if the summary tree is not consistent.
 check_summary_tree_consistency <- function(summary_tree) {
-
   if (is.character(summary_tree)) {
     # Potential error source if dget fails, wrap in tryCatch?
     summary_tree <- dget(summary_tree)
@@ -309,8 +310,10 @@ check_summary_tree_consistency <- function(summary_tree) {
   error_details <- purrr::map(seq_along(obs_ids), \(i) {
     if (obs_ids[i] != exp_ids[i]) {
       # Use cli's formatting for key-value pairs
-      c("!" = "ID mismatch at index {i}:
-        {.val {obs_ids[i]}} != {.val {exp_ids[i]}}")
+      c(
+        "!" = "ID mismatch at index {i}:
+        {.val {obs_ids[i]}} != {.val {exp_ids[i]}}"
+      )
     }
   }) |>
     purrr::compact() |>
@@ -333,7 +336,6 @@ check_summary_tree_consistency <- function(summary_tree) {
 #' @return Nothing, will throw an error if the agenda and summary tree are not
 #'   consistent.
 check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
-
   if (is.character(agenda)) {
     agenda <- dget(agenda)
   }

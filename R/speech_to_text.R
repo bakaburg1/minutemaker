@@ -31,14 +31,14 @@
 #' @importFrom utils tail
 #'
 perform_speech_to_text <- function(
-    audio_path,
-    output_dir = file.path(dirname(audio_path), "transcription_output_data"),
-    model = getOption("minutemaker_stt_model", "whisper_local"),
-    initial_prompt = NULL, overwrite = FALSE,
-    language = "en",
-    ...
+  audio_path,
+  output_dir = file.path(dirname(audio_path), "transcription_output_data"),
+  model = getOption("minutemaker_stt_model", "whisper_local"),
+  initial_prompt = NULL,
+  overwrite = FALSE,
+  language = "en",
+  ...
 ) {
-
   audio_files <- character()
   if (is.null(initial_prompt)) initial_prompt <- ""
 
@@ -52,18 +52,20 @@ perform_speech_to_text <- function(
     file_order <- stringr::str_order(audio_files, numeric = TRUE)
 
     audio_files <- file.path(audio_path, audio_files[file_order])
-  } else if (file.exists(audio_path)){
+  } else if (file.exists(audio_path)) {
     # User the provided file path
     audio_files <- audio_path
   } else {
     cli::cli_abort(
       "The provided audio path {.path {audio_path}}
-      is not a valid file or folder.")
+      is not a valid file or folder."
+    )
   }
 
   if (length(audio_files) == 0) {
     cli::cli_abort(
-      "No audio files found in the specified path: {.path {audio_path}}")
+      "No audio files found in the specified path: {.path {audio_path}}"
+    )
   }
 
   # Create the output directory if it doesn't exist
@@ -193,7 +195,8 @@ run_in_terminal <- function(cmd, args) {
   if (os_type == "windows") {
     # Windows command
     system2(
-      "cmd", args = c("/c", "start", "cmd", "/k", "call", shQuote(tmp_script))
+      "cmd",
+      args = c("/c", "start", "cmd", "/k", "call", shQuote(tmp_script))
     )
   } else if (os_type == "unix") {
     # Check if it's macOS or Linux
@@ -208,7 +211,8 @@ run_in_terminal <- function(cmd, args) {
     } else {
       # Linux command (using gnome-terminal as an example)
       sprintf(
-        "gnome-terminal -- bash -c 'bash %s; exec bash'", shQuote(tmp_script)
+        "gnome-terminal -- bash -c 'bash %s; exec bash'",
+        shQuote(tmp_script)
       ) |>
         system()
     }
@@ -236,11 +240,10 @@ run_in_terminal <- function(cmd, args) {
 #' @export
 #'
 split_audio <- function(
-    audio_file,
-    segment_duration = 40,
-    output_folder = file.path(dirname(audio_file), "recording_parts")
+  audio_file,
+  segment_duration = 40,
+  output_folder = file.path(dirname(audio_file), "recording_parts")
 ) {
-
   # Check if the av package is installed and ask to install it if not
   rlang::check_installed("av")
 
@@ -277,7 +280,8 @@ split_audio <- function(
     # Use av::av_audio_extract to extract the segment
     # Convert and output each segment
     av::av_audio_convert(
-      audio_file, output_file_path,
+      audio_file,
+      output_file_path,
       start_time = start_time,
       total_time = segment_length_sec,
     )
@@ -303,12 +307,12 @@ split_audio <- function(
 #'
 #' @return A list with the full transcript and the transcription by segments.
 use_whisper_ctranslate2_stt <- function(
-    audio_file, initial_prompt,
-    model_version = "large-v3",
-    language = NULL,
-    n_threads = NULL
+  audio_file,
+  initial_prompt,
+  model_version = "large-v3",
+  language = NULL,
+  n_threads = NULL
 ) {
-
   rlang::check_installed("parallel")
 
   if (is.null(n_threads)) {
@@ -321,16 +325,26 @@ use_whisper_ctranslate2_stt <- function(
 
   args <- c(
     audio_file,
-    "--model", model_version,
-    "--threads", n_threads,
-    "--compute_type", "auto",
-    "--output_format", "json",
-    "--language", language,
-    "--vad_filter", "False",
-    "--output_dir", output_dir,
-    "--vad_filter", "True",
-    "--repetition_penalty", "1",
-    "--patience", "10",
+    "--model",
+    model_version,
+    "--threads",
+    n_threads,
+    "--compute_type",
+    "auto",
+    "--output_format",
+    "json",
+    "--language",
+    language,
+    "--vad_filter",
+    "False",
+    "--output_dir",
+    output_dir,
+    "--vad_filter",
+    "True",
+    "--repetition_penalty",
+    "1",
+    "--patience",
+    "10",
     if (initial_prompt != "") {
       c("--initial_prompt", initial_prompt)
     }
@@ -345,7 +359,6 @@ use_whisper_ctranslate2_stt <- function(
   }
 
   jsonlite::read_json(output_file_path)
-
 }
 
 #' Use Azure Whisper Model for Speech-to-Text
@@ -368,18 +381,21 @@ use_whisper_ctranslate2_stt <- function(
 #' @return A list with the full transcript and the transcription by segments.
 #'
 use_azure_whisper_stt <- function(
-    audio_file,
-    language = "en",
-    initial_prompt = "",
-    temperature = 0,
-    resource_name = getOption("minutemaker_azure_resource_whisper"),
-    deployment_id = getOption("minutemaker_azure_deployment_whisper"),
-    api_key = getOption("minutemaker_azure_api_key_whisper"),
-    api_version = getOption("minutemaker_azure_api_version")
+  audio_file,
+  language = "en",
+  initial_prompt = "",
+  temperature = 0,
+  resource_name = getOption("minutemaker_azure_resource_whisper"),
+  deployment_id = getOption("minutemaker_azure_deployment_whisper"),
+  api_key = getOption("minutemaker_azure_api_key_whisper"),
+  api_version = getOption("minutemaker_azure_api_version")
 ) {
-
-  if (is.null(resource_name) || is.null(deployment_id) ||
-      is.null(api_key) || is.null(api_version)) {
+  if (
+    is.null(resource_name) ||
+      is.null(deployment_id) ||
+      is.null(api_key) ||
+      is.null(api_version)
+  ) {
     cli::cli_abort(
       c(
         "Resource name, deployment name, API key, or API version are not set. ",
@@ -394,21 +410,27 @@ use_azure_whisper_stt <- function(
 
   # Prepare the URL
   url <- paste0(
-    "https://", resource_name,
-    ".openai.azure.com/openai/deployments/", deployment_id,
-    "/audio/transcriptions?api-version=", api_version)
+    "https://",
+    resource_name,
+    ".openai.azure.com/openai/deployments/",
+    deployment_id,
+    "/audio/transcriptions?api-version=",
+    api_version
+  )
 
   # Prepare headers and body
   headers <- httr::add_headers(
     `Content-Type` = "multipart/form-data",
-    `api-key` = api_key)
+    `api-key` = api_key
+  )
 
   body <- list(
     file = httr::upload_file(audio_file),
     language = language,
     prompt = initial_prompt,
     temperature = temperature,
-    response_format = "verbose_json")
+    response_format = "verbose_json"
+  )
 
   # Make the HTTP request
   response <- httr::POST(url, headers, body = body)
@@ -419,14 +441,16 @@ use_azure_whisper_stt <- function(
 
   # Check response status
   if (response$status_code != 200) {
-
     cli::cli_warn(
       "Error {response$status_code} in Azure Whisper API request:
-      {httr::content(response, 'text')}")
+      {httr::content(response, 'text')}"
+    )
 
     wait_for <- stringr::str_extract(
       httr::content(response, "text", encoding = "UTF-8"),
-      "\\d+(?= seconds)") |> as.numeric()
+      "\\d+(?= seconds)"
+    ) |>
+      as.numeric()
 
     if (is.na(wait_for) && !interactive()) {
       cli::cli_abort(
@@ -444,7 +468,8 @@ use_azure_whisper_stt <- function(
       audio_file = audio_file,
       language = language,
       initial_prompt = initial_prompt,
-      temperature = temperature)
+      temperature = temperature
+    )
 
     return(res)
   }
@@ -471,13 +496,12 @@ use_azure_whisper_stt <- function(
 #' @return A list with the full transcript and the transcription by segments.
 #'
 use_openai_whisper_stt <- function(
-    audio_file,
-    language = "en",
-    initial_prompt = "",
-    temperature = 0,
-    api_key = getOption("minutemaker_openai_api_key")
+  audio_file,
+  language = "en",
+  initial_prompt = "",
+  temperature = 0,
+  api_key = getOption("minutemaker_openai_api_key")
 ) {
-
   if (is.null(api_key)) {
     cli::cli_abort("OpenAI API key is not set.")
   }
@@ -488,7 +512,8 @@ use_openai_whisper_stt <- function(
   # Prepare headers and body
   headers <- httr::add_headers(
     "Content-Type" = "multipart/form-data",
-    "Authorization" = paste("Bearer", api_key))
+    "Authorization" = paste("Bearer", api_key)
+  )
 
   body <- list(
     file = httr::upload_file(audio_file),
@@ -496,7 +521,8 @@ use_openai_whisper_stt <- function(
     model = "whisper-1",
     prompt = initial_prompt,
     temperature = temperature,
-    response_format = "verbose_json")
+    response_format = "verbose_json"
+  )
 
   # Make the HTTP request
   response <- httr::POST(url, headers, body = body)
@@ -506,7 +532,8 @@ use_openai_whisper_stt <- function(
     cli::cli_warn(
       "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
     )
-    if (response$status_code == 429 ||
+    if (
+      response$status_code == 429 ||
         grepl("temporarily unable to process", httr::content(response, "text"))
     ) {
       cli::cli_alert_warning("Retrying in 30 seconds...")
@@ -517,9 +544,10 @@ use_openai_whisper_stt <- function(
         initial_prompt = initial_prompt,
         temperature = temperature
       )
-    } else cli::cli_abort(
-      "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
-    )
+    } else
+      cli::cli_abort(
+        "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
+      )
   }
 
   # Return the response
@@ -546,12 +574,14 @@ use_openai_whisper_stt <- function(
 #'
 #' @export
 use_whisper_local_stt <- function(
-    audio_file,
-    language = "en",
-    initial_prompt = "",
-    model = "turbo",
-    whisper_package = getOption(
-      "minutemaker_whisper_package", "openai-whisper")
+  audio_file,
+  language = "en",
+  initial_prompt = "",
+  model = "turbo",
+  whisper_package = getOption(
+    "minutemaker_whisper_package",
+    "openai-whisper"
+  )
 ) {
   # Check if reticulate is installed
   if (!rlang::is_installed("reticulate")) {
@@ -574,7 +604,10 @@ use_whisper_local_stt <- function(
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
     cli::cli_alert_info(
-      "Conda environment '", conda_env, "' does not exist. Creating it now...")
+      "Conda environment '",
+      conda_env,
+      "' does not exist. Creating it now..."
+    )
 
     reticulate::conda_create(conda_env, python_version = "3.9")
   }
@@ -590,7 +623,8 @@ use_whisper_local_stt <- function(
     reticulate::conda_install(
       conda_env,
       c("numpy==1.23.5", "numba==0.56.4", "llvmlite==0.39.1", whisper_package),
-      pip = TRUE)
+      pip = TRUE
+    )
   }
 
   # Import the Whisper module
@@ -649,11 +683,11 @@ use_whisper_local_stt <- function(
 #'
 #' @export
 use_mlx_whisper_local_stt <- function(
-    audio_file,
-    language = "en",
-    initial_prompt = "",
-    model = "mlx-community/distil-whisper-large-v3",
-    whisper_package = getOption("minutemaker_whisper_package", "mlx_whisper")
+  audio_file,
+  language = "en",
+  initial_prompt = "",
+  model = "mlx-community/distil-whisper-large-v3",
+  whisper_package = getOption("minutemaker_whisper_package", "mlx_whisper")
 ) {
   # Check if reticulate is installed
   if (!rlang::is_installed("reticulate")) {
@@ -676,7 +710,10 @@ use_mlx_whisper_local_stt <- function(
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
     cli::cli_alert_info(
-      "Conda environment '", conda_env, "' does not exist. Creating it now...")
+      "Conda environment '",
+      conda_env,
+      "' does not exist. Creating it now..."
+    )
 
     reticulate::conda_create(conda_env, python_version = "3.9")
   }
@@ -761,13 +798,12 @@ use_mlx_whisper_local_stt <- function(
 #' @export
 #'
 use_parakeet_mlx_stt <- function(
-    audio_file,
-    initial_prompt = "", # Accepted for API consistency, not used by CLI
-    language = NULL, # Accepted for API consistency, not directly used by parakeet-mlx CLI
-    hf_model_name = "mlx-community/parakeet-tdt-0.6b-v2",
-    ...
+  audio_file,
+  initial_prompt = "", # Accepted for API consistency, not used by CLI
+  language = NULL, # Accepted for API consistency, not directly used by parakeet-mlx CLI
+  hf_model_name = "mlx-community/parakeet-tdt-0.6b-v2",
+  ...
 ) {
-
   # Helper for default value if NULL
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -786,7 +822,7 @@ use_parakeet_mlx_stt <- function(
         )
       )
     }
-    
+
     # Try to install parakeet-mlx using uv
     cli::cli_alert_info("Installing parakeet-mlx CLI tool...")
     install_status <- system2(
@@ -795,7 +831,7 @@ use_parakeet_mlx_stt <- function(
       stdout = TRUE,
       stderr = TRUE
     )
-    
+
     # Check if installation was successful
     cli_path <- Sys.which("parakeet-mlx")
     if (cli_path == "") {
@@ -808,23 +844,26 @@ use_parakeet_mlx_stt <- function(
         )
       )
     }
-    
+
     cli::cli_alert_success("Successfully installed parakeet-mlx CLI.")
   }
 
   # 2. Prepare temporary output directory and files for stdout/stderr
   temp_output_dir <- tempfile(pattern = "parakeet_json_")
   dir.create(temp_output_dir)
-  
+
   stdout_file_path <- tempfile(pattern = "parakeet_stdout_")
   stderr_file_path <- tempfile(pattern = "parakeet_stderr_")
 
   # Ensure cleanup of all temporary files and directory on exit
-  on.exit({
-    unlink(temp_output_dir, recursive = TRUE, force = TRUE)
-    unlink(stdout_file_path, force = TRUE)
-    unlink(stderr_file_path, force = TRUE)
-  }, add = TRUE)
+  on.exit(
+    {
+      unlink(temp_output_dir, recursive = TRUE, force = TRUE)
+      unlink(stdout_file_path, force = TRUE)
+      unlink(stderr_file_path, force = TRUE)
+    },
+    add = TRUE
+  )
 
   # 3. Construct command arguments
   # shQuote is important for paths that might contain spaces
@@ -833,10 +872,14 @@ use_parakeet_mlx_stt <- function(
 
   args <- c(
     quoted_audio_file,
-    "--model", hf_model_name,
-    "--output-format", "json",
-    "--chunk-duration", "0", # As per user request to disable internal chunking
-    "--output-dir", quoted_output_dir
+    "--model",
+    hf_model_name,
+    "--output-format",
+    "json",
+    "--chunk-duration",
+    "0", # As per user request to disable internal chunking
+    "--output-dir",
+    quoted_output_dir
     # Add "--verbose", "False" if CLI is too chatty, or make it an option
   )
 
@@ -859,56 +902,88 @@ use_parakeet_mlx_stt <- function(
 
   # 5. Determine the expected JSON output file path
   # parakeet-mlx CLI creates a JSON file named after the input audio file (without ext) + .json
-  output_json_filename <- paste0(tools::file_path_sans_ext(basename(audio_file)), ".json")
+  output_json_filename <- paste0(
+    tools::file_path_sans_ext(basename(audio_file)),
+    ".json"
+  )
   output_json_path <- file.path(temp_output_dir, output_json_filename)
 
   # Check for command execution errors or missing output file
   if (exit_status != 0 || !file.exists(output_json_path)) {
     error_intro <- paste0(
-        "parakeet-mlx command failed or did not produce the expected output JSON file.\n",
-        "Command: ", cli_path, " ", paste(shQuote(args), collapse = " "), "\n", # shQuote args for display
-        "Exit Status: ", exit_status, "\n",
-        "Expected JSON path: ", shQuote(output_json_path), " (exists: ", file.exists(output_json_path), ")\n"
+      "parakeet-mlx command failed or did not produce the expected output JSON file.\n",
+      "Command: ",
+      cli_path,
+      " ",
+      paste(shQuote(args), collapse = " "),
+      "\n", # shQuote args for display
+      "Exit Status: ",
+      exit_status,
+      "\n",
+      "Expected JSON path: ",
+      shQuote(output_json_path),
+      " (exists: ",
+      file.exists(output_json_path),
+      ")\n"
     )
     if (interactive()) {
-        # In interactive mode, user saw the output (or lack thereof)
-        error_message <- paste0(error_intro, "Please check the R console output above for details from parakeet-mlx.")
+      # In interactive mode, user saw the output (or lack thereof)
+      error_message <- paste0(
+        error_intro,
+        "Please check the R console output above for details from parakeet-mlx."
+      )
     } else {
-        # In non-interactive mode, read from captured files
-        stdout_content <- if(file.exists(stdout_file_path) && file.size(stdout_file_path) > 0) paste(readLines(stdout_file_path), collapse = "\n") else "(stdout empty or not found)"
-        stderr_content <- if(file.exists(stderr_file_path) && file.size(stderr_file_path) > 0) paste(readLines(stderr_file_path), collapse = "\n") else "(stderr empty or not found)"
-        error_message <- paste0(
-            error_intro,
-            "Stdout:\n", stdout_content, "\n",
-            "Stderr:\n", stderr_content
-        )
+      # In non-interactive mode, read from captured files
+      stdout_content <- if (
+        file.exists(stdout_file_path) && file.size(stdout_file_path) > 0
+      )
+        paste(readLines(stdout_file_path), collapse = "\n") else
+        "(stdout empty or not found)"
+      stderr_content <- if (
+        file.exists(stderr_file_path) && file.size(stderr_file_path) > 0
+      )
+        paste(readLines(stderr_file_path), collapse = "\n") else
+        "(stderr empty or not found)"
+      error_message <- paste0(
+        error_intro,
+        "Stdout:\n",
+        stdout_content,
+        "\n",
+        "Stderr:\n",
+        stderr_content
+      )
     }
     cli::cli_abort(error_message)
   }
 
   # 6. Read and parse the JSON output
-  json_data <- tryCatch({
-    jsonlite::read_json(output_json_path, simplifyVector = TRUE)
-  }, error = function(e) {
-    cli::cli_abort(
-      c(
-        "Failed to parse JSON output from parakeet-mlx.",
-        i = "Error message: {e$message}",
-        i = "JSON file path: {output_json_path}"
+  json_data <- tryCatch(
+    {
+      jsonlite::read_json(output_json_path, simplifyVector = TRUE)
+    },
+    error = function(e) {
+      cli::cli_abort(
+        c(
+          "Failed to parse JSON output from parakeet-mlx.",
+          i = "Error message: {e$message}",
+          i = "JSON file path: {output_json_path}"
+        )
       )
-    )
-  })
+    }
+  )
 
   # 7. Transform JSON data to the required R list structure
   if (is.null(json_data$text) || is.null(json_data$sentences)) {
     error_intro <- paste0(
-        "parakeet-mlx JSON output is missing.",
-        "Expected 'text' or 'sentences' field.",
-        "JSON content structure received (max.level=2):\n",
-        paste(utils::capture.output(utils::str(json_data, max.level = 2)),
-              collapse = "\n")
+      "parakeet-mlx JSON output is missing.",
+      "Expected 'text' or 'sentences' field.",
+      "JSON content structure received (max.level=2):\n",
+      paste(
+        utils::capture.output(utils::str(json_data, max.level = 2)),
+        collapse = "\n"
+      )
     )
-    
+
     if (interactive() && exit_status == 0) {
       error_message <- paste0(
         error_intro,
@@ -921,27 +996,32 @@ use_parakeet_mlx_stt <- function(
       # stdout/stderr might be informative
       stdout_content <- if (
         file.exists(stdout_file_path) &&
-        file.size(stdout_file_path) > 0) {
+          file.size(stdout_file_path) > 0
+      ) {
         paste(readLines(stdout_file_path), collapse = "\n")
       } else {
         "(stdout empty or not found)"
       }
-      
+
       stderr_content <- if (
         file.exists(stderr_file_path) &&
-        file.size(stderr_file_path) > 0) {
+          file.size(stderr_file_path) > 0
+      ) {
         paste(readLines(stderr_file_path), collapse = "\n")
       } else {
         "(stderr empty or not found)"
       }
-      
+
       error_message <- paste0(
         error_intro,
         "\nStdout (from command that produced bad JSON at ",
-        shQuote(output_json_path), "):\n",
-        stdout_content, "\n",
+        shQuote(output_json_path),
+        "):\n",
+        stdout_content,
+        "\n",
         "Stderr (from command that produced bad JSON at ",
-        shQuote(output_json_path), "):\n",
+        shQuote(output_json_path),
+        "):\n",
         stderr_content
       )
     } else {
@@ -959,66 +1039,66 @@ use_parakeet_mlx_stt <- function(
 
   segments <- list()
   if (!is.null(json_data$sentences) && length(json_data$sentences) > 0) {
-      if (is.data.frame(json_data$sentences)) {
-          required_cols <- c("text", "start", "end")
-          if (!all(required_cols %in% names(json_data$sentences))) {
-              cli::cli_abort(
-                c(
-                  "json_data$sentences (data.frame) is missing one or more
+    if (is.data.frame(json_data$sentences)) {
+      required_cols <- c("text", "start", "end")
+      if (!all(required_cols %in% names(json_data$sentences))) {
+        cli::cli_abort(
+          c(
+            "json_data$sentences (data.frame) is missing one or more
                     required columns: text, start, end.",
-                  i = "Columns found:
+            i = "Columns found:
                     {paste(names(json_data$sentences), collapse=', ')}"
-                )
-              )
-          }
-          segments <- lapply(seq_len(nrow(json_data$sentences)), \(i) {
-              row <- json_data$sentences[i, ]
-              list(
-                  id = i - 1, # 0-indexed ID
-                  start = row$start,
-                  end = row$end,
-                  text = row$text
-              )
-          })
-      } else if (
-        is.list(json_data$sentences) &&
-        all(sapply(json_data$sentences, is.list))) {
-          segments <- lapply(seq_along(json_data$sentences), \(i) {
-              seg <- json_data$sentences[[i]]
-              if (is.null(seg$text) || is.null(seg$start) || is.null(seg$end)) {
-                  cli::cli_abort(
-                    c(
-                      "Sentence item at index {i} in json_data$sentences is
-                        missing one or more required fields: text, start, end.",
-                      i = "Found: {paste(names(seg), collapse=', ')}"
-                    )
-                  )
-              }
-              list(
-                  id = i - 1,
-                  start = seg$start,
-                  end = seg$end,
-                  text = seg$text
-              )
-          })
-      } else {
-          cli::cli_warn(
+          )
+        )
+      }
+      segments <- lapply(seq_len(nrow(json_data$sentences)), \(i) {
+        row <- json_data$sentences[i, ]
+        list(
+          id = i - 1, # 0-indexed ID
+          start = row$start,
+          end = row$end,
+          text = row$text
+        )
+      })
+    } else if (
+      is.list(json_data$sentences) &&
+        all(sapply(json_data$sentences, is.list))
+    ) {
+      segments <- lapply(seq_along(json_data$sentences), \(i) {
+        seg <- json_data$sentences[[i]]
+        if (is.null(seg$text) || is.null(seg$start) || is.null(seg$end)) {
+          cli::cli_abort(
             c(
-              "json_data$sentences is not in an expected format
-                (data.frame or list of lists with text, start, end).
-                Segment data may be incomplete.",
-              i = "Received: {paste(class(json_data$sentences), collapse=', ')}"
+              "Sentence item at index {i} in json_data$sentences is
+                        missing one or more required fields: text, start, end.",
+              i = "Found: {paste(names(seg), collapse=', ')}"
             )
           )
-      }
-  } else if (is.null(json_data$sentences)) {
+        }
+        list(
+          id = i - 1,
+          start = seg$start,
+          end = seg$end,
+          text = seg$text
+        )
+      })
+    } else {
       cli::cli_warn(
-          "json_data$sentences is {.val {NULL}}.
+        c(
+          "json_data$sentences is not in an expected format
+                (data.frame or list of lists with text, start, end).
+                Segment data may be incomplete.",
+          i = "Received: {paste(class(json_data$sentences), collapse=', ')}"
+        )
+      )
+    }
+  } else if (is.null(json_data$sentences)) {
+    cli::cli_warn(
+      "json_data$sentences is {.val {NULL}}.
           Only full text transcription will be available,
           segments will be empty."
-      )
+    )
   } # If length is 0, segments remains an empty list, which is valid.
-
 
   return(
     list(

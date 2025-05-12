@@ -10,7 +10,6 @@
 #'
 #'
 tokenize_text <- function(text) {
-
   rlang::check_installed("text2vec")
 
   # Convert text to lowercase, remove special characters and extra spaces, and
@@ -44,25 +43,25 @@ tokenize_text <- function(text) {
 #' }
 #'
 generate_glove_model <- function(
-    text,
-    dimensions = 100,
-    iterations = 50,
-    overwrite = FALSE
+  text,
+  dimensions = 100,
+  iterations = 50,
+  overwrite = FALSE
 ) {
-
   rlang::check_installed("parallel")
 
   # Create a hash of the data and the model parameters
   data_hash <- rlang::hash(list(
-    text, dimensions, iterations)
-  )
+    text,
+    dimensions,
+    iterations
+  ))
 
   previous_hash <- getOption("minutemaker_data_merge_hash")
   previous_model <- getOption("minutemaker_data_merge_model")
 
   # Check if the model has already been generated and if so, return it
   if (!overwrite && !is.null(previous_hash) && !is.null(previous_model)) {
-
     # Use the hash of the data and the model parameters to check if the model
     # has already been generated
     if (data_hash == previous_hash) {
@@ -92,9 +91,12 @@ generate_glove_model <- function(
   # Initialize a GloVe model and fit it to the term-co-occurrence matrix to
   # obtain word embeddings
   glove_model <- text2vec::GloVe$new(rank = dimensions, x_max = 10)
-  wv_main = glove_model$fit_transform(tcm, n_iter = iterations,
-                                      convergence_tol = 0.01,
-                                      n_threads = parallel::detectCores())
+  wv_main = glove_model$fit_transform(
+    tcm,
+    n_iter = iterations,
+    convergence_tol = 0.01,
+    n_threads = parallel::detectCores()
+  )
 
   # Obtain the context vectors and add them to the main vectors to get the
   # final word vectors (as suggested here: https://text2vec.org/glove.html)
@@ -131,7 +133,6 @@ generate_glove_model <- function(
 compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
   # Function to convert a text to a normalized embedding vector
   get_text_embedding <- function(text, embedding_matrix) {
-
     # Tokenize and normalize the text
     tokens <- tokenize_text(text) |> unlist()
 
@@ -144,7 +145,9 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
     # Sum the embeddings if there are multiple terms
     doc_embedding <- if (length(terms) > 1) {
       colSums(embeddings, na.rm = TRUE)
-    } else { embeddings}
+    } else {
+      embeddings
+    }
 
     # Normalize the document embedding
     doc_embedding <- doc_embedding /
@@ -168,7 +171,8 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
 
     text2vec::sim2(t(x_emb), t(emb), method = "cosine", norm = "l2") |>
       as.vector()
-  }) |> unlist()
+  }) |>
+    unlist()
 }
 
 # Old approach to speaker identification using word2vec. Kept for reference.

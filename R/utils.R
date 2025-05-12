@@ -1,4 +1,3 @@
-
 #' Check if transcript segments are silent
 #'
 #' Check if transcript segments are silent, e.g., [...], NA, or empty strings.
@@ -28,10 +27,12 @@ silent <- function() {
 parse_event_time <- function(time, format = c("R", "T")) {
   if (!inherits(time, c("POSIXct", "character"))) {
     cli::cli_abort(
-      c("Invalid time format provided.",
+      c(
+        "Invalid time format provided.",
         "x" = "Expected a character string in HH:MM(:SS)
           or HH:MM(:SS) AM/PM format, or a POSIXct object.",
-        "i" = "Received object of class: {.cls {class(time)}}")
+        "i" = "Received object of class: {.cls {class(time)}}"
+      )
     )
   }
 
@@ -52,21 +53,24 @@ parse_event_time <- function(time, format = c("R", "T")) {
 #' @return A numeric value representing the difference in seconds from `origin`.
 #'
 time_to_numeric <- function(time, origin = NULL) {
-
   if (!inherits(time, c("character", "POSIXct", "numeric", "integer"))) {
     cli::cli_abort(
-      c("Invalid format for {.arg time} argument.",
+      c(
+        "Invalid format for {.arg time} argument.",
         "x" = "Expected character, POSIXct, numeric, or integer.",
-        "i" = "Received object of class: {.cls {class(time)}}")
+        "i" = "Received object of class: {.cls {class(time)}}"
+      )
     )
   }
 
   if (!is.null(origin)) {
     if (!inherits(origin, c("character", "POSIXct", "numeric"))) {
       cli::cli_abort(
-        c("Invalid format for {.arg origin} argument.",
+        c(
+          "Invalid format for {.arg origin} argument.",
           "x" = "Expected character, POSIXct, or numeric.",
-          "i" = "Received object of class: {.cls {class(origin)}}")
+          "i" = "Received object of class: {.cls {class(origin)}}"
+        )
       )
     }
 
@@ -74,21 +78,22 @@ time_to_numeric <- function(time, origin = NULL) {
       # Using is.numeric is enough since both time and origin types were already
       # checked to be valid
       (is.numeric(time) && !is.numeric(origin)) ||
-      (!is.numeric(time) && is.numeric(origin))
+        (!is.numeric(time) && is.numeric(origin))
     ) {
       cli::cli_abort(
-        c("{.arg time} and {.arg origin} arguments have incompatible types.",
+        c(
+          "{.arg time} and {.arg origin} arguments have incompatible types.",
           "x" = "Both must be numeric or both must be non-numeric
             (character or POSIXct).",
           "i" = "time class: {.cls {class(time)}}, origin class:
-            {.cls {class(origin)}}")
+            {.cls {class(origin)}}"
+        )
       )
     }
   }
 
   if (is.null(origin)) {
-    if (is.numeric(time)) return(time)
-    else origin <- "00:00:00"
+    if (is.numeric(time)) return(time) else origin <- "00:00:00"
   }
 
   # Convert to POSIXct if not numeric. Only one check is necessary since type
@@ -104,10 +109,12 @@ time_to_numeric <- function(time, origin = NULL) {
 
   if (diff < 0) {
     cli::cli_abort(
-      c("Calculated time difference is negative.",
+      c(
+        "Calculated time difference is negative.",
         "x" = "{.arg time} ({.val {time}}) cannot be
           earlier than {.arg origin} ({.val {origin}}).",
-        "i" = "Resulting difference: {diff} seconds.")
+        "i" = "Resulting difference: {diff} seconds."
+      )
     )
   }
 

@@ -18,11 +18,10 @@
 #'
 #' @export
 parse_transcript_json <- function(
-    transcript_json,
-    pretty_times = TRUE,
-    event_start_time = getOption("minutemaker_event_start_time")
+  transcript_json,
+  pretty_times = TRUE,
+  event_start_time = getOption("minutemaker_event_start_time")
 ) {
-
   json_files <- NA
 
   # Is the input a string?
@@ -50,8 +49,10 @@ parse_transcript_json <- function(
             ),
             parent = e
           )
-        })
-    } else if (file.exists(transcript_json)) { # Is the string a path to a file?
+        }
+      )
+    } else if (file.exists(transcript_json)) {
+      # Is the string a path to a file?
 
       json_files <- transcript_json
 
@@ -66,8 +67,10 @@ parse_transcript_json <- function(
             ),
             parent = e
           )
-        })
-    } else { # Is the string a JSON string?
+        }
+      )
+    } else {
+      # Is the string a JSON string?
       tryCatch(
         list(jsonlite::fromJSON(transcript_json)),
         error = function(e) {
@@ -78,24 +81,32 @@ parse_transcript_json <- function(
             ),
             parent = e
           )
-        })
+        }
+      )
     }
   } else if (vctrs::obj_is_list(transcript_json)) {
     list(transcript_json)
   } else {
-    cli::cli_abort("Unsupported transcript format provided to
+    cli::cli_abort(
+      "Unsupported transcript format provided to
       {.fn parse_transcript_json}.
-      Expecting a JSON string, file path, directory path, or list.")
+      Expecting a JSON string, file path, directory path, or list."
+    )
   }
 
   full_transcript <- data.frame()
   last_time <- 0
-  to_import <- c("start", "end", "text", "speaker",
-                 "avg_logprob", "no_speech_prob")
+  to_import <- c(
+    "start",
+    "end",
+    "text",
+    "speaker",
+    "avg_logprob",
+    "no_speech_prob"
+  )
 
   # Extract the data from each JSON file
   for (i in seq_along(transcript_list)) {
-
     # Raise an error if the JSON file does not contain any data
     if (!"segments" %in% names(transcript_list[[i]])) {
       cli::cli_abort(
@@ -113,9 +124,12 @@ parse_transcript_json <- function(
     if (length(transcript_list[[i]]$segments) == 0) {
       # skip this file, there was nothing to transcribe
       cli::cli_inform(
-        c("!" = "Skipping empty file (no segments found):
-        {.file {basename(json_files[i])}}"))
-        
+        c(
+          "!" = "Skipping empty file (no segments found):
+        {.file {basename(json_files[i])}}"
+        )
+      )
+
       next
     }
 
@@ -153,7 +167,8 @@ parse_transcript_json <- function(
 
     if (is.na(event_start_time)) {
       cli::cli_abort(
-        c("Event start time
+        c(
+          "Event start time
           {.val {getOption(\"minutemaker_event_start_time\")}}
           is not interpretable.",
           "x" = "Failed to parse the start time.",
@@ -168,7 +183,8 @@ parse_transcript_json <- function(
         across(
           any_of(c("start", "end")),
           ~ (event_start_time + lubridate::seconds(.x)) |> format("%T"),
-          .names = "{.col}_clock")
+          .names = "{.col}_clock"
+        )
       )
   }
 
@@ -178,7 +194,8 @@ parse_transcript_json <- function(
         across(
           any_of(c("start", "end")),
           ~ lubridate::seconds_to_period(.x) |> round(),
-          .names = "{.col}_formatted")
+          .names = "{.col}_formatted"
+        )
       )
   }
 
@@ -199,10 +216,9 @@ parse_transcript_json <- function(
 #' @export
 #'
 clean_transcript <- function(
-    transcript_data,
-    remove_silence = FALSE
+  transcript_data,
+  remove_silence = FALSE
 ) {
-
   # Remove double spaces and spaces at the beginning and end of the text
   transcript_data$text <- stringr::str_squish(transcript_data$text)
 
@@ -214,14 +230,15 @@ clean_transcript <- function(
     transcript_data,
     text = if_else(
       .data$text == lag(.data$text, default = first(.data$text)),
-      silent(), .data$text)
+      silent(),
+      .data$text
+    )
   )
 
   # Remove pieces of text that are sorrounded by > 4 "[...]" as they are
   # likely hallucinations from the speech-to-text model or non-relevant text
   # (e.g. talking outside sessions)
   for (i in 1:nrow(transcript_data)) {
-
     indexes <- pmax(i + c(-4:-1, 1:4), 0) |> unique()
     if (transcript_data$text[i] != silent()) {
       if (all(is_silent(transcript_data$text[indexes]))) {
@@ -234,7 +251,8 @@ clean_transcript <- function(
   # hallucinations
   repetitions <- purrr::map_int(
     transcript_data$text,
-    ~ stringr::str_split_1(.x, ", *") |> table() |> max())
+    ~ stringr::str_split_1(.x, ", *") |> table() |> max()
+  )
 
   transcript_data$text[repetitions > 10] <- silent()
 
@@ -242,7 +260,9 @@ clean_transcript <- function(
   # confidence
   if (all(c("avg_logprob", "no_speech_prob") %in% names(transcript_data))) {
     condition <- with(
-      transcript_data, avg_logprob < -0.5 & no_speech_prob > 0.9)
+      transcript_data,
+      avg_logprob < -0.5 & no_speech_prob > 0.9
+    )
     transcript_data$text[condition] <- silent()
 
     # Remove "avg_logprob", "no_speech_prob" columns
@@ -279,17 +299,15 @@ clean_transcript <- function(
 #' @export
 #'
 extract_text_from_transcript <- function(
-    transcript_data,
-    agenda_element = NULL,
-    start_time = NULL, end_time = NULL,
-    import_diarization = TRUE
+  transcript_data,
+  agenda_element = NULL,
+  start_time = NULL,
+  end_time = NULL,
+  import_diarization = TRUE
 ) {
-
   # If no parameters are provided, the whole transcript is used and a warning is
   # issued
-  if (
-    is.null(agenda_element) && is.null(start_time) && is.null(end_time)
-  ) {
+  if (is.null(agenda_element) && is.null(start_time) && is.null(end_time)) {
     duration <- max(transcript_data$end) - min(transcript_data$start)
 
     if (duration > 3600) {
@@ -331,9 +349,11 @@ extract_text_from_transcript <- function(
 
   # Ignore the `import_diarization` parameter if the transcript does not contain
   # speaker information
-  if (!"speaker" %in% names(transcript_data) ||
+  if (
+    !"speaker" %in% names(transcript_data) ||
       all(is.na(transcript_data$speaker)) ||
-      n_distinct(transcript_data$speaker, na.rm = T) == 1) {
+      n_distinct(transcript_data$speaker, na.rm = T) == 1
+  ) {
     import_diarization <- FALSE
 
     transcript_data$speaker <- "Unknown"
@@ -356,12 +376,15 @@ extract_text_from_transcript <- function(
     summarize(
       text = sprintf(
         "Speaker: %s\n%s",
-        .data$speaker[1], paste(.data$text, collapse = "\n")),
+        .data$speaker[1],
+        paste(.data$text, collapse = "\n")
+      ),
       .by = .data$speakerID
     ) |>
 
     # Extract the text
-    pull(.data$text) |> paste(collapse = "\n\n")
+    pull(.data$text) |>
+    paste(collapse = "\n\n")
 
   # Remove the speaker id import_diarization is FALSE
   if (!import_diarization) {
@@ -379,16 +402,19 @@ extract_text_from_transcript <- function(
 #'
 build_ids_from_agenda <- function(agenda) {
   # Build the id of each talk using the session and title
-  talks_ids <- purrr::imap_chr(agenda, ~ {
-    # If the title is NULL, use an index as title
-    if (is.null(.x$title)) .x$title <- .y
+  talks_ids <- purrr::imap_chr(
+    agenda,
+    ~ {
+      # If the title is NULL, use an index as title
+      if (is.null(.x$title)) .x$title <- .y
 
-    paste0(
-      # If the session is not NULL, prepend it to the title
-      if (!is.null(.x$session)) paste0(.x$session, "_"),
-      .x$title
-    )
-  })
+      paste0(
+        # If the session is not NULL, prepend it to the title
+        if (!is.null(.x$session)) paste0(.x$session, "_"),
+        .x$title
+      )
+    }
+  )
 }
 
 #' Convert agenda clock time to seconds from start and vice versa
@@ -415,12 +441,11 @@ build_ids_from_agenda <- function(agenda) {
 #'   start.
 #'
 convert_agenda_times <- function(
-    agenda,
-    convert_to = c("seconds", "clocktime"),
-    event_start_time = getOption("minutemaker_event_start_time"),
-    conversion_format = "%T"
+  agenda,
+  convert_to = c("seconds", "clocktime"),
+  event_start_time = getOption("minutemaker_event_start_time"),
+  conversion_format = "%T"
 ) {
-
   convert_to <- match.arg(convert_to)
 
   agenda_orig <- agenda
@@ -439,25 +464,30 @@ convert_agenda_times <- function(
   }
 
   # Check if agenda times are all of the same class
-  if (!all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
-      !all(purrr::map_lgl(agenda, ~ {
-        inherits(.x$from, c("POSIXct", "character"))
-      }))
+  if (
+    !all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
+      !all(purrr::map_lgl(
+        agenda,
+        ~ {
+          inherits(.x$from, c("POSIXct", "character"))
+        }
+      ))
   ) {
     cli::cli_abort(
-      "Agenda times must be all of the same class across the agenda.")
+      "Agenda times must be all of the same class across the agenda."
+    )
   }
 
   if (!is.null(event_start_time)) {
-
     if (inherits(event_start_time, c("POSIXct", "character"))) {
-
       # Parse the start time if not null
       temp <- parse_event_time(event_start_time)
 
       if (is.na(temp)) {
-        cli::cli_abort("Agenda time conversion failed:
-          {.val {event_start_time}}")
+        cli::cli_abort(
+          "Agenda time conversion failed:
+          {.val {event_start_time}}"
+        )
       }
 
       event_start_time <- temp
@@ -465,54 +495,54 @@ convert_agenda_times <- function(
       # Only character and POSIXct event start times are supported
       cli::cli_abort("Invalid event start time format.")
     }
-
   } else if (
-    agenda[[1]]$from |> inherits(c("POSIXct", "character")) &&
-    convert_to == "seconds"
+    agenda[[1]]$from |>
+      inherits(c("POSIXct", "character")) &&
+      convert_to == "seconds"
   ) {
     # Use the first agenda time otherwise
     event_start_time <- agenda[[1]]$from |>
       parse_event_time()
 
     cli::cli_warn(
-      c("No start time provided.\n",
+      c(
+        "No start time provided.\n",
         "Using the start time of the first agenda element.",
         "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}.")
+          {.fn set_event_start_time}."
+      )
     )
   } else {
     event_start_time <- lubridate::origin
 
     cli::cli_warn(
-      c("No start time provided.\n",
+      c(
+        "No start time provided.\n",
         "Using \"00:00:00\" as start time.",
         "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}.")
+          {.fn set_event_start_time}."
+      )
     )
   }
 
   for (i in seq_along(agenda)) {
-
     # Convert the times
     for (time in c("from", "to")) {
       if (convert_to == "seconds" && !is.numeric(agenda[[i]][[time]])) {
         # Convert to seconds
         agenda[[i]][[time]] <- agenda[[i]][[time]] |>
           time_to_numeric(origin = event_start_time)
-      } else if (convert_to == "clocktime"){
-
+      } else if (convert_to == "clocktime") {
         if (is.numeric(agenda[[i]][[time]])) {
           # Convert to clock time
           cur_time <- agenda[[i]][[time]]
 
-          agenda[[i]][[time]] <- (
-            event_start_time +
-              lubridate::seconds_to_period(cur_time))
+          agenda[[i]][[time]] <- (event_start_time +
+            lubridate::seconds_to_period(cur_time))
         } else {
           # Allow users to change the format
           agenda[[i]][[time]] <- parse_event_time(agenda[[i]][[time]])
         }
-
 
         agenda[[i]][[time]] <- format(agenda[[i]][[time]], conversion_format)
       } else {
@@ -522,7 +552,6 @@ convert_agenda_times <- function(
 
     # Revalidate times after transformations
     validate_agenda_element(agenda[[i]], from = TRUE, to = TRUE)
-
   }
 
   if (is_agenda_element) {
@@ -554,12 +583,11 @@ convert_agenda_times <- function(
 
 #' @export
 format_summary_tree <- function(
-    summary_tree,
-    agenda,
-    event_start_time = getOption("minutemaker_event_start_time"),
-    output_file = NULL
+  summary_tree,
+  agenda,
+  event_start_time = getOption("minutemaker_event_start_time"),
+  output_file = NULL
 ) {
-
   # Check the consistency of the summary tree and the agenda
   check_agenda_summary_tree_consistency(agenda, summary_tree)
 
@@ -595,21 +623,33 @@ format_summary_tree <- function(
 
     # Covert times from second to clock time if possible
     agenda_element <- convert_agenda_times(
-      agenda_element, convert_to = "clock",
-      event_start_time = event_start_time, conversion_format = "%R"
+      agenda_element,
+      convert_to = "clock",
+      event_start_time = event_start_time,
+      conversion_format = "%R"
     )
 
     # Generate a text version of the summary, with session, title, speakers,
     # moderators and summary
     # TODO: streamline this repetitive code
     agenda_element$speakers <- stringr::str_flatten_comma(
-      agenda_element$speakers)
+      agenda_element$speakers
+    )
     agenda_element$moderators <- stringr::str_flatten_comma(
-      agenda_element$moderators)
+      agenda_element$moderators
+    )
     agenda_element$session <- ifelse(
-      is.null(agenda_element$session), "", agenda_element$session)
-    agenda_element$title <- ifelse(is.null(
-      agenda_element$title), "", agenda_element$title)
+      is.null(agenda_element$session),
+      "",
+      agenda_element$session
+    )
+    agenda_element$title <- ifelse(
+      is.null(
+        agenda_element$title
+      ),
+      "",
+      agenda_element$title
+    )
 
     output_piece <- stringr::str_glue_data(
       agenda_element,
@@ -619,7 +659,8 @@ format_summary_tree <- function(
     Moderators: {moderators};
     Time: {from} - {to};
 
-    {talk_summary}") |>
+    {talk_summary}"
+    ) |>
       stringr::str_remove_all("\\n?\\w+:\\s*;") # Remove empty fields
 
     # Append the output piece to the output string
@@ -652,10 +693,9 @@ format_summary_tree <- function(
 #'
 #' @export
 format_agenda <- function(
-    agenda,
-    event_start_time = getOption("minutemaker_event_start_time")
+  agenda,
+  event_start_time = getOption("minutemaker_event_start_time")
 ) {
-
   # Import agenda from file
   if (is.character(agenda)) {
     agenda <- dget(agenda)
@@ -666,30 +706,37 @@ format_agenda <- function(
 
   # Covert times from second to clock time if possible
   agenda <- convert_agenda_times(
-    agenda, convert_to = "clock",
-    event_start_time = event_start_time, conversion_format = "%R"
+    agenda,
+    convert_to = "clock",
+    event_start_time = event_start_time,
+    conversion_format = "%R"
   )
 
   # Generate a text version of the summary, with session, title, speakers,
   # moderators and summary, if not NULL/empty
-  purrr::map_chr(agenda, ~ {
-    .x$speakers <- stringr::str_flatten_comma(.x$speakers)
-    .x$moderators <- stringr::str_flatten_comma(.x$moderators)
-    .x$session <- ifelse(is.null(.x$session), "", .x$session)
-    .x$title <- ifelse(is.null(.x$title), "", .x$title)
-    .x$description <- ifelse(is.null(.x$description), "", .x$description)
+  purrr::map_chr(
+    agenda,
+    ~ {
+      .x$speakers <- stringr::str_flatten_comma(.x$speakers)
+      .x$moderators <- stringr::str_flatten_comma(.x$moderators)
+      .x$session <- ifelse(is.null(.x$session), "", .x$session)
+      .x$title <- ifelse(is.null(.x$title), "", .x$title)
+      .x$description <- ifelse(is.null(.x$description), "", .x$description)
 
-    stringr::str_glue_data(
-      .x,
-      "Session: {session};
+      stringr::str_glue_data(
+        .x,
+        "Session: {session};
     Title: {title};
     Description: {description};
     Speakers: {speakers};
     Moderators: {moderators};
-    Time: {from} - {to};") |>
-      stringr::str_remove_all("\\n?\\w+:\\s*;") |> # Remove empty fields
-      stringr::str_replace_all("\\.;", ";")
-  }) |> paste(collapse = "\n\n####################\n\n")
+    Time: {from} - {to};"
+      ) |>
+        stringr::str_remove_all("\\n?\\w+:\\s*;") |> # Remove empty fields
+        stringr::str_replace_all("\\.;", ";")
+    }
+  ) |>
+    paste(collapse = "\n\n####################\n\n")
 }
 
 
@@ -708,10 +755,9 @@ format_agenda <- function(
 #' @export
 #'
 import_transcript_from_file <- function(
-    transcript_file,
-    import_diarization = TRUE
+  transcript_file,
+  import_diarization = TRUE
 ) {
-
   # Read the file content
   lines <- readLines(transcript_file, warn = FALSE)
 
@@ -720,66 +766,76 @@ import_transcript_from_file <- function(
 
   if (!file_extension %in% c("srt", "vtt")) {
     cli::cli_abort(
-      "Unsupported file format. Supported formats are SRT and VTT.")
+      "Unsupported file format. Supported formats are SRT and VTT."
+    )
   }
 
   times_pos <- which(stringr::str_detect(lines, "-->"))
 
   # Iterate over each time position
-  purrr::map(times_pos, ~ {
-    # Extract the start and end times
-    times <- stringr::str_split_1(lines[.x], "-->") |>
-      stringr::str_squish() |>
-      lubridate::hms() |>
-      as.numeric()
+  purrr::map(
+    times_pos,
+    ~ {
+      # Extract the start and end times
+      times <- stringr::str_split_1(lines[.x], "-->") |>
+        stringr::str_squish() |>
+        lubridate::hms() |>
+        as.numeric()
 
-    # Extract the text
-    text <- lines[.x + 1] |>
-      # MS Teams vtt has an xml tag with speaker info
-      stringr::str_remove_all("</?v.*?>") |>
-      stringr::str_squish()
+      # Extract the text
+      text <- lines[.x + 1] |>
+        # MS Teams vtt has an xml tag with speaker info
+        stringr::str_remove_all("</?v.*?>") |>
+        stringr::str_squish()
 
-    # Return the data
-    extract <- data.frame(
-      start = times[1],
-      end = times[2],
-      text = text
-    )
-
-    # If the transcript is diarized, extract the speaker
-    if (import_diarization) {
-      # Extract the speaker
-      cur_speaker <- lines[.x - 1]
-
-      # Normal VTT style
-      if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
-        # the name is between double quotes
-        cur_speaker <- stringr::str_extract_all(
-          cur_speaker, '(?<=").*(?=")') |>
-          unlist()
-      } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
-        # MS Teams vtt style: <v speaker first name [second name]>
-        cur_speaker <- stringr::str_extract_all(
-          lines[.x + 1], '(?<=<v ).*?(?=>)') |>
-          unlist()
-      } else {
-        cur_speaker <- NA
-      }
-
-      # In the unlikely case that there are multiple speakers, join them
-      if (length(cur_speaker) > 1) {
-        cur_speaker <- stringr::str_flatten_comma(speaker)
-      }
-
-      # Add the speaker to the data
-      extract <- extract |> mutate(
-        speaker = cur_speaker,
-        .before = text
+      # Return the data
+      extract <- data.frame(
+        start = times[1],
+        end = times[2],
+        text = text
       )
-    }
 
-    extract
-  }) |> dplyr::bind_rows()
+      # If the transcript is diarized, extract the speaker
+      if (import_diarization) {
+        # Extract the speaker
+        cur_speaker <- lines[.x - 1]
+
+        # Normal VTT style
+        if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
+          # the name is between double quotes
+          cur_speaker <- stringr::str_extract_all(
+            cur_speaker,
+            '(?<=").*(?=")'
+          ) |>
+            unlist()
+        } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
+          # MS Teams vtt style: <v speaker first name [second name]>
+          cur_speaker <- stringr::str_extract_all(
+            lines[.x + 1],
+            '(?<=<v ).*?(?=>)'
+          ) |>
+            unlist()
+        } else {
+          cur_speaker <- NA
+        }
+
+        # In the unlikely case that there are multiple speakers, join them
+        if (length(cur_speaker) > 1) {
+          cur_speaker <- stringr::str_flatten_comma(speaker)
+        }
+
+        # Add the speaker to the data
+        extract <- extract |>
+          mutate(
+            speaker = cur_speaker,
+            .before = text
+          )
+      }
+
+      extract
+    }
+  ) |>
+    dplyr::bind_rows()
 }
 
 #' Merge two transcripts
@@ -799,11 +855,10 @@ import_transcript_from_file <- function(
 #' @export
 #'
 merge_transcripts <- function(
-    transcript_x,
-    transcript_y,
-    import_diarization = TRUE
+  transcript_x,
+  transcript_y,
+  import_diarization = TRUE
 ) {
-
   empty_segments <- which(transcript_x$text %in% c("", "[...]"))
 
   if (length(empty_segments) == 0 && !import_diarization) {
@@ -828,7 +883,6 @@ merge_transcripts <- function(
   removed <- 0
 
   while (any(!transcript_x$seen)) {
-
     i <- which(!transcript_x$seen)[1]
 
     transcript_x$seen[i] <- TRUE
@@ -858,9 +912,10 @@ merge_transcripts <- function(
 
     # Remove segments in the first transcript that are empty and
     # are included in the newly added segment
-    redundant <- which(transcript_x$start >= candidate$start &
-                         transcript_x$end <= candidate$end &
-                         transcript_x$text %in% c("", "[...]")
+    redundant <- which(
+      transcript_x$start >= candidate$start &
+        transcript_x$end <= candidate$end &
+        transcript_x$text %in% c("", "[...]")
     )
 
     if (any(redundant)) {
@@ -873,16 +928,16 @@ merge_transcripts <- function(
     if (nrow(transcript_y) == 0) {
       break
     }
-
   }
 
   transcript_x$seen <- NULL
 
-  cli::cli_inform(c("v" = "Added {added} segments.",
-                    "i" = "Removed {removed} segments."))
+  cli::cli_inform(c(
+    "v" = "Added {added} segments.",
+    "i" = "Removed {removed} segments."
+  ))
 
   if (import_diarization) {
-
     # Train a GloVe model on both transcripts
     glove_model <- c(transcript_x$text, transcript_y$text) |>
       purrr::discard(is_silent) |>
@@ -894,7 +949,6 @@ merge_transcripts <- function(
     transcript_x$speaker <- NA
 
     for (i in 1:nrow(transcript_x)) {
-
       x_text <- transcript_x$text[i]
 
       # Skip silent segments
@@ -923,7 +977,7 @@ merge_transcripts <- function(
       # Built a data frame joining all the segments in the second transcript
       # that are in the search range coming from an non-interrupted series of
       # segments from the same speakers
-      y_probes <- transcript_y[y_range,] |>
+      y_probes <- transcript_y[y_range, ] |>
         group_by(gID = consecutive_id(.data$speaker)) |>
         summarize(
           text = paste(.data$text, collapse = " "),
@@ -933,7 +987,9 @@ merge_transcripts <- function(
       # Calculate the semantic similarity between the segment in the first
       # transcript and the candidate segments in the second transcript
       y_probes$similarity <- compute_text_sim(
-        x_text, y_probes$text, glove_model
+        x_text,
+        y_probes$text,
+        glove_model
       )
 
       # Some segments are too short to compute embeddings, so they are removed
@@ -948,7 +1004,6 @@ merge_transcripts <- function(
         candidate_pos <- which.max(y_probes$similarity)
         transcript_x$speaker[i] <- y_probes$speaker[candidate_pos]
       }
-
     }
   }
 
@@ -976,16 +1031,14 @@ merge_transcripts <- function(
 #' @export
 #'
 add_chat_transcript <- function(
-    transcript_data,
-    chat_transcript,
-    start_time,
-    chat_format = "webex"
+  transcript_data,
+  chat_transcript,
+  start_time,
+  chat_format = "webex"
 ) {
-
   chat_format <- match.arg(chat_format)
 
   if (is.character(chat_transcript)) {
-
     if (!file.exists(chat_transcript)) {
       cli::cli_abort("Chat file not found.")
     }
@@ -994,39 +1047,43 @@ add_chat_transcript <- function(
     start_time <- parse_event_time(start_time) |>
       as.numeric()
 
-    tryCatch({
-      chat_transcript <- readLines(chat_transcript, skipNul = T) |>
-        # Remove encoding characters
-        stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
-        purrr::discard(is_silent) |>
-        purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t())
+    tryCatch(
+      {
+        chat_transcript <- readLines(chat_transcript, skipNul = T) |>
+          # Remove encoding characters
+          stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
+          purrr::discard(is_silent) |>
+          purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t())
 
-      # Loop over the chat messages and concatenate the ones that are split
-      # across multiple lines
-      for (i in rev(seq_along(chat_transcript))) {
-        curr <- chat_transcript[[i]]
-        if (ncol(curr) == 1) {
-          prev <- chat_transcript[[i - 1]]
-          chat_transcript[[i - 1]][1, ncol(prev)] <- paste(
-            prev[1, ncol(prev)], curr[1, ncol(curr)])
-          chat_transcript[[i]] <- NULL
+        # Loop over the chat messages and concatenate the ones that are split
+        # across multiple lines
+        for (i in rev(seq_along(chat_transcript))) {
+          curr <- chat_transcript[[i]]
+          if (ncol(curr) == 1) {
+            prev <- chat_transcript[[i - 1]]
+            chat_transcript[[i - 1]][1, ncol(prev)] <- paste(
+              prev[1, ncol(prev)],
+              curr[1, ncol(curr)]
+            )
+            chat_transcript[[i]] <- NULL
+          }
         }
-      }
 
-      chat_transcript <- do.call("rbind", chat_transcript) |>
-        as.data.frame() |>
-        setNames(c("date", "start", "speaker", "text")) |>
-        mutate(
-          date = NULL,
-          start = parse_event_time(.data$start) |>
-            as.numeric(),
-          start = .data$start - start_time,
-          speaker = stringr::str_remove(.data$speaker, "from ") |>
-            # Do not remove the white space in the regex, is important!
-            stringr::str_remove("( to everyone)?:") |>
-            stringr::str_replace_all("(?<=\\s)[a-z]", toupper),
-          speaker = paste(.data$speaker, "(from chat)")
-        )},
+        chat_transcript <- do.call("rbind", chat_transcript) |>
+          as.data.frame() |>
+          setNames(c("date", "start", "speaker", "text")) |>
+          mutate(
+            date = NULL,
+            start = parse_event_time(.data$start) |>
+              as.numeric(),
+            start = .data$start - start_time,
+            speaker = stringr::str_remove(.data$speaker, "from ") |>
+              # Do not remove the white space in the regex, is important!
+              stringr::str_remove("( to everyone)?:") |>
+              stringr::str_replace_all("(?<=\\s)[a-z]", toupper),
+            speaker = paste(.data$speaker, "(from chat)")
+          )
+      },
       error = \(e) {
         cli::cli_abort(
           c(
@@ -1036,13 +1093,15 @@ add_chat_transcript <- function(
           ),
           parent = e
         )
-      })
+      }
+    )
   } else if (is.data.frame(chat_transcript)) {
     # Check if the chat data has the required columns
     if (!all(c("start", "speaker", "text") %in% names(chat_transcript))) {
       cli::cli_abort(
         "Chat data must contain {.var start}, {.var speaker}
-        and {.var text} columns.")
+        and {.var text} columns."
+      )
     }
   } else {
     cli::cli_abort("Unsupported chat data format.")
@@ -1182,12 +1241,14 @@ add_chat_transcript <- function(
 #' @export
 #'
 speech_to_summary_workflow <- function(
-
   target_dir = getwd(),
 
   # Arguments for `split_audio`
-  source_audio = list.files(target_dir, pattern = ".*\\.(wav|mp\\d)$"
-                            , full.names = T)[1],
+  source_audio = list.files(
+    target_dir,
+    pattern = ".*\\.(wav|mp\\d)$",
+    full.names = T
+  )[1],
   split_audio = TRUE,
   split_audio_duration = 40,
   stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
@@ -1211,14 +1272,18 @@ speech_to_summary_workflow <- function(
 
   # Arguments for `merge_transcripts`
   transcript_to_merge = list.files(
-    target_dir, pattern = "\\.(vtt|srt)",
-    full.names = T)[1],
+    target_dir,
+    pattern = "\\.(vtt|srt)",
+    full.names = T
+  )[1],
   import_diarization_on_merge = TRUE,
 
   # Arguments for `add_chat_transcript`
   chat_file = list.files(
-    target_dir, pattern = "Chat",
-    full.names = T)[1],
+    target_dir,
+    pattern = "Chat",
+    full.names = T
+  )[1],
   chat_format = "webex",
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
@@ -1250,24 +1315,19 @@ speech_to_summary_workflow <- function(
   formatted_output_file = file.path(target_dir, "event_summary.txt"),
   overwrite_formatted_output = FALSE
 ) {
-
   summarization_method <- match.arg(summarization_method)
   use_agenda <- match.arg(use_agenda)
-  
+
   # Initialize agenda variable to track the actual agenda content
   agenda <- NULL
 
   ## Perform audio splitting ##
 
   # Check if the stt audio dir is empty or overwrite is TRUE
-  if (
-    overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))
-  ) {
-
+  if (overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))) {
     if (purrr::is_empty(source_audio)) {
       cli::cli_abort("No valid source audio file provided.")
     }
-
 
     if (isFALSE(split_audio)) {
       # If `split_audio` is FALSE, the audio file will be just copied to the
@@ -1278,12 +1338,14 @@ speech_to_summary_workflow <- function(
       }
 
       cli::cli_inform(
-        c(i = "Moving source audio file to {.path {stt_audio_dir}},
-        without modification..."))
+        c(
+          i = "Moving source audio file to {.path {stt_audio_dir}},
+        without modification..."
+        )
+      )
 
       file.copy(source_audio, stt_audio_dir)
     } else {
-
       cli::cli_alert("Splitting audio file...")
 
       # Split the audio file. The splitted audio will be saved in the
@@ -1298,7 +1360,8 @@ speech_to_summary_workflow <- function(
   } else {
     cli::cli_alert(
       "Loading existing splitted audio files from
-      {.path {basename(stt_audio_dir)}}..." |> stringr::str_squish()
+      {.path {basename(stt_audio_dir)}}..." |>
+        stringr::str_squish()
     )
   }
 
@@ -1307,9 +1370,8 @@ speech_to_summary_workflow <- function(
   # Check if the stt output folder is empty or overwrite is TRUE
   if (
     stt_overwrite_output_files ||
-    length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
+      length(list.files(stt_output_dir)) < length(list.files(stt_audio_dir))
   ) {
-
     cli::cli_alert("Performing speech to text...")
     cli::cli_alert_info("(stt model: {stt_model})")
 
@@ -1323,14 +1385,17 @@ speech_to_summary_workflow <- function(
       cli::cli_abort("No audio files found in {.path {stt_audio_dir}}")
     }
 
-    stt_args <- c(list(
-      audio_path = stt_audio_dir,
-      output_dir = stt_output_dir,
-      model = stt_model,
-      initial_prompt = stt_initial_prompt,
-      overwrite = stt_overwrite_output_files,
-      language = stt_language
-    ), extra_stt_args)
+    stt_args <- c(
+      list(
+        audio_path = stt_audio_dir,
+        output_dir = stt_output_dir,
+        model = stt_model,
+        initial_prompt = stt_initial_prompt,
+        overwrite = stt_overwrite_output_files,
+        language = stt_language
+      ),
+      extra_stt_args
+    )
 
     # Use do.call to pass extra_stt_args to the ... argument
     do.call(perform_speech_to_text, stt_args)
@@ -1338,7 +1403,8 @@ speech_to_summary_workflow <- function(
   } else {
     cli::cli_alert(
       "Loading existing transcript data files from
-      {.path {basename(target_dir)}}..." |> stringr::str_squish()
+      {.path {basename(target_dir)}}..." |>
+        stringr::str_squish()
     )
   }
 
@@ -1359,8 +1425,10 @@ speech_to_summary_workflow <- function(
 
     # Check if reasoning is enabled via options and issue an advisory message
     minutemaker_reasoning_option <- getOption(
-      "minutemaker_include_llm_reasoning", TRUE)
-      
+      "minutemaker_include_llm_reasoning",
+      TRUE
+    )
+
     if (isTRUE(minutemaker_reasoning_option)) {
       cli::cli_alert_info(
         paste(
@@ -1384,20 +1452,18 @@ speech_to_summary_workflow <- function(
     cli::cli_alert_success("LLM-based correction step completed.")
   }
 
-
   ## Create the transcript file ##
 
   # Check if the transcript file doesn't exists or overwrite is TRUE
   if (isTRUE(overwrite_transcript) || !file.exists(transcript_file)) {
-
     # Generate the trascript from the json output data
     transcript_data <- parse_transcript_json(
       stt_output_dir,
-      event_start_time = event_start_time)
+      event_start_time = event_start_time
+    )
 
     # Merge transcripts
     if (!purrr::is_empty(transcript_to_merge) && !is.na(transcript_to_merge)) {
-
       cli::cli_alert("Merging transcripts...")
 
       if (!file.exists(transcript_to_merge)) {
@@ -1408,19 +1474,20 @@ speech_to_summary_workflow <- function(
       if (is.character(transcript_to_merge)) {
         transcript_to_merge <- import_transcript_from_file(
           transcript_file = transcript_to_merge,
-          import_diarization = import_diarization_on_merge)
+          import_diarization = import_diarization_on_merge
+        )
       }
 
       # Merge the transcripts
       transcript_data <- merge_transcripts(
         transcript_x = transcript_data,
         transcript_y = transcript_to_merge,
-        import_diarization = import_diarization_on_merge)
+        import_diarization = import_diarization_on_merge
+      )
     }
 
     # Add chat transcript
     if (!purrr::is_empty(chat_file) && !is.na(chat_file)) {
-
       cli::cli_alert("Adding chat transcript...")
 
       if (is.null(event_start_time)) {
@@ -1437,17 +1504,20 @@ speech_to_summary_workflow <- function(
 
     # Write transcript to file
     readr::write_csv(
-      transcript_data, file = transcript_file)
-
+      transcript_data,
+      file = transcript_file
+    )
   } else {
     cli::cli_alert(
       "Loading existing transcript from
-      {.path {basename(transcript_file)}}..." |> stringr::str_squish()
+      {.path {basename(transcript_file)}}..." |>
+        stringr::str_squish()
     )
 
     transcript_data <- readr::read_csv(
       transcript_file,
-      show_col_types = FALSE)
+      show_col_types = FALSE
+    )
   }
 
   ## Handle agenda selection/generation based on use_agenda parameter ##
@@ -1461,7 +1531,7 @@ speech_to_summary_workflow <- function(
   } else {
     # Check if agenda file exists
     agenda_file_exists <- is.character(agenda_file) && file.exists(agenda_file)
-    
+
     # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
     if (use_agenda == "ask" && !interactive()) {
       cli::cli_inform(
@@ -1472,67 +1542,78 @@ speech_to_summary_workflow <- function(
       )
       use_agenda <- "yes"
     }
-    
+
     # Define actions as a function to avoid code duplication
     generate_new_agenda <- function() {
       cli::cli_alert(
         "Generating {if(use_agenda == 'yes') 'a' else 'new'} agenda..."
       )
-      
+
       # Generate a new agenda
-      agenda_infer_args <- c(list(
-        transcript = transcript_data,
-        event_description = event_description,
-        vocabulary = vocabulary,
-        diarization_instructions = extra_diarization_instructions,
-        start_time = event_start_time,
-        expected_agenda = expected_agenda,
-        window_size = agenda_generation_window_size,
-        output_file = agenda_file,
-        provider = llm_provider
-      ), extra_agenda_generation_args)
-      
+      agenda_infer_args <- c(
+        list(
+          transcript = transcript_data,
+          event_description = event_description,
+          vocabulary = vocabulary,
+          diarization_instructions = extra_diarization_instructions,
+          start_time = event_start_time,
+          expected_agenda = expected_agenda,
+          window_size = agenda_generation_window_size,
+          output_file = agenda_file,
+          provider = llm_provider
+        ),
+        extra_agenda_generation_args
+      )
+
       new_agenda <- do.call(infer_agenda_from_transcript, agenda_infer_args)
-      
+
       # Display the generated agenda for reference
       cli::cli_alert_success(
         "Agenda generated and saved to {.path {basename(agenda_file)}}"
       )
       cli::cli_verbatim("\n", format_agenda(new_agenda), "\n")
-      
+
       return(new_agenda)
     }
-    
+
     # Handle "ask" mode with interactive menu
     if (use_agenda == "ask") {
       # Create dynamic choice list based on whether agenda file exists
       choices <- character(0)
-      
+
       if (agenda_file_exists) {
-        choices <- c(choices, sprintf("Use existing agenda file: %s", basename(agenda_file)))
+        choices <- c(
+          choices,
+          sprintf("Use existing agenda file: %s", basename(agenda_file))
+        )
       }
-      
+
       choices <- c(
         choices,
         "Generate a new agenda automatically",
         "Proceed without an agenda and create one overall summary",
         "Exit"
       )
-      
+
       # Show the menu
-      choice <- utils::menu(choices, title = "How do you want to proceed with the agenda?")
-      
+      choice <- utils::menu(
+        choices,
+        title = "How do you want to proceed with the agenda?"
+      )
+
       # Track what each choice means - this makes the logic cleaner below
       # 0 = exit (always)
       # 1 = use existing (if file exists) or generate new (if no file)
       # 2 = generate new (if file exists) or no agenda (if no file)
       # 3 = no agenda (if file exists) or exit (if no file)
       # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options when no file exists
-      
+
       # Handle the choice
-      if (choice == 0 ||
+      if (
+        choice == 0 ||
           (choice == 3 && !agenda_file_exists) ||
-          (choice == 4 && agenda_file_exists)) {
+          (choice == 4 && agenda_file_exists)
+      ) {
         # Exit
         cli::cli_alert_warning(
           "Aborted by user. Returning transcript data only (invisibly)."
@@ -1544,12 +1625,16 @@ speech_to_summary_workflow <- function(
           "Using existing agenda file: {.file {basename(agenda_file)}}"
         )
         agenda <- dget(agenda_file)
-      } else if ((choice == 1 && !agenda_file_exists) || 
-                (choice == 2 && agenda_file_exists)) {
+      } else if (
+        (choice == 1 && !agenda_file_exists) ||
+          (choice == 2 && agenda_file_exists)
+      ) {
         # Generate new agenda
         agenda <- generate_new_agenda()
-      } else if ((choice == 2 && !agenda_file_exists) || 
-                (choice == 3 && agenda_file_exists)) {
+      } else if (
+        (choice == 2 && !agenda_file_exists) ||
+          (choice == 3 && agenda_file_exists)
+      ) {
         # No agenda
         cli::cli_alert_info("Proceeding without an agenda.")
         agenda <- FALSE
@@ -1582,9 +1667,10 @@ speech_to_summary_workflow <- function(
   }
 
   # Manage situations where the formatted output file exists
-  if (!purrr::is_empty(formatted_output_file) &&
-      file.exists(formatted_output_file)) {
-
+  if (
+    !purrr::is_empty(formatted_output_file) &&
+      file.exists(formatted_output_file)
+  ) {
     if (isTRUE(overwrite_formatted_output)) {
       cli::cli_warn(
         c(
@@ -1611,24 +1697,27 @@ speech_to_summary_workflow <- function(
   }
 
   # Common summarization arguments
-  summarization_args <- c(list(
-    transcript_data = transcript_data,
-    method = summarization_method,
+  summarization_args <- c(
+    list(
+      transcript_data = transcript_data,
+      method = summarization_method,
 
-    window_size = summarization_window_size,
-    output_length = summarization_output_length,
+      window_size = summarization_window_size,
+      output_length = summarization_output_length,
 
-    event_description = event_description,
-    audience = audience,
-    vocabulary = vocabulary,
-    consider_diarization = consider_diarization,
+      event_description = event_description,
+      audience = audience,
+      vocabulary = vocabulary,
+      consider_diarization = consider_diarization,
 
-    summary_structure = summary_structure,
-    extra_diarization_instructions = extra_diarization_instructions,
-    extra_output_instructions = extra_output_instructions,
+      summary_structure = summary_structure,
+      extra_diarization_instructions = extra_diarization_instructions,
+      extra_output_instructions = extra_output_instructions,
 
-    provider = llm_provider
-  ), extra_summarise_args)
+      provider = llm_provider
+    ),
+    extra_summarise_args
+  )
 
   if (isFALSE(agenda) || isFALSE(multipart_summary)) {
     # Summarize as single talk
@@ -1637,7 +1726,6 @@ speech_to_summary_workflow <- function(
     formatted_summary <- do.call(summarise_transcript, summarization_args)
 
     return_vec <- c("transcript_data", "formatted_summary")
-
   } else {
     # Summarize as multiple talks
     cli::cli_inform("...with multipart approach...")
@@ -1647,11 +1735,13 @@ speech_to_summary_workflow <- function(
     }
 
     # TODO: put this prompt in the set_prompts function
-    summarization_args$summary_structure <- stringr::str_glue("
+    summarization_args$summary_structure <- stringr::str_glue(
+      "
     {summary_structure}
     Here is an agenda of the event to keep into account while summarizing:
     {agenda}
-    Stricly follow the agenda to understand which information is worth summarizing.")
+    Stricly follow the agenda to understand which information is worth summarizing."
+    )
 
     # Necessary extra arguments for the summarization of whole events
     summarization_args$agenda <- agenda
@@ -1667,7 +1757,8 @@ speech_to_summary_workflow <- function(
       summary_tree = summary_tree,
       agenda = agenda,
       event_start_time = event_start_time,
-      output_file = NULL)
+      output_file = NULL
+    )
 
     return_vec <- c("transcript_data", "summary_tree", "formatted_summary")
   }

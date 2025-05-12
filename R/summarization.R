@@ -20,15 +20,14 @@
 #'
 #' @export
 generate_recording_details <- function(
-    agenda_element = NULL,
-    type = NULL,
-    session = NULL,
-    title = NULL,
-    description = NULL,
-    speakers = NULL,
-    moderators = NULL
+  agenda_element = NULL,
+  type = NULL,
+  session = NULL,
+  title = NULL,
+  description = NULL,
+  speakers = NULL,
+  moderators = NULL
 ) {
-
   # If agenda_element is not NULL, extract the information from it
   if (!is.null(agenda_element)) {
     type <- agenda_element$type
@@ -40,8 +39,14 @@ generate_recording_details <- function(
   }
 
   # Return NULL if all the arguments are NULL
-  if (is.null(type) && is.null(session) && is.null(description) &&
-      is.null(title) && is.null(speakers) && is.null(moderators)) {
+  if (
+    is.null(type) &&
+      is.null(session) &&
+      is.null(description) &&
+      is.null(title) &&
+      is.null(speakers) &&
+      is.null(moderators)
+  ) {
     return(NULL)
   }
 
@@ -49,20 +54,31 @@ generate_recording_details <- function(
   add_section <- function(section, section_name) {
     if (!is.null(section)) {
       paste0(
-        "- ", stringr::str_flatten_comma(section_name),
-        ": ", stringr::str_flatten_comma(section), ";\n") # Moving \n in paste doesn't work for some reason
+        "- ",
+        stringr::str_flatten_comma(section_name),
+        ": ",
+        stringr::str_flatten_comma(section),
+        ";\n"
+      ) # Moving \n in paste doesn't work for some reason
     }
   }
 
   # Build the details prompt based on which arguments are not NULL
   paste0(
     add_section(type, "Type (the type of this specific talk/meeting)"),
-    add_section(session, "Session (the conference/larger meeting session in which this talk/meeting took place)"),
+    add_section(
+      session,
+      "Session (the conference/larger meeting session in which this talk/meeting took place)"
+    ),
     add_section(title, "Title (the title of the talk/meeting)"),
-    add_section(description, "Description (a description of the talk/meeting topic)"),
+    add_section(
+      description,
+      "Description (a description of the talk/meeting topic)"
+    ),
     add_section(speakers, "Speakers (the main speakers of this talk/meeting)"),
     add_section(moderators, "Moderators (the moderators of this talk/meeting)")
-  ) |> trimws()
+  ) |>
+    trimws()
 }
 
 #' Summarise a recording transcript
@@ -118,24 +134,23 @@ generate_recording_details <- function(
 #' @export
 #'
 summarise_transcript <- function(
-    transcript_data,
-    method = c("simple", "rolling"),
-    window_size = 15,
-    output_length = 3,
-    event_description = NULL,
-    recording_details = NULL,
-    audience = "An audience with understanding of the topic",
-    vocabulary = NULL,
-    consider_diarization = TRUE,
+  transcript_data,
+  method = c("simple", "rolling"),
+  window_size = 15,
+  output_length = 3,
+  event_description = NULL,
+  recording_details = NULL,
+  audience = "An audience with understanding of the topic",
+  vocabulary = NULL,
+  consider_diarization = TRUE,
 
-    summary_structure = get_prompts("summary_structure"),
-    extra_diarization_instructions = NULL,
-    extra_output_instructions = NULL,
+  summary_structure = get_prompts("summary_structure"),
+  extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
 
-    prompt_only = FALSE,
-    ...
+  prompt_only = FALSE,
+  ...
 ) {
-
   method <- match.arg(method)
 
   args <- as.list(environment())
@@ -145,8 +160,10 @@ summarise_transcript <- function(
 
   # Revert to simple summarisation if the transcript argument is not of the
   # correct type
-  if (method == "rolling" &&
-      (is.data.frame(transcript_data) && !"start" %in% names(transcript_data)) ||
+  if (
+    method == "rolling" &&
+      (is.data.frame(transcript_data) &&
+        !"start" %in% names(transcript_data)) ||
       (!is.data.frame(transcript_data) && length(transcript_data) == 1)
   ) {
     cli::cli_abort(
@@ -163,18 +180,22 @@ summarise_transcript <- function(
     )
   }
 
-  if (method == "simple" && !is.data.frame(transcript_data) &&
-      length(transcript_data) > 1) {
+  if (
+    method == "simple" &&
+      !is.data.frame(transcript_data) &&
+      length(transcript_data) > 1
+  ) {
     cli::cli_abort(
-      c("Invalid input for simple summarisation method.",
+      c(
+        "Invalid input for simple summarisation method.",
         "x" = "Simple method requires {.arg transcript_data} to be
           a single data frame or a single character string.",
-        "i" = "Received a list or vector of length {length(transcript_data)}.")
+        "i" = "Received a list or vector of length {length(transcript_data)}."
+      )
     )
   }
 
   if (method == "rolling" && is.data.frame(transcript_data)) {
-
     # window_size is in minutes, convert to seconds
     window_size <- window_size * 60
 
@@ -185,7 +206,10 @@ summarise_transcript <- function(
     if (transcript_duration > 1.5 * window_size) {
       # Generate the breakpoints
       breakpoints <- seq(
-        transcript_data$start[1], max(transcript_data$start), by = window_size)
+        transcript_data$start[1],
+        max(transcript_data$start),
+        by = window_size
+      )
 
       last_segment <- max(transcript_data$start) - tail(breakpoints, n = 1)
 
@@ -198,21 +222,24 @@ summarise_transcript <- function(
       breakpoints <- c(breakpoints, max(transcript_data$start))
 
       # Split the array using the breakpoints
-      transcript_data <- seq_along(breakpoints) |> utils::head(-1) |>
+      transcript_data <- seq_along(breakpoints) |>
+        utils::head(-1) |>
         purrr::map(\(bp) {
           transcript_data |>
             dplyr::filter(
               .data$start >= breakpoints[bp],
-              .data$start < breakpoints[bp + 1])
+              .data$start < breakpoints[bp + 1]
+            )
         })
-
     } else {
       cli::cli_warn(
-        c("Transcript too short for rolling window method.",
+        c(
+          "Transcript too short for rolling window method.",
           "i" = "Transcript duration ({round(transcript_duration/60,1)} min)
             is less than 1.5 times window size
             ({round(window_size/60,1)} min).",
-          "i" = "Reverting to {.val simple} summarisation method.")
+          "i" = "Reverting to {.val simple} summarisation method."
+        )
       )
 
       method <- "simple"
@@ -226,18 +253,26 @@ summarise_transcript <- function(
 
   # Generate the summarisation prompts
   prompts <- purrr::imap_chr(transcript_data, \(transcript, i) {
-
     # Convert the transcript to text if it is a data frame
     if (is.data.frame(transcript)) {
       transcript <- extract_text_from_transcript(
         transcript,
-        import_diarization = consider_diarization)
+        import_diarization = consider_diarization
+      )
     }
 
     args <- args[
-      c("event_description", "recording_details", "audience", "vocabulary",
-        "consider_diarization", "summary_structure", "output_length",
-        "extra_diarization_instructions", "extra_output_instructions")
+      c(
+        "event_description",
+        "recording_details",
+        "audience",
+        "vocabulary",
+        "consider_diarization",
+        "summary_structure",
+        "output_length",
+        "extra_diarization_instructions",
+        "extra_output_instructions"
+      )
     ]
 
     # Generate the prompt
@@ -263,10 +298,10 @@ summarise_transcript <- function(
     llmR::prompt_llm(
       c(
         system = get_prompts("persona"),
-        user = prompt),
+        user = prompt
+      ),
       ...
     )
-
   })
 
   # Return the summaries if there is only one
@@ -278,8 +313,14 @@ summarise_transcript <- function(
   cli::cli_alert("Aggregating transcript summaries...")
 
   args <- args[
-    c("event_description", "recording_details", "audience", "output_length",
-      "summary_structure", "extra_output_instructions")
+    c(
+      "event_description",
+      "recording_details",
+      "audience",
+      "output_length",
+      "summary_structure",
+      "extra_output_instructions"
+    )
   ]
 
   # Aggregate the summaries
@@ -291,10 +332,10 @@ summarise_transcript <- function(
   llmR::prompt_llm(
     c(
       system = get_prompts("persona"),
-      user = aggregation_prompt),
+      user = aggregation_prompt
+    ),
     ...
   )
-
 }
 
 #' Summarise a full meeting
@@ -344,28 +385,27 @@ summarise_transcript <- function(
 #'
 #' @export
 summarise_full_meeting <- function(
-    transcript_data,
-    agenda,
-    method = c("simple", "rolling"),
-    output_file = "event_summary.R",
+  transcript_data,
+  agenda,
+  method = c("simple", "rolling"),
+  output_file = "event_summary.R",
 
-    window_size = 15,
-    output_length = 3,
+  window_size = 15,
+  output_length = 3,
 
-    event_start_time = getOption("minutemaker_event_start_time"),
-    event_description = NULL,
-    audience = "An audience with understanding of the topic",
-    vocabulary = NULL,
-    consider_diarization = TRUE,
+  event_start_time = getOption("minutemaker_event_start_time"),
+  event_description = NULL,
+  audience = "An audience with understanding of the topic",
+  vocabulary = NULL,
+  consider_diarization = TRUE,
 
-    summary_structure = get_prompts("summary_structure"),
-    extra_diarization_instructions = NULL,
-    extra_output_instructions = NULL,
+  summary_structure = get_prompts("summary_structure"),
+  extra_diarization_instructions = NULL,
+  extra_output_instructions = NULL,
 
-    overwrite = FALSE,
-    ...
+  overwrite = FALSE,
+  ...
 ) {
-
   if (!validate_agenda(agenda)) {
     cli::cli_abort("The agenda is not valid.")
   }
@@ -378,8 +418,10 @@ summarise_full_meeting <- function(
   # Convert the agenda times to seconds if they are in "HH:MM(:SS)( AM/PM)"
   # format
   agenda <- convert_agenda_times(
-    agenda, convert_to = "seconds",
-    event_start_time = event_start_time)
+    agenda,
+    convert_to = "seconds",
+    event_start_time = event_start_time
+  )
 
   # Generate the output container if it doesn't exist
   if (!file.exists(output_file)) {
@@ -392,7 +434,6 @@ summarise_full_meeting <- function(
   talks_ids <- build_ids_from_agenda(agenda)
 
   for (id in talks_ids) {
-
     # Skip if the talk has already been summarised
     if (!is.null(result_tree[[id]]) && !overwrite) {
       next
@@ -409,7 +450,8 @@ summarise_full_meeting <- function(
     # Validate the agenda element to make sure it has a start and end time
     is_valid_agenda <- validate_agenda_element(
       agenda_element,
-      from = TRUE, to = TRUE
+      from = TRUE,
+      to = TRUE
     )
 
     if (!is_valid_agenda) {
@@ -423,16 +465,20 @@ summarise_full_meeting <- function(
     transcript_subset <- transcript_data |>
       dplyr::filter(
         .data$start >= agenda_element$from,
-        .data$start <= agenda_element$to)
+        .data$start <= agenda_element$to
+      )
 
     if (nrow(transcript_subset) == 0) {
       cli::cli_warn(
-        c("The transcript subset for the talk {.val {id}} is empty.",
+        c(
+          "The transcript subset for the talk {.val {id}} is empty.",
           "i" = if (!is.null(event_start_time)) {
             "Did you provide the correct event start time?"
           } else {
             "Did you provide the correct agenda times?"
-          }, "x" = "Skipping.")
+          },
+          "x" = "Skipping."
+        )
       )
       next
     }
@@ -477,7 +523,8 @@ summarise_full_meeting <- function(
 
   if (length(result_tree) == 0) {
     cli::cli_abort(
-      "The final result tree has lenght zero. No talks were summarised.")
+      "The final result tree has lenght zero. No talks were summarised."
+    )
   }
 
   # Return the result tree invisibly
@@ -526,17 +573,16 @@ summarise_full_meeting <- function(
 #' @export
 #'
 infer_agenda_from_transcript <- function(
-    transcript,
-    event_description = NULL,
-    vocabulary = NULL,
-    diarization_instructions = NULL,
-    start_time = NULL,
-    expected_agenda = NULL,
-    window_size = 7200,
-    output_file = NULL,
-    ...
+  transcript,
+  event_description = NULL,
+  vocabulary = NULL,
+  diarization_instructions = NULL,
+  start_time = NULL,
+  expected_agenda = NULL,
+  window_size = 7200,
+  output_file = NULL,
+  ...
 ) {
-
   # Set the default prompts if not already set
   set_prompts()
 
@@ -545,8 +591,7 @@ infer_agenda_from_transcript <- function(
     # Is the transcript a CSV file?
     if (stringr::str_detect(transcript, "\\.csv$")) {
       transcript_data <- readr::read_csv(transcript, show_col_types = FALSE)
-    }
-    # Is the transcript a subtitle file?
+    } # Is the transcript a subtitle file?
     else {
       transcript_data <- import_transcript_from_file(transcript)
     }
@@ -566,14 +611,18 @@ infer_agenda_from_transcript <- function(
     filter(!is_silent(.data$text))
 
   breakpoints <- seq(
-    transcript_data$start[1], max(transcript_data$start), by = window_size)
+    transcript_data$start[1],
+    max(transcript_data$start),
+    by = window_size
+  )
 
   pause_duration <- 1200
 
   pauses <- transcript_data |>
     filter(
       .data$start - lag(.data$end, default = 0) > pause_duration
-    ) |> pull("start")
+    ) |>
+    pull("start")
 
   breakpoints <- c(breakpoints, pauses) |> sort()
 
@@ -592,7 +641,7 @@ infer_agenda_from_transcript <- function(
     }
   }
 
-  last_segment <- max(transcript_data$start) - tail(breakpoints, n=1)
+  last_segment <- max(transcript_data$start) - tail(breakpoints, n = 1)
 
   # Adjust if the last segment is less than (window_size / 2) seconds
   if (last_segment < (window_size / 2)) {
@@ -612,7 +661,8 @@ infer_agenda_from_transcript <- function(
       diarization_instructions = diarization_instructions,
       start_time = start_time,
       expected_agenda = expected_agenda,
-      window_size = window_size)
+      window_size = window_size
+    )
   )
 
   # Reset the temporary agenda if the arguments have changed
@@ -620,7 +670,7 @@ infer_agenda_from_transcript <- function(
     options(
       "minutemaker_temp_agenda" = list(),
       "minutemaker_temp_agenda_last_bp" = NULL
-      )
+    )
   } else if (getOption("minutemaker_temp_agenda_hash", "") != arg_hash) {
     options(
       "minutemaker_temp_agenda" = list(),
@@ -644,7 +694,6 @@ infer_agenda_from_transcript <- function(
   cli::cli_alert("- Inferring the agenda from the transcript")
 
   while (isFALSE(stop)) {
-
     bp_left <- breakpoints[cur_bp]
     bp_right <- breakpoints[cur_bp + 1]
 
@@ -682,9 +731,14 @@ infer_agenda_from_transcript <- function(
     prompt <- generate_agenda_inference_prompt(
       transcript_segment,
       args = mget(
-        c("event_description", "vocabulary",
-          "diarization_instructions", "expected_agenda"),
-        ifnotfound = list(NULL))
+        c(
+          "event_description",
+          "vocabulary",
+          "diarization_instructions",
+          "expected_agenda"
+        ),
+        ifnotfound = list(NULL)
+      )
     )
 
     # Build the prompt set
@@ -700,21 +754,27 @@ infer_agenda_from_transcript <- function(
         prompt_set,
         assistant = result_json,
         user = "Your output was not a valid JSON.
-          Please correct it to provide a valid output.")
+          Please correct it to provide a valid output."
+      )
     }
 
     # Attempt to interrogate the LLM
-    result_json <- try(llmR::prompt_llm(
-      prompt_set,
-      ...,
-      force_json = TRUE
-    ) |> stringr::str_replace_all("\\n", " "), silent = TRUE)
+    result_json <- try(
+      llmR::prompt_llm(
+        prompt_set,
+        ...,
+        force_json = TRUE
+      ) |>
+        stringr::str_replace_all("\\n", " "),
+      silent = TRUE
+    )
 
     # If the interrogation fails due to too long output, retry with a smaller
     # window
-    if (inherits(result_json, "try-error") &&
-        grepl("Answer exhausted the context window", result_json)) {
-
+    if (
+      inherits(result_json, "try-error") &&
+        grepl("Answer exhausted the context window", result_json)
+    ) {
       cli::cli_warn("Answer exhausted the context window. Retrying...")
 
       # Add a new breakpoint in the middle of the current segment
@@ -726,9 +786,7 @@ infer_agenda_from_transcript <- function(
 
       next
     } else if (inherits(result_json, "try-error")) {
-
       cli::cli_abort("LLM interrogation failed with error: {result_json}")
-
     }
 
     cli::cli_verbatim(result_json)
@@ -737,33 +795,29 @@ infer_agenda_from_transcript <- function(
     parsed_result <- try(
       jsonlite::fromJSON(result_json, simplifyDataFrame = F)$start_times,
       silent = TRUE
-      )
+    )
 
     # If the parsing fails...
     if (inherits(parsed_result, "try-error")) {
-
       # If this is the first parsing error, retry with instructions to fix the
       # output
       if (!json_error) {
         cli::cli_warn(
           "Output not a valid JSON. retrying..."
-          )
+        )
 
         json_error <- TRUE
-      }
-      # If this is the second parsing error, shorten the window
+      } # If this is the second parsing error, shorten the window
       else {
-
         cli::cli_warn(
           "Output not a valid JSON. Shortening the window..."
-          )
+        )
 
         json_error <- FALSE
 
         # Add a new breakpoint in the middle of the current segment
         new_bp <- (bp_left + bp_right) / 2
         breakpoints <- sort(c(breakpoints, new_bp))
-
       }
 
       # Prevent stopping, in case the error happened on the last segment
@@ -782,7 +836,6 @@ infer_agenda_from_transcript <- function(
     if (cur_bp == length(breakpoints)) stop <- TRUE
 
     cur_bp <- cur_bp + 1
-
   }
 
   agenda_times <- getOption("minutemaker_temp_agenda", list())
@@ -793,17 +846,19 @@ infer_agenda_from_transcript <- function(
   }
 
   # Remove segments that are too short or that precede the previous one.
-  agenda_times <- agenda_times |> purrr::imap(\(x, i) {
-    if (i == 1) return(agenda_times[[i]])
+  agenda_times <- agenda_times |>
+    purrr::imap(\(x, i) {
+      if (i == 1) return(agenda_times[[i]])
 
-    this_time <- agenda_times[[i]]
-    prev_time <- agenda_times[[i - 1]]
+      this_time <- agenda_times[[i]]
+      prev_time <- agenda_times[[i - 1]]
 
-    # segments should last at least 5 minutes and not be negative
-    if (this_time - prev_time < 150) return(NULL)
+      # segments should last at least 5 minutes and not be negative
+      if (this_time - prev_time < 150) return(NULL)
 
-    return(this_time)
-  }) |> unlist()
+      return(this_time)
+    }) |>
+    unlist()
 
   cli::cli_alert("- Extracting agenda items details")
 
@@ -814,7 +869,8 @@ infer_agenda_from_transcript <- function(
     # Stop at the end of the transcript if there is no next agenda element
     end <- min(
       c(agenda_times[i + 1], max(transcript_data$end)),
-      na.rm = TRUE)
+      na.rm = TRUE
+    )
 
     # Stop at the pause if there is one in the talk segment
     pauses <- pauses[between(pauses, start, end)]
@@ -831,7 +887,8 @@ infer_agenda_from_transcript <- function(
       filter(
         .data$start >= element$from,
         .data$end <= element$to,
-      ) |> readr::format_csv()
+      ) |>
+      readr::format_csv()
 
     prompt <- generate_agenda_element_prompt(
       transcript_segment,
@@ -841,7 +898,8 @@ infer_agenda_from_transcript <- function(
       args = list(
         event_description = event_description,
         vocabulary = vocabulary,
-        diarization_instructions = diarization_instructions)
+        diarization_instructions = diarization_instructions
+      )
     )
 
     # Build the prompt set
@@ -852,7 +910,8 @@ infer_agenda_from_transcript <- function(
 
     result_json <- llmR::prompt_llm(
       prompt_set,
-      ..., force_json = TRUE
+      ...,
+      force_json = TRUE
     )
 
     jsonlite::fromJSON(result_json, simplifyDataFrame = F) |>
@@ -863,7 +922,8 @@ infer_agenda_from_transcript <- function(
     agenda <- agenda |>
       convert_agenda_times(
         convert_to = "clocktime",
-        event_start_time = start_time)
+        event_start_time = start_time
+      )
   }
 
   # Check for and resolve duplicate titles
@@ -900,7 +960,11 @@ infer_agenda_from_transcript <- function(
           Provide a new title for the second item in this exact JSON structure:
           {\"new_title\": \"your title here\"}",
           dup_title,
-          jsonlite::toJSON(agenda[[orig_idx]], auto_unbox = TRUE, pretty = TRUE),
+          jsonlite::toJSON(
+            agenda[[orig_idx]],
+            auto_unbox = TRUE,
+            pretty = TRUE
+          ),
           item_transcript
         ),
         assistant = "{" # Trick to force a JSON output
@@ -912,8 +976,7 @@ infer_agenda_from_transcript <- function(
         ...,
         force_json = TRUE
       ) |>
-        jsonlite::fromJSON()
-      )$new_title
+        jsonlite::fromJSON())$new_title
 
       # Update the agenda item with new title
       agenda[[idx]]$title <- new_title
@@ -956,12 +1019,11 @@ infer_agenda_from_transcript <- function(
 #' @export
 #'
 entity_extractor <- function(
-    text,
-    entities = c("people", "acronyms", "organizations", "concepts"),
-    prompt_only = FALSE,
-    ...
-    ) {
-
+  text,
+  entities = c("people", "acronyms", "organizations", "concepts"),
+  prompt_only = FALSE,
+  ...
+) {
   # Initialize the prompts
   set_prompts()
 
@@ -982,12 +1044,15 @@ entity_extractor <- function(
     "text, you should return a list with two keys, 'people' and 'organizations', ",
     "and the corresponding lists of entities as values.\n\n",
     if (length(acro_or_concepts) > 0) {
-      paste0("If you find", paste(acro_or_concepts, collapse = " or "),
-      "they should be returned list of strings, with each element ",
-      "formatted as 'entity: definition'",
-      "trying to infer the definition from the context. ",
-      "If you are not 100% sure, or it's self explanatory, just list the concepts",
-      "as strings.\n\n")
+      paste0(
+        "If you find",
+        paste(acro_or_concepts, collapse = " or "),
+        "they should be returned list of strings, with each element ",
+        "formatted as 'entity: definition'",
+        "trying to infer the definition from the context. ",
+        "If you are not 100% sure, or it's self explanatory, just list the concepts",
+        "as strings.\n\n"
+      )
     },
     "Here is an example of the expected output:\n\n",
     '```json
@@ -1004,7 +1069,8 @@ entity_extractor <- function(
    ]
  }
  ```',
-    "\n\n####\n\nProvide your JSON output below.")
+    "\n\n####\n\nProvide your JSON output below."
+  )
 
   if (prompt_only) {
     return(task)
@@ -1012,7 +1078,10 @@ entity_extractor <- function(
 
   llmR::prompt_llm(
     c("system" = get_prompts("persona"), "user" = task),
-    force_json = TRUE, ...) |>
+    force_json = TRUE,
+    ...
+  ) |>
     jsonlite::fromJSON() |>
-    unlist() |> unname()
+    unlist() |>
+    unname()
 }
