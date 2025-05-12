@@ -1,4 +1,3 @@
-
 #' Clean transcript
 #'
 #' Cleans a transcript by removing isolated text, consecutive segments with the

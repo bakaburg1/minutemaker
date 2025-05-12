@@ -1,4 +1,3 @@
-
 #' Builds IDs from each agenda item session and titles
 #'
 #' @param agenda A list containing the agenda items.

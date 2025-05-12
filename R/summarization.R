@@ -591,8 +591,7 @@ infer_agenda_from_transcript <- function(
     # Is the transcript a CSV file?
     if (stringr::str_detect(transcript, "\\.csv$")) {
       transcript_data <- readr::read_csv(transcript, show_col_types = FALSE)
-    } # Is the transcript a subtitle file?
-    else {
+    } else { # Is the transcript a subtitle file?
       transcript_data <- import_transcript_from_file(transcript)
     }
   } else if (is.data.frame(transcript)) {
@@ -807,8 +806,7 @@ infer_agenda_from_transcript <- function(
         )
 
         json_error <- TRUE
-      } # If this is the second parsing error, shorten the window
-      else {
+      } else { # If this is the second parsing error, shorten the window
         cli::cli_warn(
           "Output not a valid JSON. Shortening the window..."
         )

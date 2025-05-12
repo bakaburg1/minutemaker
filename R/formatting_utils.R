@@ -1,4 +1,3 @@
-
 #' Formats a summary tree into a human-readable text
 #'
 #' The summary functions returns a machine-readable summary tree. This function
