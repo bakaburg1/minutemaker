@@ -10,6 +10,7 @@ apply_llm_correction(
   terms = NULL,
   include_reasoning = getOption("minutemaker_include_llm_reasoning", TRUE),
   overwrite = FALSE,
+  max_retries = 2,
   ...
 )
 }
@@ -28,6 +29,10 @@ console. Defaults to \code{getOption("minutemaker_include_llm_reasoning",
 
 \item{overwrite}{Logical, if \code{TRUE}, existing files will be overwritten
 with the corrected transcript. Defaults to \code{FALSE}.}
+
+\item{max_retries}{Integer, maximum number of times to retry the LLM call
+per file if it fails (e.g., due to temporary API issues or parsing
+errors). Defaults to 2.}
 
 \item{...}{Additional arguments to be passed as parameters to the LLM call
 via \code{llmR::prompt_llm(params = list(...))}, e.g., \code{temperature},
