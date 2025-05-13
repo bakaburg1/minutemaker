@@ -161,7 +161,7 @@ speech_to_summary_workflow <- function(
   transcript_to_merge = list.files(
     target_dir,
     pattern = "\\.(vtt|srt)",
-    full.names = T
+    full.names = TRUE
   )[1],
   import_diarization_on_merge = TRUE,
 
@@ -208,6 +208,7 @@ speech_to_summary_workflow <- function(
   # Initialize agenda variable to track the actual agenda content
   agenda <- NULL
 
+  cli::cli_h1("Audio Preprocessing")
   ## Perform audio splitting ##
 
   # Check if the stt audio dir is empty or overwrite is TRUE
@@ -252,6 +253,7 @@ speech_to_summary_workflow <- function(
     )
   }
 
+  cli::cli_h1("Speech-to-Text Transcription")
   ## Perform speech to text ##
 
   # Check if the stt output folder is empty or overwrite is TRUE
@@ -308,6 +310,7 @@ speech_to_summary_workflow <- function(
 
   ## Perform LLM-based transcript correction (if enabled) ##
   if (isTRUE(enable_llm_correction)) {
+    cli::cli_h1("LLM-based Transcript Correction")
     cli::cli_alert("Applying LLM-based correction to transcript JSON files...")
 
     # Check if reasoning is enabled via options and issue an advisory message
@@ -340,10 +343,12 @@ speech_to_summary_workflow <- function(
     cli::cli_alert_success("LLM-based correction step completed.")
   }
 
+  cli::cli_h1("Transcript Processing")
   ## Create the transcript file ##
 
   # Check if the transcript file doesn't exists or overwrite is TRUE
   if (isTRUE(overwrite_transcript) || !file.exists(transcript_file)) {
+    cli::cli_alert("Generating transcript file...")
     # Generate the trascript from the json output data
     transcript_data <- parse_transcript_json(
       stt_output_dir,
@@ -395,6 +400,9 @@ speech_to_summary_workflow <- function(
       transcript_data,
       file = transcript_file
     )
+    cli::cli_alert_success(
+      "Transcript file created: {.path {basename(transcript_file)}}"
+    )
   } else {
     cli::cli_alert(
       "Loading existing transcript from
@@ -408,6 +416,7 @@ speech_to_summary_workflow <- function(
     )
   }
 
+  cli::cli_h1("Agenda Handling")
   ## Handle agenda selection/generation based on use_agenda parameter ##
 
   # If use_agenda is "no", set agenda to FALSE and force multipart_summary to
@@ -494,7 +503,8 @@ speech_to_summary_workflow <- function(
       # 1 = use existing (if file exists) or generate new (if no file)
       # 2 = generate new (if file exists) or no agenda (if no file)
       # 3 = no agenda (if file exists) or exit (if no file)
-      # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options when no file exists
+      # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options
+      #     when no file exists
 
       # Handle the choice
       if (
@@ -548,6 +558,7 @@ speech_to_summary_workflow <- function(
     multipart_summary <- FALSE
   }
 
+  cli::cli_h1("Summarization")
   cli::cli_alert("Summarizing transcript...")
 
   if (is.null(llm_provider)) {
@@ -638,6 +649,7 @@ speech_to_summary_workflow <- function(
     summarization_args$event_start_time <- event_start_time
     summary_tree <- do.call(summarise_full_meeting, summarization_args)
 
+    cli::cli_h1("Formatting Summary")
     ## Format summary tree ##
     cli::cli_alert("Formatting summary tree...")
 
@@ -651,11 +663,17 @@ speech_to_summary_workflow <- function(
     return_vec <- c("transcript_data", "summary_tree", "formatted_summary")
   }
 
+  cli::cli_h1("Output Generation")
   cli::cli_alert("Writing to file...")
 
   readr::write_lines(formatted_summary, formatted_output_file)
+  cli::cli_alert_success(
+    "Formatted summary written to {.path {basename(formatted_output_file)}}"
+  )
 
+  cli::cli_rule()
   cli::cli_alert_success("Workflow completed successfully.")
+  cli::cli_rule()
 
   return(mget(return_vec))
 }
