@@ -101,7 +101,7 @@ validate_agenda_element <- function(
             wrap = TRUE
           )
           is_valid <- FALSE
-          
+
           # Skip further parsing for this field if class is fundamentally wrong
           next
         }
@@ -129,11 +129,17 @@ validate_agenda_element <- function(
 
     # Comparison logic: only if both 'from' and 'to' were required AND are
     # non-NULL.
-    if (isTRUE(args[["from"]]) && isTRUE(args[["to"]]) &&
-        !is.null(agenda_element[["from"]]) && !is.null(agenda_element[["to"]])) {
-
-      can_compare_types <- inherits(agenda_element[["from"]], c("numeric", "POSIXct", "character")) &&
-                           inherits(agenda_element[["to"]], c("numeric", "POSIXct", "character"))
+    if (
+      isTRUE(args[["from"]]) &&
+        isTRUE(args[["to"]]) &&
+        !is.null(agenda_element[["from"]]) &&
+        !is.null(agenda_element[["to"]])
+    ) {
+      can_compare_types <- inherits(
+        agenda_element[["from"]],
+        c("numeric", "POSIXct", "character")
+      ) &&
+        inherits(agenda_element[["to"]], c("numeric", "POSIXct", "character"))
 
       if (can_compare_types) {
         if (!identical(class(agenda_element$from), class(agenda_element$to))) {
@@ -156,7 +162,11 @@ validate_agenda_element <- function(
         from_numeric <- suppressWarnings(time_to_numeric(agenda_element$from))
         to_numeric <- suppressWarnings(time_to_numeric(agenda_element$to))
 
-        if (!is.na(from_numeric) && !is.na(to_numeric) && from_numeric > to_numeric) {
+        if (
+          !is.na(from_numeric) &&
+            !is.na(to_numeric) &&
+            from_numeric > to_numeric
+        ) {
           cli::cli_warn(
             c(
               "Agenda element validation failed:",
