@@ -107,6 +107,13 @@ time_to_numeric <- function(time, origin = NULL) {
   # time units
   diff <- as.numeric(time) - as.numeric(origin)
 
+  if (is.na(diff)) {
+    # If diff is NA (e.g., due to unparseable input to parse_event_time), return
+    # NA_real_ directly. Warnings from parse_event_time would have already
+    # occurred.
+    return(NA_real_)
+  }
+
   if (diff < 0) {
     cli::cli_abort(
       c(
