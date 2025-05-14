@@ -23,11 +23,13 @@ create_sample_agenda <- function(n_items = 3) {
       session = paste0("Session", .x),
       title = paste0("Talk", .x),
       from = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") + lubridate::hours(.x - 1),
+        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+          lubridate::hours(.x - 1),
         "%H:%M"
       ),
       to = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") + lubridate::hours(.x),
+        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+          lubridate::hours(.x),
         "%H:%M"
       )
     )
@@ -35,13 +37,13 @@ create_sample_agenda <- function(n_items = 3) {
 }
 
 test_that("build_ids_from_agenda handles empty agenda", {
-  expect_length(build_ids_from_agenda(list()), 0)
+  build_ids_from_agenda(list()) |> testthat::expect_length(0)
 })
 
 test_that("build_ids_from_agenda creates correct IDs with session", {
   agenda <- create_sample_agenda(2)
   ids <- build_ids_from_agenda(agenda)
-  
+
   expect_length(ids, 2)
   expect_identical(ids[1], "Session1_Talk1")
   expect_identical(ids[2], "Session2_Talk2")
@@ -53,7 +55,7 @@ test_that("build_ids_from_agenda handles NULL titles", {
     list(session = "Session2", title = NULL)
   )
   ids <- build_ids_from_agenda(agenda)
-  
+
   expect_length(ids, 2)
   expect_identical(ids[1], "Session1_1")
   expect_identical(ids[2], "Session2_2")
@@ -65,7 +67,7 @@ test_that("build_ids_from_agenda handles NULL sessions", {
     list(session = NULL, title = "Talk2")
   )
   ids <- build_ids_from_agenda(agenda)
-  
+
   expect_length(ids, 2)
   expect_identical(ids[1], "Talk1")
   expect_identical(ids[2], "Talk2")
@@ -73,36 +75,92 @@ test_that("build_ids_from_agenda handles NULL sessions", {
 
 test_that("convert_agenda_times validates input times with specific warnings and error", {
   # Invalid 'from' time
+  # to = "10:00" by default
   invalid_from_item <- create_agenda_item(from = "invalid")
-  expect_snapshot(error = TRUE, {
+  env_from <- rlang::current_env()
+  env_from$warn_list_from <- c()
+
+  converted_item_from <- withCallingHandlers(
     convert_agenda_times(
       invalid_from_item,
       convert_to = "seconds",
       event_start_time = "09:00"
-    )
-  })
+    ),
+    warning = function(w) {
+      env_from$warn_list_from <- c(
+        env_from$warn_list_from,
+        rlang::cnd_message(w)
+      )
+      rlang::cnd_muffle(w)
+    }
+  )
+
+  expect_true(is.na(converted_item_from$from))
+  # Assuming event_start_time="09:00", to="10:00"
+  expect_equal(converted_item_from$to, 3600)
+
+  expect_length(env_from$warn_list_from, 2)
+  grep(
+    "All formats failed to parse. No formats found.",
+    env_from$warn_list_from,
+    fixed = TRUE
+  ) |>
+    expect_length(1)
+  grep(
+    "Agenda element field from time not interpretable: \"invalid\"",
+    env_from$warn_list_from
+  ) |>
+    expect_length(1)
 
   # Invalid 'to' time
+  # from = "09:00" by default
   invalid_to_item <- create_agenda_item(to = "invalid")
-  expect_snapshot(error = TRUE, {
+  env_to <- rlang::current_env()
+  env_to$warn_list_to <- c()
+
+  converted_item_to <- withCallingHandlers(
     convert_agenda_times(
       invalid_to_item,
       convert_to = "seconds",
       event_start_time = "09:00"
-    )
-  })
+    ),
+    warning = function(w) {
+      env_to$warn_list_to <- c(env_to$warn_list_to, rlang::cnd_message(w))
+      rlang::cnd_muffle(w)
+    }
+  )
+
+  expect_true(is.na(converted_item_to$to))
+  # Assuming event_start_time="09:00", from="09:00"
+  expect_equal(converted_item_to$from, 0)
+
+  expect_length(env_to$warn_list_to, 2)
+  grep(
+    "All formats failed to parse. No formats found.",
+    env_to$warn_list_to,
+    fixed = TRUE
+  ) |>
+    expect_length(1)
+  grep(
+    "Agenda element field to time not interpretable: \"invalid\"",
+    env_to$warn_list_to
+  ) |>
+    expect_length(1)
 })
 
 test_that("convert_agenda_times handles single agenda item", {
   item <- create_agenda_item(from = "09:00", to = "10:00")
   # This case should not produce warnings or errors with valid input
-  expect_no_warning(converted <- convert_agenda_times(
-    item,
-    convert_to = "seconds",
-    event_start_time = "09:00"
-  ))
-  expect_no_error(converted) # Redundant if expect_no_warning passed and assigned
-  
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      item,
+      convert_to = "seconds",
+      event_start_time = "09:00"
+    )
+  )
+  # Redundant if expect_no_warning passed and assigned
+  expect_no_error(converted)
+
   expect_type(converted$from, "double")
   expect_type(converted$to, "double")
   expect_equal(converted$from, 0)
@@ -112,13 +170,15 @@ test_that("convert_agenda_times handles single agenda item", {
 test_that("convert_agenda_times converts clock time to seconds", {
   agenda <- create_sample_agenda(2)
   # Should not produce warnings with valid inputs
-  expect_no_warning(converted <- convert_agenda_times(
-    agenda,
-    convert_to = "seconds",
-    event_start_time = "09:00"
-  ))
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      agenda,
+      convert_to = "seconds",
+      event_start_time = "09:00"
+    )
+  )
   expect_no_error(converted)
-  
+
   expect_type(converted[[1]]$from, "double")
   expect_type(converted[[1]]$to, "double")
   expect_equal(converted[[1]]$from, 0)
@@ -132,13 +192,15 @@ test_that("convert_agenda_times converts seconds to clock time", {
     list(from = 0, to = 3600),
     list(from = 3600, to = 7200)
   )
-  expect_no_warning(converted <- convert_agenda_times(
-    agenda,
-    convert_to = "clocktime",
-    event_start_time = "09:00"
-  ))
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      agenda,
+      convert_to = "clocktime",
+      event_start_time = "09:00"
+    )
+  )
   expect_no_error(converted)
-  
+
   expect_type(converted[[1]]$from, "character")
   expect_type(converted[[1]]$to, "character")
   expect_equal(converted[[1]]$from, "09:00:00")
@@ -151,39 +213,43 @@ test_that("convert_agenda_times handles custom event start time", {
   agenda <- create_sample_agenda(1)
   agenda[[1]]$from <- "15:00"
   agenda[[1]]$to <- "16:00"
-  
-  expect_no_warning(converted <- convert_agenda_times(
-    agenda,
-    convert_to = "seconds",
-    event_start_time = "14:00"
-  ))
+
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      agenda,
+      convert_to = "seconds",
+      event_start_time = "14:00"
+    )
+  )
   expect_no_error(converted)
-  
+
   expect_equal(converted[[1]]$from, 3600)
   expect_equal(converted[[1]]$to, 7200)
 })
 
 test_that("convert_agenda_times handles POSIXct event start time", {
   start_time <- lubridate::ymd_hms("2024-01-01 14:00:00", tz = "UTC")
-  
+
   agenda <- list(
     list(
       from = lubridate::ymd_hms("2024-01-01 15:00:00", tz = "UTC"),
       to = lubridate::ymd_hms("2024-01-01 16:00:00", tz = "UTC")
     )
   )
-  
+
   stopifnot(!is.na(start_time))
   stopifnot(!is.na(agenda[[1]]$from))
   stopifnot(!is.na(agenda[[1]]$to))
-  
-  expect_no_warning(converted <- convert_agenda_times(
-    agenda,
-    convert_to = "seconds",
-    event_start_time = start_time
-  ))
+
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      agenda,
+      convert_to = "seconds",
+      event_start_time = start_time
+    )
+  )
   expect_no_error(converted)
-  
+
   expect_equal(converted[[1]]$from, 3600)
   expect_equal(converted[[1]]$to, 7200)
 })
@@ -198,13 +264,47 @@ test_that("convert_agenda_times warns when no event start time provided", {
 
 test_that("convert_agenda_times handles mixed time formats with specific warnings and error", {
   mixed_agenda <- list(
-    list(from = "09:00", to = 3600), # item 1: char, num
-    list(from = 3600, to = "11:00")  # item 2: num, char
+    list(from = "09:00", to = 3600), # item 1: char, num. "09:00" is 32400s.
+    list(from = 3600, to = "11:00") # item 2: num, char
   )
-  
-  expect_snapshot(error = TRUE, {
-    convert_agenda_times(mixed_agenda)
-  })
+
+  env_mixed <- rlang::current_env()
+  env_mixed$warn_list_mixed <- c()
+
+  expect_error(
+    withCallingHandlers(
+      convert_agenda_times(mixed_agenda),
+      warning = function(w) {
+        env_mixed$warn_list_mixed <- c(
+          env_mixed$warn_list_mixed,
+          rlang::cnd_message(w)
+        )
+        rlang::cnd_muffle(w)
+      }
+    ),
+    regexp = "Agenda times must be all of the same class across the agenda.",
+    fixed = TRUE
+  )
+
+  expect_length(env_mixed$warn_list_mixed, 3)
+  # Check for W_class_item1
+  grep(
+    "from and to times are not of the same class.*from.*<character>.*09:00.*to.*<numeric>.*3600",
+    env_mixed$warn_list_mixed
+  ) |>
+    expect_length(1)
+  # Check for W_order_item1
+  grep(
+    "'from' time should precede 'to' time.*from: \"09:00\".*to: 3600",
+    env_mixed$warn_list_mixed
+  ) |>
+    expect_length(1)
+  # Check for W_class_item2
+  grep(
+    "from and to times are not of the same class.*from.*<numeric>.*3600.*to.*<character>.*11:00",
+    env_mixed$warn_list_mixed
+  ) |>
+    expect_length(1)
 })
 
 test_that("convert_agenda_times handles invalid event start time format", {
@@ -217,16 +317,18 @@ test_that("convert_agenda_times handles invalid event start time format", {
 
 test_that("convert_agenda_times respects custom conversion format", {
   agenda <- list(list(from = 0, to = 3600))
-  expect_no_warning(converted <- convert_agenda_times(
-    agenda,
-    convert_to = "clocktime",
-    event_start_time = "09:00",
-    conversion_format = "%R"
-  ))
+  expect_no_warning(
+    converted <- convert_agenda_times(
+      agenda,
+      convert_to = "clocktime",
+      event_start_time = "09:00",
+      conversion_format = "%R"
+    )
+  )
   expect_no_error(converted)
-  
+
   expect_equal(converted[[1]]$from, "09:00")
   expect_equal(converted[[1]]$to, "10:00")
 })
 
-cat("\nAll testthat tests for agenda_management.R defined.\n") 
+cat("\nAll testthat tests for agenda_management.R defined.\n")

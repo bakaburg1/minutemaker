@@ -680,7 +680,6 @@ Apply these rules to your JSON output if corrections are made:
   )
 
   if (inherits(corrections_map, "try-error")) {
-
     corrections_map <- as.character(corrections_map)
     cli::cli_warn(
       c(

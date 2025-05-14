@@ -143,19 +143,23 @@ test_that("correct_transcription_errors handles malformed XML tags", {
       regexp = "did not contain the expected XML wrapper tags"
     )
     expect_identical(res_incomplete$status, "parsing_failed")
-    
+
     # Test incomplete closing tag
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) "<json_corrections_output>{\"key\": \"value\"}</json_corrections",
+      prompt_llm = function(...)
+        "<json_corrections_output>{\"key\": \"value\"}</json_corrections",
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     expect_warning(
-      res_incomplete_close <- correct_transcription_errors("Some text", terms = NULL),
+      res_incomplete_close <- correct_transcription_errors(
+        "Some text",
+        terms = NULL
+      ),
       regexp = "did not contain the expected XML wrapper tags"
     )
     expect_identical(res_incomplete_close$status, "parsing_failed")
-    
+
     # Test wrong tag names
     testthat::local_mocked_bindings(
       prompt_llm = function(...) "<wrong_tag>{\"key\": \"value\"}</wrong_tag>",
@@ -321,14 +325,18 @@ test_that("correct_transcription_errors model selection logic", {
         correct_transcription_errors("text", terms = NULL),
         "reverting to general model"
       )
-      expect_true(any(grepl("general_fallback_model", set_model_calls_2)))
+
+      grep("general_fallback_model", set_model_calls_2) |>
+        length() |>
+        expect_gt(0)
     }
   )
 
   withr::with_options(
     list(minutemaker_correction_llm_model = NULL, llmr_current_model = NULL),
     {
-      # No set_llmr_model mock here as it should error before trying to set model if none are configured.
+      # No set_llmr_model mock here as it should error before trying to set
+      # model if none are configured.
       expect_error(
         correct_transcription_errors("text", terms = NULL),
         "LLM model for correction not set"
@@ -694,34 +702,37 @@ test_that("correct_transcription_errors handles mixed XML content", {
   withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
     # Test content before XML tags
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) paste0(
-        "Some text before ",
-        mock_llm_response_success("{\"key\": \"value\"}")
-      ),
+      prompt_llm = function(...)
+        paste0(
+          "Some text before ",
+          mock_llm_response_success("{\"key\": \"value\"}")
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     res_before <- correct_transcription_errors("Some text", terms = NULL)
     expect_identical(res_before$status, "no_changes_signal")
-    
+
     # Test content after XML tags
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) paste0(
-        mock_llm_response_success("{\"key\": \"value\"}"),
-        " Some text after"
-      ),
+      prompt_llm = function(...)
+        paste0(
+          mock_llm_response_success("{\"key\": \"value\"}"),
+          " Some text after"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     res_after <- correct_transcription_errors("Some text", terms = NULL)
     expect_identical(res_after$status, "no_changes_signal")
-    
+
     # Test multiple XML tag sets
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) paste0(
-        mock_llm_response_success("{\"key1\": \"value1\"}"),
-        mock_llm_response_success("{\"key2\": \"value2\"}")
-      ),
+      prompt_llm = function(...)
+        paste0(
+          mock_llm_response_success("{\"key1\": \"value1\"}"),
+          mock_llm_response_success("{\"key2\": \"value2\"}")
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
@@ -734,45 +745,52 @@ test_that("correct_transcription_errors handles invalid JSON values", {
   withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
     # Test non-string values
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"key\": \"123\", \"another_key\": \"true\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"key\": \"123\", \"another_key\": \"true\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
-    res_non_string <- correct_transcription_errors("key another_key", terms = NULL)
+    res_non_string <- correct_transcription_errors(
+      "key another_key",
+      terms = NULL
+    )
     expect_identical(res_non_string$status, "corrections_applied")
     expect_identical(res_non_string$corrected_text, "123 true")
-    
+
     # Test nested objects
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"key\": \"value\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"key\": \"value\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     res_nested <- correct_transcription_errors("key", terms = NULL)
     expect_identical(res_nested$status, "corrections_applied")
     expect_identical(res_nested$corrected_text, "value")
-    
+
     # Test arrays as values
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"key\": \"value1,value2\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"key\": \"value1,value2\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     res_array <- correct_transcription_errors("key", terms = NULL)
     expect_identical(res_array$status, "corrections_applied")
     expect_identical(res_array$corrected_text, "value1,value2")
-    
+
     # Test empty string keys/values
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"nonempty\": \"value\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"nonempty\": \"value\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
@@ -786,21 +804,23 @@ test_that("correct_transcription_errors handles Unicode and special characters",
   withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
     # Test Unicode escapes
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"\\u00E9t\\u00E9\": \"\\u00E9t\\u00E9 fixed\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"\\u00E9t\\u00E9\": \"\\u00E9t\\u00E9 fixed\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
     res_unicode <- correct_transcription_errors("été", terms = NULL)
     expect_identical(res_unicode$status, "corrections_applied")
     expect_identical(res_unicode$corrected_text, "été fixed")
-    
+
     # Test special characters in keys/values
     testthat::local_mocked_bindings(
-      prompt_llm = function(...) mock_llm_response_success(
-        "{\"key\\nwith\\nnewlines\": \"value\\twith\\ttabs\", \"key\\\"with\\\"quotes\": \"value\\\\with\\\\backslashes\"}"
-      ),
+      prompt_llm = function(...)
+        mock_llm_response_success(
+          "{\"key\\nwith\\nnewlines\": \"value\\twith\\ttabs\", \"key\\\"with\\\"quotes\": \"value\\\\with\\\\backslashes\"}"
+        ),
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
