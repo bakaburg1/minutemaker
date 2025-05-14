@@ -101,6 +101,7 @@ convert_agenda_times <- function(
       cli::cli_abort("Invalid event start time format.")
     }
   } else if (
+    length(agenda) > 0 &&
     agenda[[1]]$from |>
       inherits(c("POSIXct", "character")) &&
       convert_to == "seconds"
