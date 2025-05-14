@@ -114,16 +114,15 @@ validate_agenda_element <- function(
       }
     }
 
-    if (class(agenda_element$from) != class(agenda_element$to)) {
+    if (!identical(class(agenda_element$from), class(agenda_element$to))) {
       cli::cli_warn(
         c(
           "Agenda element validation failed:",
-          "i" = "Element details:
-            {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
-          "x" = "The agenda element times are not of the same class:",
-          " " = "from ({.cls {class(agenda_element$from)}}):
+          "x" = "The agenda element {.field from} and {.field to} times
+            are not of the same class:",
+          "i" = "from ({.cls {class(agenda_element$from)}}):
             {.val {agenda_element$from}}",
-          " " = "to ({.cls {class(agenda_element$to)}}):
+          "i" = "to ({.cls {class(agenda_element$to)}}):
             {.val {agenda_element$to}}"
         ),
         wrap = TRUE
