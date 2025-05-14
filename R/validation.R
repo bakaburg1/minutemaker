@@ -70,83 +70,108 @@ validate_agenda_element <- function(
   is_valid <- all(el_checks)
 
   if (isTRUE(from) || isTRUE(to)) {
-    # Check if the times are interpretable
-    for (time in c("from", "to")) {
-      # Convert integer times to numeric to simplify the validation
-      if (inherits(agenda_element[[time]], "integer")) {
-        agenda_element[[time]] <- as.numeric(agenda_element[[time]])
+    for (field_name in c("from", "to")) {
+      if (isTRUE(args[[field_name]])) {
+        # Check if the field (e.g., args$from) is required
+        current_time_val <- agenda_element[[field_name]]
+
+        if (is.null(current_time_val)) {
+          # If NULL, it means a required time field is missing.
+          # el_checks should have already set is_valid to FALSE.
+          # Skip further processing for this specific NULL field.
+          next
+        }
+
+        if (inherits(current_time_val, "integer")) {
+          current_time_val <- as.numeric(current_time_val)
+          # Update for later class comparison
+          agenda_element[[field_name]] <- current_time_val
+        }
+
+        if (!inherits(current_time_val, c("numeric", "POSIXct", "character"))) {
+          cli::cli_warn(
+            c(
+              "Agenda element validation failed:",
+              "i" = "Element details:
+                {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+              "x" = "Agenda element field {.field {field_name}} must be numeric,
+                character, or POSIXct, but it's class
+                {.cls {class(current_time_val)}}."
+            ),
+            wrap = TRUE
+          )
+          is_valid <- FALSE
+          
+          # Skip further parsing for this field if class is fundamentally wrong
+          next
+        }
+
+        if (is.character(current_time_val)) {
+          # parse_event_time itself warns if it fails. We want to capture that
+          # this field is uninterpretable for validate_agenda_element's logic.
+          if (is.na(suppressWarnings(parse_event_time(current_time_val)))) {
+            cli::cli_warn(
+              c(
+                "Agenda element validation failed:",
+                "i" = "Element details:
+                  {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+                "x" = "Agenda element field
+                  {.field {field_name}} time not interpretable:
+                  {.val {current_time_val}}"
+              ),
+              wrap = TRUE
+            )
+            is_valid <- FALSE
+          }
+        }
       }
+    } # End for loop over "from", "to"
 
-      if (
-        !inherits(agenda_element[[time]], c("numeric", "POSIXct", "character"))
-      ) {
-        cli::cli_warn(
-          c(
-            "Agenda element validation failed:",
-            "i" = "Element details:
-              {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
-            "x" = "Agenda element field {.field {time}} must be numeric,
-            character, or POSIXct, but it's class
-            {.cls {class(agenda_element[[time]])}}."
-          ),
-          wrap = TRUE
-        )
+    # Comparison logic: only if both 'from' and 'to' were required AND are
+    # non-NULL.
+    if (isTRUE(args[["from"]]) && isTRUE(args[["to"]]) &&
+        !is.null(agenda_element[["from"]]) && !is.null(agenda_element[["to"]])) {
 
-        is_valid <- FALSE
+      can_compare_types <- inherits(agenda_element[["from"]], c("numeric", "POSIXct", "character")) &&
+                           inherits(agenda_element[["to"]], c("numeric", "POSIXct", "character"))
+
+      if (can_compare_types) {
+        if (!identical(class(agenda_element$from), class(agenda_element$to))) {
+          cli::cli_warn(
+            c(
+              "Agenda element validation failed:",
+              "x" = "The agenda element {.field from} and {.field to}
+                times are not of the same class:",
+              "i" = "from ({.cls {class(agenda_element$from)}}):
+                {.val {agenda_element$from}}",
+              "i" = "to ({.cls {class(agenda_element$to)}}):
+                {.val {agenda_element$to}}"
+            ),
+            wrap = TRUE
+          )
+          is_valid <- FALSE
+        }
+
+        # Order check: only if both also successfully convert to numeric
+        from_numeric <- suppressWarnings(time_to_numeric(agenda_element$from))
+        to_numeric <- suppressWarnings(time_to_numeric(agenda_element$to))
+
+        if (!is.na(from_numeric) && !is.na(to_numeric) && from_numeric > to_numeric) {
+          cli::cli_warn(
+            c(
+              "Agenda element validation failed:",
+              "i" = "Element details:
+                {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
+              "x" = "Agenda element 'from' time should precede 'to' time:",
+              " " = "from: {.val {agenda_element$from}}",
+              " " = "to: {.val {agenda_element$to}}"
+            ),
+            wrap = TRUE
+          )
+
+          is_valid <- FALSE
+        }
       }
-
-      if (
-        !is.numeric(agenda_element[[time]]) &&
-          is.na(parse_event_time(agenda_element[[time]]))
-      ) {
-        cli::cli_warn(
-          c(
-            "Agenda element validation failed:",
-            "i" = "Element details:
-              {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
-            "x" = "Agenda element field {.field {time}} time not interpretable:
-            {.val {agenda_element[[time]]}}"
-          ),
-          wrap = TRUE
-        )
-
-        is_valid <- FALSE
-      }
-    }
-
-    if (!identical(class(agenda_element$from), class(agenda_element$to))) {
-      cli::cli_warn(
-        c(
-          "Agenda element validation failed:",
-          "x" = "The agenda element {.field from} and {.field to} times
-            are not of the same class:",
-          "i" = "from ({.cls {class(agenda_element$from)}}):
-            {.val {agenda_element$from}}",
-          "i" = "to ({.cls {class(agenda_element$to)}}):
-            {.val {agenda_element$to}}"
-        ),
-        wrap = TRUE
-      )
-
-      is_valid <- FALSE
-    }
-
-    if (
-      time_to_numeric(agenda_element$from) > time_to_numeric(agenda_element$to)
-    ) {
-      cli::cli_warn(
-        c(
-          "Agenda element validation failed:",
-          "i" = "Element details:
-            {.code {deparse(agenda_element) |> paste(collapse = '\\n')}}",
-          "x" = "Agenda element 'from' time should precede 'to' time:",
-          " " = "from: {.val {agenda_element$from}}",
-          " " = "to: {.val {agenda_element$to}}"
-        ),
-        wrap = TRUE
-      )
-
-      is_valid <- FALSE
     }
   }
 
@@ -206,9 +231,6 @@ validate_agenda <- function(
     return(FALSE)
   }
 
-  # Initialize the validation result
-  is_valid <- TRUE
-
   if (purrr::is_empty(agenda)) {
     cli::cli_warn(
       c(
@@ -224,7 +246,8 @@ validate_agenda <- function(
     cli::cli_warn(
       c(
         general_warn,
-        "x" = "The agenda must be a list or a file path, but it's class {.cls {class(agenda)}}."
+        "x" = "The agenda must be a list or a file path,
+        but it's class {.cls {class(agenda)}}."
       )
     )
 
@@ -244,7 +267,7 @@ validate_agenda <- function(
       c(
         general_warn,
         "x" = "After potential loading from file, the agenda is not a list,
-        it's class {.cls {class(agenda)}}."
+          it's class {.cls {class(agenda)}}."
       ),
       wrap = TRUE
     )
