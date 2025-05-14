@@ -102,8 +102,8 @@ convert_agenda_times <- function(
     }
   } else if (
     length(agenda) > 0 &&
-    agenda[[1]]$from |>
-      inherits(c("POSIXct", "character")) &&
+      agenda[[1]]$from |>
+        inherits(c("POSIXct", "character")) &&
       convert_to == "seconds"
   ) {
     # Use the first agenda time otherwise
