@@ -271,7 +271,9 @@ apply_llm_correction <- function(
     }
 
     # Silence the linter for variables used in string templates only
-    write_message_type
+    if (exists("write_message_type")) {
+      write_message_type
+    }
 
     if (should_write) {
       tryCatch(
@@ -678,16 +680,18 @@ Apply these rules to your JSON output if corrections are made:
   )
 
   if (inherits(corrections_map, "try-error")) {
+
+    corrections_map <- as.character(corrections_map)
     cli::cli_warn(
       c(
-        "!" = "JSON parsing failed: {.str {corrections_map$message}}",
+        "!" = "JSON parsing failed: {.str {corrections_map}}",
         "i" = "Candidate string:
           {.val {substr(json_candidate_string, 1, 50)}}..."
       )
     )
 
     # Return original if LLM call issues or empty response.
-    failed_parsing_return_struct$error_message <- corrections_map$message
+    failed_parsing_return_struct$error_message <- corrections_map
 
     return(failed_parsing_return_struct)
   }
