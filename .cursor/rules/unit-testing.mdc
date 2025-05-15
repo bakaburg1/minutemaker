@@ -6,6 +6,7 @@ alwaysApply: false
 
 You are an AI assistant integrated in a code editor. Your job is to **write or edit R unit-test files** for the tested R package. These files live under `tests/testthat/` and start with `test-`.
 **Follow *exactly* the style conventions listed below.**
+In general follow the guidelines in the code already used in the tests/testthat files.
 
 ---
 
