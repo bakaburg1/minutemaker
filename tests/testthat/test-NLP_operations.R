@@ -280,7 +280,8 @@ describe("compute_text_sim", {
   # Use low dimensions/iterations for speed. Force overwrite to ensure this
   # specific model is generated for this test block, avoiding interference from
   # other tests' caching.
-  embedding_matrix_sim <- generate_glove_model( # Renamed to avoid clashes
+  embedding_matrix_sim <- generate_glove_model(
+    # Renamed to avoid clashes
     text = corpus_for_sim_tests,
     dimensions = 10,
     iterations = 10,
@@ -363,7 +364,11 @@ describe("compute_text_sim", {
     # `c("")`) would be empty.
 
     y_texts <- c("some text", "another text")
-    sim_scores_oov <- compute_text_sim(x_text_oov, y_texts, embedding_matrix_sim)
+    sim_scores_oov <- compute_text_sim(
+      x_text_oov,
+      y_texts,
+      embedding_matrix_sim
+    )
     expect_true(
       all(is.na(sim_scores_oov)),
       info = "All scores should be NA if x_text embedding is empty (OOV)."
@@ -393,7 +398,11 @@ describe("compute_text_sim", {
       "####" # Tokenizes to c(""), should be NA as "" is not in this vocab
     )
 
-    sim_scores <- compute_text_sim(x_text, y_texts_with_oov, embedding_matrix_sim)
+    sim_scores <- compute_text_sim(
+      x_text,
+      y_texts_with_oov,
+      embedding_matrix_sim
+    )
 
     expect_false(
       is.na(sim_scores[1]),
@@ -428,7 +437,10 @@ describe("compute_text_sim", {
     # For this specific test, we generate a local embedding matrix to avoid
     # interference from the global `embedding_matrix_sim` or its options.
     # Also, manage options locally for this model generation.
-    local_options_state <- options(minutemaker_data_merge_hash = NULL, minutemaker_data_merge_model = NULL)
+    local_options_state <- options(
+      minutemaker_data_merge_hash = NULL,
+      minutemaker_data_merge_model = NULL
+    )
     withr::defer(options(local_options_state)) # Restore original options
 
     embedding_matrix_single <- generate_glove_model(
