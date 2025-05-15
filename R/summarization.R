@@ -144,13 +144,33 @@ summarise_transcript <- function(
   vocabulary = NULL,
   consider_diarization = TRUE,
 
-  summary_structure = get_prompts("summary_structure"),
+  summary_structure = NULL,
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
 
   prompt_only = FALSE,
   ...
 ) {
+  # Validate transcript_data
+  if (
+    is.null(transcript_data) ||
+      !(is.character(transcript_data) ||
+        is.data.frame(transcript_data) ||
+        is.list(transcript_data))
+  ) {
+    cli::cli_abort(
+      "`transcript_data` must be a character vector or a data frame."
+    )
+  }
+
+  # Validate output_length
+  if (
+    !rlang::is_scalar_integerish(output_length) ||
+      output_length < 1
+  ) {
+    cli::cli_abort("`output_length` must be a positive integer.")
+  }
+
   method <- match.arg(method)
 
   args <- as.list(environment())
@@ -158,13 +178,16 @@ summarise_transcript <- function(
   # Set the default prompts if not already set
   set_prompts()
 
-  # Revert to simple summarisation if the transcript argument is not of the
-  # correct type
+  if (is.null(summary_structure)) {
+    summary_structure <- get_prompts("summary_structure")
+  }
+
+  # Abort if the transcript argument is not of the correct type
   if (
     method == "rolling" &&
-      (is.data.frame(transcript_data) &&
+      ((is.data.frame(transcript_data) &&
         !"start" %in% names(transcript_data)) ||
-      (!is.data.frame(transcript_data) && length(transcript_data) == 1)
+        (!is.data.frame(transcript_data) && length(transcript_data) == 1))
   ) {
     cli::cli_abort(
       c(
