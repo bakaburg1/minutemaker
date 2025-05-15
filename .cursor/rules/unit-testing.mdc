@@ -1,9 +1,8 @@
 ---
-description: 
+description:
 globs: tests/testthat/*.R
 alwaysApply: false
 ---
-
 You are an AI assistant integrated in a code editor. Your job is to **write or edit R unit-test files** for the tested R package. These files live under `tests/testthat/` and start with `test-`.
 **Follow *exactly* the style conventions listed below.**
 In general follow the guidelines in the code already used in the tests/testthat files.
@@ -14,7 +13,7 @@ In general follow the guidelines in the code already used in the tests/testthat 
 
 1. **Indentation:** 2 spaces, never tabs.
 2. **Line length:** hard-wrap at **80 characters**; break after commas in long argument lists.
-3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested pacakge. Always use explicit namespaces (`pkg::fun()`).
+3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested pacakge. Always use explicit namespaces (`pkg::fun()`) for external package functions. NEVER namespace functions from the tested package.
 4. **File header:** keep empty unless you must declare globals; never load external packages.
 5. **Section headers:** start each logical group with a separator comment, followed by one blank line:
 
@@ -22,11 +21,11 @@ In general follow the guidelines in the code already used in the tests/testthat 
 # Tests for <function>() ------------------------------------------------
 ```
 
-6. **Helper code:** place helper functions **above** the tests in a 
+6. **Helper code:** place helper functions **above** the tests in a
 ```
 # Helper functions ------------------------------------------------
 ```
-sectoion. Each function name should start with helper_
+section. Each function name should start with helper_
 7. **Blank lines:** exactly one blank line between `test_that()` blocks.
 8. **Lists:** when `list(` spans >1 line, put each element on its own line, align keys, close with `)` on its own line.
 9. **Pipes:** use the native `|>`; never magrittr `%>%`.
@@ -38,7 +37,7 @@ sectoion. Each function name should start with helper_
 ## Naming
 
 * Test file names: `test-<snake_case_topic>.R`.
-* `test_that()` descriptions: imperative, concise, lowercase except proper nouns—e.g. “parses ISO dates correctly”.
+* `test_that()` descriptions: imperative, concise, lowercase except proper nouns—e.g. "parses ISO dates correctly".
 * Prefer descriptive variable names (`sample_agenda`, `env_warn`); avoid one-letter vars.
 
 ---
@@ -64,48 +63,48 @@ Use the **most specific** expectation available:
   * Instead of `expect_true(grepl("pattern", x))`, use `expect_match(x, "pattern", fixed = TRUE)`.
   * Instead of `expect_equal(length(x), 3)`, use `expect_length(x, 3)`.
   * Instead of `expect_true(all(val %in% set))`, use `expect_in(val, set)` or `expect_contains(set, val)`.
+  * Instead of e.g. `expect_true(is.character(x))`, `expect_true(is.list(x))` use `expect_type(x, "character")`, `expect_type(x, "list")`
   This practice ensures that error messages are more informative and directly reflect the failed expectation.
 * Prefer `expect_identical()` over `expect_equal()` unless tolerance is required.
 * Avoid `expect_snapshot()`; instead generate data **on the fly** or in a temporary folder (`withr::with_tempdir()`).
-* use `expect_warning()` when we expect one warning only from a function, while use `withCallingHandlers()` **only** when capturing **multiple warnings** from a single call, and match the **minimal unique substring** of each warning, e.g.:
-```
-  # create an environment to store values created in closures
-  warn_env <- rlang::current_env()
-  # initalize a warning list
-  warn_env$warn_list <- c()
+* Use `expect_warning()` when expecting only one warning from a function.
+* When expecting **multiple warnings**, or a combination of warnings and an error, from a single function call, chain the `expect_warning()` and `expect_error()` calls. The order of `expect_warning()` calls for the same warning message does not matter, but all expected warnings must be listed even if they are repeated. If an error is also expected, it should typically be the last item in the chain.
+* This chained approach allows `testthat` to react to any unexpected warnings or errors while catching the expected ones.
+* If you need to capture the function's return value while also checking for conditions, enclose the function call and assignment in curly braces `{}` before piping to the expectations.
 
-  function_result <- withCallingHandlers(
-    function_to_test(some_input),
-    warning = \(w) {
-      # warnings are stored in the env
-      warn_env$warn_list <- c(
-        warn_env$warn_list,
-        rlang::cnd_message(w)
-      )
-
-      # warnings are not risen so testthat doesn't get alarmed
-      rlang::cnd_muffle(w)
+  Example of chaining expectations:
+  ```r
+  test_that("test with multiple expectations", {
+    foo <- \() {
+      cli::cli_warn("Warning message 1")
+      cli::cli_warn("Warning message 1") # Repeated warning
+      cli::cli_warn("Warning message 2")
+      cli::cli_abort("Error message 1")
     }
-  )
 
-  # Ensure only the right number of warnings was generated
-  expect_length(warn_env$warn_list, 2)
+    bar <- \() {
+      cli::cli_warn("Another warning 1")
+      cli::cli_warn("Another warning 2")
+      TRUE # Return value
+    }
 
-  # Test if the specific warnings were risen for the righ amount of times
-  grep(
-    "All formats failed to parse. No formats found.",
-    warn_env$warn_list,
-    fixed = TRUE
-  ) |>
-    expect_length(2)
+    # Expect multiple warnings and then an error
+    foo() |>
+      expect_warning("Warning message 1") |>
+      expect_warning("Warning message 2") |>
+      expect_warning("Warning message 1") |> # Order for same message doesn't matter
+      expect_error("Error message 1")
 
-  grep(
-    "Agenda element field from time not interpretable: \"invalid\"",
-    warn_env$warn_list
-  ) |>
-    expect_length(1)
-```
-We want instead testthat to react to unexpected warnings.
+    # Expect multiple warnings and capture the return value
+    {
+      return_value <- bar()
+    } |>
+      expect_warning("Another warning 1") |>
+      expect_warning("Another warning 2")
+
+    expect_true(return_value)
+  })
+  ```
 
 ---
 
@@ -138,6 +137,15 @@ We want instead testthat to react to unexpected warnings.
 * Out-of-range times & dates (e.g. "25:00").
 * Vectorised inputs (mix valid & invalid in one call).
 * Locale/time-zone independence (`Sys.setlocale`, `Sys.setenv(TZ = "UTC")`).
+
+---
+
+## Running tests
+
+ALWAYS run tests after creating or editing test files.
+use `Rscript -e 'devtools::test()'` to run all tests and `Rscript -e 'devtools::test(filter = "text")'` with `text` being a string that identify one or more files to be tested, e.g., if we have two files: "test-utils.R" and "test-formatting_utils", using `filter = "formatting_utils"` would test the second while `filter = "utils"` would test both.
+
+If a test keep failing, double check your assumptions by running small reprexes in the terminal. Remember to prepend these reprexes with devtools::load_all() if the tested package functions are involved.
 
 ---
 
