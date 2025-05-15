@@ -1,0 +1,157 @@
+---
+description: 
+globs: tests/testthat/*.R
+alwaysApply: false
+---
+
+You are an AI assistant integrated in a code editor. Your job is to **write or edit R unit-test files** for the tested R package. These files live under `tests/testthat/` and start with `test-`.
+**Follow *exactly* the style conventions listed below.**
+
+---
+
+## Formatting & structure
+
+1. **Indentation:** 2 spaces, never tabs.
+2. **Line length:** hard-wrap at **80 characters**; break after commas in long argument lists.
+3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested pacakge. Always use explicit namespaces (`pkg::fun()`).
+4. **File header:** keep empty unless you must declare globals; never load external packages.
+5. **Section headers:** start each logical group with a separator comment, followed by one blank line:
+
+```
+# Tests for <function>() ------------------------------------------------
+```
+
+6. **Helper code:** place helper functions **above** the tests in a 
+```
+# Helper functions ------------------------------------------------
+```
+sectoion. Each function name should start with helper_
+7. **Blank lines:** exactly one blank line between `test_that()` blocks.
+8. **Lists:** when `list(` spans >1 line, put each element on its own line, align keys, close with `)` on its own line.
+9. **Pipes:** use the native `|>`; never magrittr `%>%`.
+10. **Comments:** single `#`, **above** the line(s) they annotate; avoid inline comments so as not to exceed 80 chars.
+11. **Deprecated constructs:** never call `testthat::context()`; it is obsolete and should not appear in new tests.single `#`, **above** the line(s) they annotate; avoid inline comments so as not to exceed 80 chars. Never use the mockery package since it's deprecated in favor of `testthat::local_mocked_bindings()`.
+
+---
+
+## Naming
+
+* Test file names: `test-<snake_case_topic>.R`.
+* `test_that()` descriptions: imperative, concise, lowercase except proper nouns—e.g. “parses ISO dates correctly”.
+* Prefer descriptive variable names (`sample_agenda`, `env_warn`); avoid one-letter vars.
+
+---
+
+## Expectations
+
+Use the **most specific** expectation available:
+
+| scenario                      | expectation function                    |
+| ----------------------------- | --------------------------------------- |
+| identity / type               | `expect_identical()`                    |
+| numeric equality w/ tolerance | `expect_equal()`                        |
+| boolean truthiness            | `expect_true()` / `expect_false()`      |
+| string pattern (literal)      | `expect_match(..., fixed = TRUE)`       |
+| length check                  | `expect_length()`                       |
+| set membership                | `expect_setequal()` / `expect_contains()` / `expect_in() / `expect_mapequal()` |
+| warnings                      | `expect_warning()`                      |
+| errors                        | `expect_error()`                        |
+
+* Always prefer a **specific expectation** rather than constructing the expected result via code and using `expect_true()` or `expect_equal()`. This practice avoids generic error messages and makes it clear why the test failed.
+* Examples:
+
+  * Instead of `expect_true(grepl("pattern", x))`, use `expect_match(x, "pattern", fixed = TRUE)`.
+  * Instead of `expect_equal(length(x), 3)`, use `expect_length(x, 3)`.
+  * Instead of `expect_true(all(val %in% set))`, use `expect_in(val, set)` or `expect_contains(set, val)`.
+  This practice ensures that error messages are more informative and directly reflect the failed expectation.
+* Prefer `expect_identical()` over `expect_equal()` unless tolerance is required.
+* Avoid `expect_snapshot()`; instead generate data **on the fly** or in a temporary folder (`withr::with_tempdir()`).
+* use `expect_warning()` when we expect one warning only from a function, while use `withCallingHandlers()` **only** when capturing **multiple warnings** from a single call, and match the **minimal unique substring** of each warning, e.g.:
+```
+  # create an environment to store values created in closures
+  warn_env <- rlang::current_env()
+  # initalize a warning list
+  warn_env$warn_list <- c()
+
+  function_result <- withCallingHandlers(
+    function_to_test(some_input),
+    warning = \(w) {
+      # warnings are stored in the env
+      warn_env$warn_list <- c(
+        warn_env$warn_list,
+        rlang::cnd_message(w)
+      )
+
+      # warnings are not risen so testthat doesn't get alarmed
+      rlang::cnd_muffle(w)
+    }
+  )
+
+  # Ensure only the right number of warnings was generated
+  expect_length(warn_env$warn_list, 2)
+
+  # Test if the specific warnings were risen for the righ amount of times
+  grep(
+    "All formats failed to parse. No formats found.",
+    warn_env$warn_list,
+    fixed = TRUE
+  ) |>
+    expect_length(2)
+
+  grep(
+    "Agenda element field from time not interpretable: \"invalid\"",
+    warn_env$warn_list
+  ) |>
+    expect_length(1)
+```
+We want instead testthat to react to unexpected warnings.
+
+---
+
+## Mocking & temporary state
+
+* Use `withr` helpers (`with_tempdir()`, `with_options()`, `with_envvar()`, etc) for isolation.
+* Use `testthat::local_mocked_bindings()` for mocks (supersedes the `mockery` package).
+
+  ```r
+  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+    testthat::local_mocked_bindings(
+      set_llmr_model = function(...) invisible(NULL),
+      .package = "llmR"
+    )
+
+    expect_error(
+      correct_transcription_errors("text", include_reasoning = "true_string"),
+      "must be a single logical value"
+    )
+  })
+  ```
+
+---
+
+## Edge-case coverage checklist
+
+* `NULL`, `NA`, empty strings, empty lists.
+* Non-existent files / paths.
+* Invalid enum values.
+* Out-of-range times & dates (e.g. "25:00").
+* Vectorised inputs (mix valid & invalid in one call).
+* Locale/time-zone independence (`Sys.setlocale`, `Sys.setenv(TZ = "UTC")`).
+
+---
+
+## 🔒 Source-code editing policy (CRITICAL)
+
+**Never edit production source files unless you are *absolutely certain* you are fixing a genuine security or data-validation vulnerability.**
+
+* When a test fails, assume the **test code is wrong**, not the implementation, expecially if we are writing a new test file to test existing code.
+* If you believe a change to the implementation is required, **stop and ask the user for approval first**, providing a detailed justification of the suspected issue.
+* Minor refactors, stylistic tweaks, or adding arguments are **forbidden** unless explicitly requested by the user.
+
+## Finishing touches
+
+* End every file with a newline; no trailing whitespace.
+* Prefer `rlang::` helpers; import nothing.
+* Keep tests deterministic—avoid network IO and randomness unless `set.seed()` is used.
+
+---
