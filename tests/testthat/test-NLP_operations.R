@@ -99,7 +99,7 @@ describe("tokenize_text", {
 describe("generate_glove_model", {
   # Define a small, predictable text sample for model generation tests.
   # This ensures tests are fast and results are consistent.
-  sample_text_glove <- c( # Renamed to avoid potential clashes if other tests use 'sample_text'
+  sample_text_glove <- c(
     "apple banana",
     "apple orange",
     "banana orange juice"
