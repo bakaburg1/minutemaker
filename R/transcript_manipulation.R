@@ -15,6 +15,7 @@ clean_transcript <- function(
   transcript_data,
   remove_silence = FALSE
 ) {
+
   # Remove double spaces and spaces at the beginning and end of the text
   transcript_data$text <- stringr::str_squish(transcript_data$text)
 
@@ -25,7 +26,7 @@ clean_transcript <- function(
   transcript_data <- mutate(
     transcript_data,
     text = if_else(
-      .data$text == lag(.data$text, default = first(.data$text)),
+      .data$text == lag(.data$text, default = silent()),
       silent(),
       .data$text
     )
@@ -35,8 +36,9 @@ clean_transcript <- function(
   # likely hallucinations from the speech-to-text model or non-relevant text
   # (e.g. talking outside sessions)
   for (i in seq_len(nrow(transcript_data))) {
-    indexes <- pmax(i + c(-4:-1, 1:4), 0) |> unique()
-    if (transcript_data$text[i] != silent()) {
+    indexes <- pmax(i + c(-4:-1, 1:4), 0)
+    indexes <- intersect(indexes, seq_len(nrow(transcript_data)))
+    if (transcript_data$text[i] != silent() && length(indexes) > 0) {
       if (all(is_silent(transcript_data$text[indexes]))) {
         transcript_data$text[i] <- silent()
       }
