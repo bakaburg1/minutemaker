@@ -89,12 +89,13 @@ test_that("parses a single valid JSON file correctly", {
 
   result <- parse_transcript_json(normalized_path, pretty_times = FALSE)
 
-  expected <- tibble(
+  expected <- dplyr::tibble(
     doc = c(1L, 1L),
     file = rep(basename(temp_json_file), 2),
     start = c(0, 1),
     end = c(1, 2),
-    text = c("Hello unique alpha", "World unique beta")
+    text = c("Hello unique alpha", "World unique beta"),
+    speaker = rep(NA_character_, 2)
   )
 
   expect_equal(result, expected)
@@ -126,7 +127,7 @@ test_that("parses a directory of JSON files correctly and orders them", {
 
   result <- parse_transcript_json(normalized_dir_path, pretty_times = FALSE)
 
-  expected <- tibble::tibble(
+  expected <- dplyr::tibble(
     doc = c(1L, 2L, 3L),
     file = c("segment_1_2.json", "segment_2_3.json", "segment_10_1.json"),
     start = c(0, 1, 3),
@@ -135,7 +136,8 @@ test_that("parses a directory of JSON files correctly and orders them", {
       "First file segment unique",
       "Second file segment unique",
       "Tenth file segment unique"
-    )
+    ),
+    speaker = rep(NA_character_, 3)
   )
 
   expect_equal(result, expected)
@@ -153,15 +155,14 @@ test_that("parses a JSON string correctly", {
     ]
   }'
 
-  # Expected result
-  expected <- data.frame(
+  # Expected result: Use tibble for consistency with parse_transcript_json output
+  expected <- dplyr::tibble(
     doc = 1L,
     file = NA_character_,
     start = 0,
     end = 1,
     text = "From string unique gamma",
-    speaker = "SpeakerA",
-    stringsAsFactors = FALSE
+    speaker = "SpeakerA"
   )
 
   result <- parse_transcript_json(json_string, pretty_times = FALSE)
@@ -181,7 +182,8 @@ test_that("parses a list object correctly", {
     file = NA_character_,
     start = 0,
     end = 1,
-    text = "From list unique delta"
+    text = "From list unique delta",
+    speaker = NA_character_
   )
 
   result <- parse_transcript_json(json_list, pretty_times = FALSE)
@@ -196,17 +198,30 @@ test_that("adds pretty times when pretty_times is TRUE", {
       list(start = 65, end = 125, text = "Test time unique")
     )
   )
-  temp_json_file <- helper_create_temp_json(
+  # Use piping for temp_json_file_path creation and rename for clarity
+  temp_json_file_path <- helper_create_temp_json(
     list(json_content),
     dir = temp_dir_for_test
   ) |>
     normalizePath(mustWork = TRUE)
 
-  result <- parse_transcript_json(temp_json_file, pretty_times = TRUE)
-  expect_true("start_formatted" %in% names(result))
-  expect_true("end_formatted" %in% names(result))
-  expect_identical(as.character(result$start_formatted), "1M 5S")
-  expect_identical(as.character(result$end_formatted), "2M 5S")
+  # Call parse_transcript_json once
+  result <- parse_transcript_json(temp_json_file_path, pretty_times = TRUE)
+
+  # Define the full expected tibble
+  expected <- dplyr::tibble(
+    doc = 1L,
+    file = basename(temp_json_file_path),
+    start = 65,
+    end = 125,
+    text = "Test time unique",
+    speaker = NA_character_, # Speaker column is now always present
+    start_formatted = lubridate::seconds_to_period(65),
+    end_formatted = lubridate::seconds_to_period(125)
+  )
+
+  # Use a single expect_equal for comparison
+  expect_equal(result, expected)
 })
 
 test_that("adds clock times when event_start_time is provided", {
@@ -215,32 +230,58 @@ test_that("adds clock times when event_start_time is provided", {
     segments = list(list(start = 10, end = 20, text = "Test clock unique"))
   )
   temp_json_file <- helper_create_temp_json(list(json_content), dir = temp_dir_for_test)
+  # Ensure normalized_path is defined once
   normalized_path <- normalizePath(temp_json_file, mustWork = TRUE)
+
+  # Define a base expected tibble for common columns
+  base_expected <- dplyr::tibble(
+    doc = 1L,
+    file = basename(normalized_path),
+    start = 10,
+    end = 20,
+    text = "Test clock unique",
+    speaker = NA_character_ # Speaker column is now always present
+  )
+
+  # Test with minutemaker_event_start_time option
   withr::with_options(
     list(minutemaker_event_start_time = "10:00:00"),
     {
-      result <- parse_transcript_json(normalized_path, pretty_times = FALSE)
-      expect_true("start_clock" %in% names(result))
-      expect_true("end_clock" %in% names(result))
-      expect_identical(result$start_clock, "10:00:10")
-      expect_identical(result$end_clock, "10:00:20")
+      result_opt <- parse_transcript_json(normalized_path, pretty_times = FALSE)
+      expected_opt <- base_expected |>
+        dplyr::mutate(
+          start_clock = "10:00:10",
+          end_clock = "10:00:20"
+        )
+      expect_equal(result_opt, expected_opt)
     }
   )
-  result_arg <- parse_transcript_json(
+
+  # Test with event_start_time argument ("09:30 AM")
+  result_arg_am_pm <- parse_transcript_json(
     normalized_path,
     pretty_times = FALSE,
     event_start_time = "09:30 AM"
   )
-  expect_identical(result_arg$start_clock, "09:30:10")
-  expect_identical(result_arg$end_clock, "09:30:20")
+  expected_arg_am_pm <- base_expected |>
+    dplyr::mutate(
+      start_clock = "09:30:10",
+      end_clock = "09:30:20"
+    )
+  expect_equal(result_arg_am_pm, expected_arg_am_pm)
 
-  result_hhmm <- parse_transcript_json(
+  # Test with event_start_time argument ("14:15")
+  result_arg_hhmm <- parse_transcript_json(
     normalized_path,
     pretty_times = FALSE,
     event_start_time = "14:15"
   )
-  expect_identical(result_hhmm$start_clock, "14:15:10")
-  expect_identical(result_hhmm$end_clock, "14:15:20")
+  expected_arg_hhmm <- base_expected |>
+    dplyr::mutate(
+      start_clock = "14:15:10",
+      end_clock = "14:15:20"
+    )
+  expect_equal(result_arg_hhmm, expected_arg_hhmm)
 })
 
 test_that("handles invalid event_start_time gracefully", {
@@ -359,14 +400,18 @@ test_that("handles various data types for optional columns correctly", {
   )
   temp_json_file <- helper_create_temp_json(list(json_content_optional_cols), dir = temp_dir_for_test)
   normalized_path <- normalizePath(temp_json_file, mustWork = TRUE)
+
   result <- parse_transcript_json(normalized_path, pretty_times = FALSE)
 
-  expect_s3_class(result, "data.frame")
-  expect_identical(nrow(result), 2L)
-  expect_true("speaker" %in% names(result))
-  expect_identical(result$speaker, c("SpeakerA", "SpeakerB"))
-  expect_false("avg_logprob" %in% names(result))
-  expect_false("no_speech_prob" %in% names(result))
+  expected <- dplyr::tibble(
+    doc = rep(1L, 2), # Use rep for clarity and if rows increase
+    file = rep(basename(normalized_path), 2), # Use rep for clarity
+    start = c(0, 1),
+    end = c(1, 2),
+    text = c("Full data unique", "Minimal data unique"),
+    speaker = c("SpeakerA", "SpeakerB")
+  )
+  expect_equal(result, expected)
 })
 
 test_that("unlists list columns and handles distinct rows correctly", {
@@ -380,13 +425,18 @@ test_that("unlists list columns and handles distinct rows correctly", {
   )
   temp_json_file <- helper_create_temp_json(list(json_content_list_cols), dir = temp_dir_for_test)
   normalized_path <- normalizePath(temp_json_file, mustWork = TRUE)
+
   result <- parse_transcript_json(normalized_path, pretty_times = FALSE)
 
-  expect_s3_class(result, "data.frame")
-  expect_identical(nrow(result), 2L)
-  expect_identical(result$start, c(0, 1))
-  expect_identical(result$end, c(1, 2))
-  expect_identical(result$text, c("Text in list unique", "Another text unique"))
+  expected <- dplyr::tibble(
+    doc = rep(1L, 2),
+    file = rep(basename(normalized_path), 2),
+    start = c(0, 1),
+    end = c(1, 2),
+    text = c("Text in list unique", "Another text unique"),
+    speaker = rep(NA_character_, 2) # Speaker column is now always present
+  )
+  expect_equal(result, expected)
 })
 
 test_that("`last_time` accumulates correctly across multiple files including skips", {
@@ -399,17 +449,21 @@ test_that("`last_time` accumulates correctly across multiple files including ski
   helper_create_temp_json(list(json_content2_empty), dir = temp_dir_for_test, file_name_prefix = "f_2_empty")
   helper_create_temp_json(list(json_content3), dir = temp_dir_for_test, file_name_prefix = "f_3")
 
+  result <- NULL # Initialize result to be accessible after expect_message
   expect_message(
     result <- parse_transcript_json(normalizePath(temp_dir_for_test, mustWork = TRUE), pretty_times = FALSE),
     "Skipping empty file.*f_2_empty_1.json"
   )
-  expect_s3_class(result, "data.frame")
-  expect_identical(nrow(result), 2L)
-  expect_identical(result$text, c("F1S1 unique", "F3S1 unique"))
-  expect_identical(result$start, c(0, 10 + 5))
-  expect_identical(result$end, c(10, 10 + 15))
-  expect_identical(result$file, c("f_1_1.json", "f_3_1.json"))
-  expect_identical(result$doc, c(1L, 3L))
+
+  expected <- dplyr::tibble(
+    doc = c(1L, 3L), # doc 2 (f_2_empty) is skipped
+    file = c("f_1_1.json", "f_3_1.json"),
+    start = c(0, 10 + 5), # start of f3 is relative to its content, then shifted by end of f1
+    end = c(10, 10 + 15),  # end of f3 is relative to its content, then shifted by end of f1
+    text = c("F1S1 unique", "F3S1 unique"),
+    speaker = rep(NA_character_, 2) # Speaker column is now always present
+  )
+  expect_equal(result, expected)
 })
 
 test_that("parse_transcript_json gives specific error for unsupported input type", {
@@ -436,15 +490,19 @@ test_that("imports SRT file correctly", {
     "00:00:03,100 --> 00:00:04,200",
     "Second line"
   )
-  temp_srt_file <- helper_create_temp_srt(srt_content, dir = temp_dir_for_test)
-  result <- import_transcript_from_file(normalizePath(temp_srt_file, mustWork = TRUE), import_diarization = FALSE)
+  # Use piping for temp_srt_file_path creation and rename
+  temp_srt_file_path <- helper_create_temp_srt(srt_content, dir = temp_dir_for_test) |>
+    normalizePath(mustWork = TRUE)
 
-  expect_s3_class(result, "data.frame")
-  expect_identical(nrow(result), 2L)
-  expect_identical(result$start, c(1.0, 3.1))
-  expect_identical(result$end, c(2.5, 4.2))
-  expect_identical(result$text, c("Hello from SRT", "Second line"))
-  expect_false("speaker" %in% names(result))
+  result <- import_transcript_from_file(temp_srt_file_path, import_diarization = FALSE)
+
+  expected <- dplyr::tibble(
+    start = c(1.0, 3.1),
+    end = c(2.5, 4.2),
+    text = c("Hello from SRT", "Second line")
+    # No 'speaker' column expected when import_diarization = FALSE
+  )
+  expect_equal(result, expected)
 })
 
 test_that("imports VTT file correctly (standard format, no diarization)", {
@@ -459,15 +517,19 @@ test_that("imports VTT file correctly (standard format, no diarization)", {
     "00:00:03.100 --> 00:00:04.200",
     "Second VTT line"
   )
-  temp_vtt_file <- helper_create_temp_vtt(vtt_content, dir = temp_dir_for_test)
-  result <- import_transcript_from_file(normalizePath(temp_vtt_file, mustWork = TRUE), import_diarization = FALSE)
+  # Use piping for temp_vtt_file_path creation and rename
+  temp_vtt_file_path <- helper_create_temp_vtt(vtt_content, dir = temp_dir_for_test) |>
+    normalizePath(mustWork = TRUE)
 
-  expect_s3_class(result, "data.frame")
-  expect_identical(nrow(result), 2L)
-  expect_identical(result$start, c(1.0, 3.1))
-  expect_identical(result$end, c(2.5, 4.2))
-  expect_identical(result$text, c("Hello from VTT", "Second VTT line"))
-  expect_false("speaker" %in% names(result))
+  result <- import_transcript_from_file(temp_vtt_file_path, import_diarization = FALSE)
+
+  expected <- dplyr::tibble(
+    start = c(1.0, 3.1),
+    end = c(2.5, 4.2),
+    text = c("Hello from VTT", "Second VTT line")
+    # No 'speaker' column expected when import_diarization = FALSE
+  )
+  expect_equal(result, expected)
 })
 
 test_that("imports VTT file with MS Teams diarization (<v Speaker>)", {
@@ -789,9 +851,9 @@ test_that("adds chat from a WebEx file correctly (testing parsing logic)", {
   temp_chat_file <- helper_create_temp_chat_file(chat_content_lines, dir = temp_dir_for_test)
   meeting_start_hms <- "00:00:00"
 
-  parsed_chat_df <- parse_chat_webex_file_for_test(normalizePath(temp_chat_file, mustWork = TRUE), meeting_start_hms) |> tibble::as_tibble()
+  parsed_chat_df <- parse_chat_webex_file_for_test(normalizePath(temp_chat_file, mustWork = TRUE), meeting_start_hms) |> dplyr::as_tibble()
 
-  expected_df <- tibble::tibble(
+  expected_df <- dplyr::tibble(
     start = c(2, 12, 22),
     speaker = c("User One (from chat)", "User Two (from chat)", "User Three (from chat)"),
     text = c("First message", "Second message", "This is a message that spans two lines in the raw file.")
@@ -832,9 +894,9 @@ test_that("add_chat_transcript start_time argument impacts chat file parsing", {
 
   parsed_chat_data_1000 <- temp_abs_chat_file |>
     parse_chat_webex_file_for_test("10:00:00") |>
-    tibble::as_tibble()
+    dplyr::as_tibble()
 
-  expected_1000 <- tibble::tibble(
+  expected_1000 <- dplyr::tibble(
     start = 30,
     speaker = "Tester Bot (from chat)",
     text = "Msg1"
@@ -843,9 +905,9 @@ test_that("add_chat_transcript start_time argument impacts chat file parsing", {
 
   parsed_chat_data_0959 <- temp_abs_chat_file |>
     parse_chat_webex_file_for_test("09:59:50") |>
-    tibble::as_tibble()
+    dplyr::as_tibble()
 
-  expected_0959 <- tibble::tibble(
+  expected_0959 <- dplyr::tibble(
     start = 40,
     speaker = "Tester Bot (from chat)",
     text = "Msg1"
@@ -854,9 +916,9 @@ test_that("add_chat_transcript start_time argument impacts chat file parsing", {
 
   parsed_chat_data_9am <- temp_abs_chat_file |>
     parse_chat_webex_file_for_test("9:00 AM") |>
-    tibble::as_tibble()
+    dplyr::as_tibble()
 
-  expected_9am <- tibble::tibble(
+  expected_9am <- dplyr::tibble(
     # 10:00:30 AM is 36030 seconds from midnight. 9:00 AM is 32400 seconds.
     # Diff = 3630
     start = 3630,
