@@ -1,5 +1,14 @@
-library(testthat)
-library(lubridate)
+# Helper functions ---
+normalize_for_comparison <- function(text) {
+  if (is.null(text) || text == "") return("") # Handle NULL or empty input
+  lines <- strsplit(text, "\n")[[1]]
+  trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
+  collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
+  # Filter out any completely empty lines that might result from trimming
+  # if the original line was just whitespace or became empty after processing.
+  non_empty_lines <- Filter(function(x) x != "", collapsed_lines)
+  paste(non_empty_lines, collapse = "\n")
+}
 
 # Tests for format_agenda() ----------------------------------------------------
 
@@ -63,13 +72,6 @@ test_that("format_agenda correctly formats a basic agenda", {
     "Session: S1;\n    Title: Main Talk;\n    Description: Keynote presentation;\n    Speakers: Jane Smith, Peter Jones;\n    Moderators: Alice Brown;\n    Time: 09:15 - 10:00;"
 
   # More robust normalization: trim whitespace from each line and collapse multiple spaces
-  normalize_for_comparison <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines) # Trim leading/trailing space from each line
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines) # Collapse multiple spaces within lines
-    paste(collapsed_lines, collapse = "\n")
-  }
-
   normalized_formatted_text <- normalize_for_comparison(formatted_text)
   normalized_expected_part1 <- normalize_for_comparison(expected_output_part1)
   normalized_expected_part2 <- normalize_for_comparison(expected_output_part2)
@@ -91,7 +93,7 @@ test_that("format_agenda handles an empty agenda list", {
     formatted_empty <- format_agenda(list()),
     regexp = "No start time provided.*Using \"00:00:00\" as start time"
   )
-  expect_equal(formatted_empty, "")
+  expect_identical(formatted_empty, "")
 })
 
 test_that("format_agenda handles items with many NULL or empty fields gracefully", {
@@ -117,7 +119,6 @@ test_that("format_agenda handles items with many NULL or empty fields gracefully
   )
 
   # Provide event_start_time to isolate formatting from time conversion warnings
-  # here
   formatted_text <- format_agenda(agenda_with_nulls, event_start_time = "09:00")
 
   # Expected for first item (assuming no trailing semicolon on the last line of
@@ -130,14 +131,7 @@ test_that("format_agenda handles items with many NULL or empty fields gracefully
   # for the value part.
   expected_item2_regex <- "Session: S2;\n    Description: NA;\n    Speakers: Speaker A;\n    Moderators: NA;\n    Time: 11:00 - 11:30"
 
-  # Use the same robust normalization
-  normalize_for_comparison <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
-
+  # Use the same robust normalization - defined globally now
   normalized_formatted_text <- normalize_for_comparison(formatted_text)
   normalized_expected_item1 <- normalize_for_comparison(expected_item1)
   normalized_expected_item2_regex <- normalize_for_comparison(
@@ -167,12 +161,12 @@ test_that("format_agenda handles items with many NULL or empty fields gracefully
   # Check for Description and Moderators based on new understanding
   # Description: NA should be present
   expect_match(agenda_parts[2], "Description:", fixed = TRUE)
-  expect_match(agenda_parts[2], "Description: NA") # Check actual content
+  expect_match(agenda_parts[2], "Description: NA", fixed = TRUE)
 
   # Moderators: c(NA, "") results in "NA" which should be present
   expect_match(agenda_parts[2], "Moderators:", fixed = TRUE)
   # Check actual content (NA part)
-  expect_match(agenda_parts[2], "Moderators: NA")
+  expect_match(agenda_parts[2], "Moderators: NA", fixed = TRUE)
 })
 
 test_that("format_agenda handles numeric times needing conversion", {
@@ -192,15 +186,8 @@ test_that("format_agenda handles numeric times needing conversion", {
 
   # Normalize by removing all leading/trailing whitespace per line and multiple
   # spaces
-  normalize_text_for_compare <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
-
-  normalized_formatted_text <- normalize_text_for_compare(formatted_text)
-  normalized_expected_output <- normalize_text_for_compare(expected_output)
+  normalized_formatted_text <- normalize_for_comparison(formatted_text)
+  normalized_expected_output <- normalize_for_comparison(expected_output)
 
   expect_match(
     normalized_formatted_text,
@@ -227,14 +214,7 @@ test_that("format_agenda handles file path input for agenda", {
 
   expected_output <- "Title: File Event;\n    Speakers: Temp Speaker;\n    Time: 12:00 - 12:30;"
 
-  # Use the same robust normalization
-  normalize_for_comparison <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
-
+  # Use the same robust normalization - defined globally now
   normalized_formatted_text <- normalize_for_comparison(formatted_text)
   normalized_expected_output <- normalize_for_comparison(expected_output)
 
@@ -256,16 +236,12 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   )
   # With origin 00:00, 01:00 remains 01:00, 01:30 remains 01:30 (format %R)
   expected_a <- "Title: Event A;\n    Time: 01:00 - 01:30;"
-  # Use the same robust normalization
-  normalize_for_comparison <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
+  # Use the same robust normalization - defined globally now
+  normalized_formatted_text <- normalize_for_comparison(formatted_a)
+  normalized_expected_output <- normalize_for_comparison(expected_a)
   expect_match(
-    normalize_for_comparison(formatted_a),
-    normalize_for_comparison(expected_a),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 
@@ -279,10 +255,12 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   )
   # With origin 00:00, 3600s -> 01:00, 5400s -> 01:30 (format %R)
   expected_b <- "Title: Event B;\n    Time: 01:00 - 01:30;"
-  # Use the same robust normalization
+  # Use the same robust normalization - defined globally now
+  normalized_formatted_text <- normalize_for_comparison(formatted_b)
+  normalized_expected_output <- normalize_for_comparison(expected_b)
   expect_match(
-    normalize_for_comparison(formatted_b),
-    normalize_for_comparison(expected_b),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 })
@@ -349,24 +327,19 @@ test_that("format_summary_tree correctly formats a basic summary tree and agenda
   )
 
   # Corrected normalize_text_for_compare function
-  normalize_text_for_compare <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    # Trim leading/trailing space from each line
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    # Collapse multiple spaces within lines
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
+  normalized_formatted_text <- normalize_for_comparison(formatted_text)
+  normalized_expected_part1 <- normalize_for_comparison(expected_alpha_part)
+  normalized_expected_part2 <- normalize_for_comparison(expected_beta_part)
 
   # We expect these parts to be present.
   expect_match(
-    normalize_text_for_compare(formatted_text),
-    normalize_text_for_compare(expected_alpha_part),
+    normalized_formatted_text,
+    normalized_expected_part1,
     fixed = TRUE
   )
   expect_match(
-    normalize_text_for_compare(formatted_text),
-    normalize_text_for_compare(expected_beta_part),
+    normalized_formatted_text,
+    normalized_expected_part2,
     fixed = TRUE
   )
 
@@ -375,9 +348,9 @@ test_that("format_summary_tree correctly formats a basic summary tree and agenda
   alpha_part_actual <- parts[1]
   beta_part_actual <- parts[2]
 
-  normalized_alpha_actual <- normalize_text_for_compare(alpha_part_actual)
+  normalized_alpha_actual <- normalize_for_comparison(alpha_part_actual)
   normalized_beta_actual <- if (!is.na(beta_part_actual))
-    normalize_text_for_compare(beta_part_actual) else NA_character_
+    normalize_for_comparison(beta_part_actual) else NA_character_
 
   expect_no_match(normalized_alpha_actual, "Moderators:", fixed = TRUE)
   if (!is.na(normalized_beta_actual)) {
@@ -424,18 +397,12 @@ test_that("format_summary_tree handles file path inputs", {
 
   # To avoid redefining, we could make it a helper or just repeat its simple
   # logic
-  normalize <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    # Trim leading/trailing space from each line
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    # Collapse multiple spaces within lines
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
+  normalized_formatted_text <- normalize_for_comparison(formatted_text)
+  normalized_expected_output <- normalize_for_comparison(expected_output)
 
   expect_match(
-    normalize(formatted_text),
-    normalize(expected_output),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 })
@@ -527,15 +494,12 @@ test_that("format_summary_tree handles agenda with numeric times", {
     "    Summary for numeric time talk.",
     sep = "\n"
   )
-  normalize <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
+  normalized_formatted_text <- normalize_for_comparison(formatted_text)
+  normalized_expected_output <- normalize_for_comparison(expected_output)
+
   expect_match(
-    normalize(formatted_text),
-    normalize(expected_output),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 })
@@ -581,16 +545,12 @@ test_that("format_summary_tree writes to output_file correctly", {
   # Collapse file_content to handle multiple lines, then normalize like other
   # tests
   collapsed_file_content <- paste(file_content, collapse = "\n")
-  normalize <- function(text) {
-    lines <- strsplit(text, "\n")[[1]]
-    trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
-    collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
-    paste(collapsed_lines, collapse = "\n")
-  }
+  normalized_formatted_text <- normalize_for_comparison(collapsed_file_content)
+  normalized_expected_output <- normalize_for_comparison(expected_content_part)
 
   expect_match(
-    normalize(collapsed_file_content),
-    normalize(expected_content_part),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 
@@ -599,8 +559,8 @@ test_that("format_summary_tree writes to output_file correctly", {
   # The returned value from format_summary_tree includes the trailing
   # "\n\n####################\n\n"
   expect_match(
-    normalize(returned_value),
-    normalize(expected_content_part),
+    normalized_formatted_text,
+    normalized_expected_output,
     fixed = TRUE
   )
 })
@@ -643,3 +603,84 @@ test_that("format_summary_tree handles empty inputs and consistency checks", {
     regexp = "The summary tree is empty and cannot be validated"
   )
 })
+
+test_that("format_summary_tree with initially empty summary_tree errors as empty", {
+  agenda_no_match <- list(list(
+    title = "No Match For This",
+    from = "00:00",
+    to = "00:01"
+  ))
+  summary_tree_empty <- list()
+
+  expect_error(
+    format_summary_tree(
+      summary_tree_empty,
+      agenda_no_match,
+      event_start_time = "00:00"
+    ),
+    regexp = "The summary tree is empty and cannot be validated",
+    info = "format_summary_tree should error if summary_tree is truly empty and validation is strict."
+  )
+})
+
+test_that("format_summary_tree produces non-empty output when summary is present", {
+  agenda_item <- list(
+    list(
+      title = "Real Talk",
+      from = "13:00",
+      to = "13:30",
+      speakers = "Speaker Real"
+    )
+  )
+  summary_item <- list(
+    `Real Talk` = list(summary = "This is a real summary.")
+  )
+  formatted_text <- format_summary_tree(
+    summary_item,
+    agenda_item,
+    event_start_time = "13:00"
+  )
+  expect_true(
+    nzchar(formatted_text),
+    info = "Output should not be empty when a valid summary is present."
+  )
+})
+
+test_that("format_summary_tree handles empty summary_tree or non-matching agenda items", {
+  agenda_valid <- list(list(
+    title = "Valid Talk",
+    from = "00:00",
+    to = "00:01",
+    speakers = "A"
+  ))
+  summary_tree_empty <- list() # Empty summary tree
+
+  expect_error(
+    format_summary_tree(
+      summary_tree_empty,
+      agenda_valid,
+      event_start_time = "00:00"
+    ),
+    regexp = "The summary tree is empty and cannot be validated",
+    info = "format_summary_tree should error if summary_tree is empty due to internal validation."
+  )
+
+  agenda_no_match <- list(list(
+    title = "No Match For This",
+    from = "00:00",
+    to = "00:01"
+  ))
+  summary_tree_valid <- list(Valid_ID = list(summary = "Some summary")) # Tree with non-matching ID
+
+  expect_error(
+    format_summary_tree(
+      summary_tree_valid,
+      agenda_no_match, # Agenda item ID won't match Valid_ID
+      event_start_time = "00:00"
+    ),
+    regexp = "The agenda and summary tree are not consistent",
+    info = "Should error if agenda IDs do not match summary_tree IDs based on consistency check."
+  )
+})
+
+# Final newline to satisfy linter

@@ -147,23 +147,14 @@ test_that("time_to_numeric handles unparseable time strings via parse_event_time
   expect_true(is.na(res2))
 
   # Both time and origin invalid: two warnings expected
-  env_res3 <- rlang::current_env()
-  env_res3$warn_list <- c()
-  res3 <- withCallingHandlers(
-    time_to_numeric("invalid1", origin = "invalid2"),
-    warning = function(w) {
-      env_res3$warn_list <- c(env_res3$warn_list, rlang::cnd_message(w))
-      rlang::cnd_muffle(w)
-    }
-  )
+  {
+    res3 <- time_to_numeric("invalid1", origin = "invalid2")
+  } |>
+    # The function parse_event_time is called for time and origin separately,
+    # so two identical warnings are expected.
+    expect_warning("All formats failed to parse. No formats found.") |>
+    expect_warning("All formats failed to parse. No formats found.")
   expect_true(is.na(res3))
-  expect_length(env_res3$warn_list, 2)
-  grep(
-    "All formats failed to parse. No formats found.",
-    env_res3$warn_list,
-    fixed = TRUE
-  ) |>
-    expect_length(2)
 
   # Only time invalid, default origin: one warning
   expect_warning(

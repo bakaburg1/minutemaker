@@ -1,10 +1,3 @@
-# Test suite for R/NLP_operations.R
-# This file contains tests for text tokenization, GloVe model generation,
-# and text similarity computation functions.
-
-# Provides context for the set of tests contained in this file.
-# context("NLP Operations Functionality") # Removed deprecated context
-
 # --- Tests for tokenize_text ---
 # The 'describe' block groups tests for the 'tokenize_text' function.
 describe("tokenize_text", {
@@ -136,13 +129,13 @@ describe("generate_glove_model", {
     )
     # Vocabulary from sample_text_glove: "apple", "banana", "orange", "juice"
     expected_vocab <- c("apple", "banana", "orange", "juice")
-    expect_true(
-      all(expected_vocab %in% rownames(word_vectors)),
-      info = "All words from sample text should be in rownames."
+    expect_in(
+      expected_vocab,
+      rownames(word_vectors)
     )
-    expect_true(
-      length(rownames(word_vectors)) >= length(expected_vocab),
-      info = "Rownames should contain at least the expected vocabulary."
+    expect_gte(
+      length(rownames(word_vectors)),
+      length(expected_vocab)
     )
   })
 
@@ -308,9 +301,9 @@ describe("compute_text_sim", {
 
     sim_scores <- compute_text_sim(x_text, y_texts, embedding_matrix_sim)
 
-    expect_true(
-      is.numeric(sim_scores),
-      info = "Similarity scores should be numeric."
+    expect_type(
+      sim_scores,
+      "double"
     )
     expect_equal(
       length(sim_scores),
@@ -369,8 +362,9 @@ describe("compute_text_sim", {
       y_texts,
       embedding_matrix_sim
     )
-    expect_true(
-      all(is.na(sim_scores_oov)),
+    expect_identical(
+      sim_scores_oov,
+      rep(NA, length(y_texts)),
       info = "All scores should be NA if x_text embedding is empty (OOV)."
     )
     expect_equal(length(sim_scores_oov), length(y_texts))
@@ -381,8 +375,9 @@ describe("compute_text_sim", {
       y_texts,
       embedding_matrix_sim
     )
-    expect_true(
-      all(is.na(sim_scores_empty)),
+    expect_identical(
+      sim_scores_empty,
+      rep(NA, length(y_texts)),
       info = "All scores should be NA if x_text tokenizes to empty/OOV string like c('')."
     )
   })
@@ -450,17 +445,9 @@ describe("compute_text_sim", {
       overwrite = TRUE # Ensure this specific model is generated
     )
     # Ensure target words are in the generated vocabulary.
-    expect_true(
-      "apple" %in% rownames(embedding_matrix_single),
-      info = "'apple' must be in single word test vocab."
-    )
-    expect_true(
-      "banana" %in% rownames(embedding_matrix_single),
-      info = "'banana' must be in single word test vocab."
-    )
-    expect_true(
-      "tree" %in% rownames(embedding_matrix_single),
-      info = "'tree' must be in single word test vocab."
+    expect_in(
+      c("apple", "banana", "tree"),
+      rownames(embedding_matrix_single)
     )
 
     x_text_single <- "apple"

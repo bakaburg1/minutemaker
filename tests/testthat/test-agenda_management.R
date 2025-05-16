@@ -77,75 +77,46 @@ test_that("convert_agenda_times validates input times with specific warnings and
   # Invalid 'from' time
   # to = "10:00" by default
   invalid_from_item <- create_agenda_item(from = "invalid")
-  env_from <- rlang::current_env()
-  env_from$warn_list_from <- c()
 
-  converted_item_from <- withCallingHandlers(
-    convert_agenda_times(
+  {
+    converted_item_from <- convert_agenda_times(
       invalid_from_item,
       convert_to = "seconds",
       event_start_time = "09:00"
-    ),
-    warning = function(w) {
-      env_from$warn_list_from <- c(
-        env_from$warn_list_from,
-        rlang::cnd_message(w)
-      )
-      rlang::cnd_muffle(w)
-    }
-  )
+    )
+  } |>
+    expect_warning(
+      "All formats failed to parse. No formats found."
+    ) |>
+    expect_warning(
+      "Agenda element field from time not interpretable: \"invalid\""
+    )
 
   expect_true(is.na(converted_item_from$from))
   # Assuming event_start_time="09:00", to="10:00"
   expect_equal(converted_item_from$to, 3600)
 
-  expect_length(env_from$warn_list_from, 2)
-  grep(
-    "All formats failed to parse. No formats found.",
-    env_from$warn_list_from,
-    fixed = TRUE
-  ) |>
-    expect_length(1)
-  grep(
-    "Agenda element field from time not interpretable: \"invalid\"",
-    env_from$warn_list_from
-  ) |>
-    expect_length(1)
-
   # Invalid 'to' time
   # from = "09:00" by default
   invalid_to_item <- create_agenda_item(to = "invalid")
-  env_to <- rlang::current_env()
-  env_to$warn_list_to <- c()
 
-  converted_item_to <- withCallingHandlers(
-    convert_agenda_times(
+  {
+    converted_item_to <- convert_agenda_times(
       invalid_to_item,
       convert_to = "seconds",
       event_start_time = "09:00"
-    ),
-    warning = function(w) {
-      env_to$warn_list_to <- c(env_to$warn_list_to, rlang::cnd_message(w))
-      rlang::cnd_muffle(w)
-    }
-  )
+    )
+  } |>
+    # This warning is matched as a fixed string
+    expect_warning("All formats failed to parse. No formats found.") |>
+    # This warning is matched as a fixed string
+    expect_warning(
+      "Agenda element field to time not interpretable: \"invalid\""
+    )
 
   expect_true(is.na(converted_item_to$to))
   # Assuming event_start_time="09:00", from="09:00"
   expect_equal(converted_item_to$from, 0)
-
-  expect_length(env_to$warn_list_to, 2)
-  grep(
-    "All formats failed to parse. No formats found.",
-    env_to$warn_list_to,
-    fixed = TRUE
-  ) |>
-    expect_length(1)
-  grep(
-    "Agenda element field to time not interpretable: \"invalid\"",
-    env_to$warn_list_to
-  ) |>
-    expect_length(1)
 })
 
 test_that("convert_agenda_times handles single agenda item", {
@@ -268,43 +239,22 @@ test_that("convert_agenda_times handles mixed time formats with specific warning
     list(from = 3600, to = "11:00") # item 2: num, char
   )
 
-  env_mixed <- rlang::current_env()
-  env_mixed$warn_list_mixed <- c()
-
-  expect_error(
-    withCallingHandlers(
-      convert_agenda_times(mixed_agenda),
-      warning = function(w) {
-        env_mixed$warn_list_mixed <- c(
-          env_mixed$warn_list_mixed,
-          rlang::cnd_message(w)
-        )
-        rlang::cnd_muffle(w)
-      }
-    ),
-    regexp = "Agenda times must be all of the same class across the agenda.",
-    fixed = TRUE
-  )
-
-  expect_length(env_mixed$warn_list_mixed, 3)
-  # Check for W_class_item1
-  grep(
-    "from and to times are not of the same class.*from.*<character>.*09:00.*to.*<numeric>.*3600",
-    env_mixed$warn_list_mixed
-  ) |>
-    expect_length(1)
-  # Check for W_order_item1
-  grep(
-    "'from' time should precede 'to' time.*from: \"09:00\".*to: 3600",
-    env_mixed$warn_list_mixed
-  ) |>
-    expect_length(1)
-  # Check for W_class_item2
-  grep(
-    "from and to times are not of the same class.*from.*<numeric>.*3600.*to.*<character>.*11:00",
-    env_mixed$warn_list_mixed
-  ) |>
-    expect_length(1)
+  # The function is expected to raise three warnings and then an error.
+  # We chain the expectations.
+  convert_agenda_times(mixed_agenda) |>
+    expect_warning(
+      regexp = "from and to times are not of the same class.*from.*<character>.*09:00.*to.*<numeric>.*3600"
+    ) |>
+    expect_warning(
+      regexp = "'from' time should precede 'to' time.*from: \"09:00\".*to: 3600"
+    ) |>
+    expect_warning(
+      regexp = "from and to times are not of the same class.*from.*<numeric>.*3600.*to.*<character>.*11:00"
+    ) |>
+    expect_error(
+      regexp = "Agenda times must be all of the same class across the agenda.",
+      fixed = TRUE
+    )
 })
 
 test_that("convert_agenda_times handles invalid event start time format", {
