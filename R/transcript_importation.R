@@ -23,11 +23,15 @@ parse_transcript_json <- function(
   event_start_time = getOption("minutemaker_event_start_time")
 ) {
   json_files <- NA
+  file_input <- FALSE
 
   # Is the input a string?
   transcript_list <- if (is.character(transcript_json)) {
     # Is the string a path to a folder?
     if (dir.exists(transcript_json)) {
+      # Mark the input as a path
+      file_input <- TRUE
+
       # Get all JSON files in the folder
       json_files <- list.files(transcript_json, pattern = "\\.json$")
 
@@ -43,7 +47,8 @@ parse_transcript_json <- function(
         error = function(e) {
           cli::cli_abort(
             c(
-              "Error parsing JSON file(s) from directory {.path {transcript_json}}:",
+              "Error parsing JSON file(s) from directory
+                {.path {transcript_json}}:",
               "x" = "{e$message}",
               "i" = "Ensure all JSON files in the directory are valid."
             ),
@@ -53,6 +58,9 @@ parse_transcript_json <- function(
       )
     } else if (file.exists(transcript_json)) {
       # Is the string a path to a file?
+
+      # Mark the input as a path
+      file_input <- TRUE
 
       json_files <- transcript_json
 
@@ -71,6 +79,8 @@ parse_transcript_json <- function(
       )
     } else {
       # Is the string a JSON string?
+
+      # Read the JSON string
       tryCatch(
         list(jsonlite::fromJSON(transcript_json)),
         error = function(e) {
@@ -84,7 +94,8 @@ parse_transcript_json <- function(
         }
       )
     }
-  } else if (vctrs::obj_is_list(transcript_json)) {
+  } else if (rlang::is_list(transcript_json)) {
+    # Is the input a list?
     list(transcript_json)
   } else {
     cli::cli_abort(
@@ -94,7 +105,17 @@ parse_transcript_json <- function(
     )
   }
 
-  full_transcript <- data.frame()
+  # Initialize full_transcript with the expected schema.
+  # This ensures that even if no segments are processed, the function returns
+  # a data frame with the correct structure.
+  full_transcript <- dplyr::tibble(
+    doc = integer(),
+    file = character(),
+    start = numeric(),
+    end = numeric(),
+    text = character(),
+    speaker = character()
+  )
   last_time <- 0
   to_import <- c(
     "start",
@@ -133,6 +154,22 @@ parse_transcript_json <- function(
       next
     }
 
+    # Check if the file path is valid, unless the input is a string
+    if (
+      file_input &&
+      (!rlang::is_scalar_character(json_files[i]) ||
+      !file.exists(json_files[i]))
+    ) {
+
+      cli::cli_abort(
+        c(
+          "Invalid file path format.",
+          "x" = "File path at index {i} is not valid.",
+          "i" = "Please ensure all file paths are valid strings."
+        )
+      )
+    }
+
     transcript_data <- transcript_list[[i]]$segments |>
       bind_rows() |>
       # Select only the columns to import
@@ -145,7 +182,9 @@ parse_transcript_json <- function(
       # Add the file indicators
       mutate(
         doc = i,
-        file = basename(json_files[i]),
+        file = if (!is.na(json_files[i])) {
+          basename(json_files[i])
+          } else NA_character_,
         .before = 1
       ) |>
       # Add the previous file time to the start and end times
@@ -169,7 +208,7 @@ parse_transcript_json <- function(
       cli::cli_abort(
         c(
           "Event start time
-          {.val {getOption(\"minutemaker_event_start_time\")}}
+          {.val {getOption(\"minutemaker_event_start_time\", \"NULL\")}}
           is not interpretable.",
           "x" = "Failed to parse the start time.",
           "i" = "Please use the HH:MM(:SS) or HH:MM(:SS) AM/PM format
@@ -244,52 +283,72 @@ import_transcript_from_file <- function(
         lubridate::hms() |>
         as.numeric()
 
-      # Extract the text
-      text <- lines[.x + 1] |>
-        # MS Teams vtt has an xml tag with speaker info
+      # Safely get the line content for text (line after timestamp)
+      text_line_idx <- .x + 1
+      raw_text_content <- if (text_line_idx <= length(lines)) {
+        lines[text_line_idx]
+      } else {
+        NA_character_
+      }
+
+      # Clean the text content: remove MS Teams speaker tag (if any) from the
+      # text field, and squish whitespace.
+      # Note: Speaker extraction from the tag (if import_diarization is TRUE)
+      # happens using raw_text_content later.
+      # stringr::str_remove_all handles NA input by returning NA.
+      # stringr::str_squish handles NA input by returning NA.
+      processed_text <- raw_text_content |>
         stringr::str_remove_all("</?v.*?>") |>
         stringr::str_squish()
 
-      # Return the data
+      # Ensure final text is NA_character_ if it's effectively empty or was
+      # initially NA
+      final_text <- if (is.na(processed_text) || processed_text == "") {
+        NA_character_
+      } else {
+        processed_text
+      }
+
       extract <- data.frame(
         start = times[1],
         end = times[2],
-        text = text
+        text = final_text
       )
 
       # If the transcript is diarized, extract the speaker
       if (import_diarization) {
-        # Extract the speaker
-        cur_speaker <- lines[.x - 1]
+        speaker_to_assign <- NA_character_ # Initialize speaker
 
-        # Normal VTT style
-        if (stringr::str_detect(cur_speaker, "^\\d+ ")) {
-          # the name is between double quotes
-          cur_speaker <- stringr::str_extract_all(
-            cur_speaker,
-            '(?<=").*(?=")'
-          ) |>
-            unlist()
-        } else if (stringr::str_detect(lines[.x + 1], "^<v ")) {
-          # MS Teams vtt style: <v speaker first name [second name]>
-          cur_speaker <- stringr::str_extract_all(
-            lines[.x + 1],
-            '(?<=<v ).*?(?=>)'
-          ) |>
-            unlist()
-        } else {
-          cur_speaker <- NA
+        # Get content of line above timestamp, if it exists
+        line_above_idx <- .x - 1
+        line_above_content <- if (line_above_idx >= 1) lines[line_above_idx] else NA_character_
+
+        # Check line above for standard VTT cue ID with quoted speaker
+        # Guard against NA input for str_detect. Regex checks for digits then a
+        # space.
+        if (!is.na(line_above_content) && stringr::str_detect(line_above_content, "^\\d+\\s")) {
+          extracted_name_std_vtt <- stringr::str_extract(line_above_content, '(?<=")([^"]+)(?=")')
+          if (!is.na(extracted_name_std_vtt)) {
+            speaker_to_assign <- extracted_name_std_vtt
+          }
+          # If cue ID line matches pattern but no speaker in quotes,
+          # speaker_to_assign remains NA.
+        } else if (!is.na(raw_text_content) && stringr::str_detect(raw_text_content, "^<v\\s")) {
+          # Else, check current text line (raw_text_content) for MS Teams VTT
+          # style (<v Speaker>Text)
+          # This is only checked if the line above was not a VTT Cue ID with a
+          # speaker.
+          # Regex checks for "<v" then a space.
+          extracted_name_ms_teams <- stringr::str_extract(raw_text_content, '(?<=<v\\s)([^>]+)(?=>)')
+          if (!is.na(extracted_name_ms_teams)) {
+            speaker_to_assign <- extracted_name_ms_teams
+          }
         }
+        # If neither pattern matches, speaker_to_assign remains NA_character_.
 
-        # In the unlikely case that there are multiple speakers, join them
-        if (length(cur_speaker) > 1) {
-          cur_speaker <- stringr::str_flatten_comma(speaker)
-        }
-
-        # Add the speaker to the data
         extract <- extract |>
-          mutate(
-            speaker = cur_speaker,
+          dplyr::mutate(
+            speaker = speaker_to_assign,
             .before = text
           )
       }
@@ -325,10 +384,14 @@ add_chat_transcript <- function(
 ) {
   chat_format <- match.arg(chat_format)
 
-  if (is.character(chat_transcript)) {
+  if (rlang::is_scalar_character(chat_transcript)) {
     if (!file.exists(chat_transcript)) {
       cli::cli_abort("Chat file not found.")
     }
+
+    file_name <- chat_transcript
+    # Silence the linter since this var is used in the error message only
+    file_name
 
     # Parse the start time
     start_time <- parse_event_time(start_time) |>
@@ -372,9 +435,10 @@ add_chat_transcript <- function(
           )
       },
       error = \(e) {
+
         cli::cli_abort(
           c(
-            "Error parsing chat file: {.file {basename(chat_transcript)}}",
+            "Error parsing chat file: {.file {file_name}}",
             "x" = "{e$message}",
             "i" = "Ensure the chat file is in a supported format."
           ),
@@ -391,7 +455,11 @@ add_chat_transcript <- function(
       )
     }
   } else {
-    cli::cli_abort("Unsupported chat data format.")
+    cli::cli_abort(
+      "Unsupported chat data format.",
+      "x" = "Expected a file path or a data frame,
+      got {.var {chat_transcript}}."
+    )
   }
 
   # Add the chat messages to the transcript
