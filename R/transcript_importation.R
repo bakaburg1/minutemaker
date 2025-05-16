@@ -192,7 +192,7 @@ parse_transcript_json <- function(
         end = .data$end + last_time
       )
 
-    full_transcript <- rbind(full_transcript, transcript_data)
+    full_transcript <- dplyr::bind_rows(full_transcript, transcript_data)
 
     # Get the last segment info
     last_time <- transcript_data$end |> tail(1)
@@ -308,7 +308,7 @@ import_transcript_from_file <- function(
         processed_text
       }
 
-      extract <- data.frame(
+      extract <- dplyr::tibble(
         start = times[1],
         end = times[2],
         text = final_text
