@@ -14,7 +14,7 @@ summarise_transcript(
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
   consider_diarization = TRUE,
-  summary_structure = get_prompts("summary_structure"),
+  summary_structure = NULL,
   extra_diarization_instructions = NULL,
   extra_output_instructions = NULL,
   prompt_only = FALSE,
