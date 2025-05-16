@@ -105,6 +105,8 @@ Use the **most specific** expectation available:
     expect_true(return_value)
   })
   ```
+* When testing complex return objects (e.g., data frames, lists), strive to define a complete `expected` object and use a single `expect_equal(result, expected)` comparison. This approach is typically more comprehensive and easier to maintain than asserting individual properties with multiple separate expectations (e.g., `expect_identical(result$colA, ...)`, `expect_length(result$colB, ...)`). Fall back to individual property checks only if a specific property requires a different type of expectation (like `expect_match`) or a more nuanced validation not covered by `expect_equal`.
+* Always prefer a **specific expectation** rather than constructing the expected result via code and using `expect_true()` or `expect_equal()`. This practice avoids generic error messages and makes it clear why the test failed.
 
 ---
 
