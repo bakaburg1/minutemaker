@@ -157,10 +157,9 @@ parse_transcript_json <- function(
     # Check if the file path is valid, unless the input is a string
     if (
       file_input &&
-      (!rlang::is_scalar_character(json_files[i]) ||
-      !file.exists(json_files[i]))
+        (!rlang::is_scalar_character(json_files[i]) ||
+          !file.exists(json_files[i]))
     ) {
-
       cli::cli_abort(
         c(
           "Invalid file path format.",
@@ -184,7 +183,7 @@ parse_transcript_json <- function(
         doc = i,
         file = if (!is.na(json_files[i])) {
           basename(json_files[i])
-          } else NA_character_,
+        } else NA_character_,
         .before = 1
       ) |>
       # Add the previous file time to the start and end times
@@ -321,25 +320,38 @@ import_transcript_from_file <- function(
 
         # Get content of line above timestamp, if it exists
         line_above_idx <- .x - 1
-        line_above_content <- if (line_above_idx >= 1) lines[line_above_idx] else NA_character_
+        line_above_content <- if (line_above_idx >= 1)
+          lines[line_above_idx] else NA_character_
 
         # Check line above for standard VTT cue ID with quoted speaker
         # Guard against NA input for str_detect. Regex checks for digits then a
         # space.
-        if (!is.na(line_above_content) && stringr::str_detect(line_above_content, "^\\d+\\s")) {
-          extracted_name_std_vtt <- stringr::str_extract(line_above_content, '(?<=")([^"]+)(?=")')
+        if (
+          !is.na(line_above_content) &&
+            stringr::str_detect(line_above_content, "^\\d+\\s")
+        ) {
+          extracted_name_std_vtt <- stringr::str_extract(
+            line_above_content,
+            '(?<=")([^"]+)(?=")'
+          )
           if (!is.na(extracted_name_std_vtt)) {
             speaker_to_assign <- extracted_name_std_vtt
           }
           # If cue ID line matches pattern but no speaker in quotes,
           # speaker_to_assign remains NA.
-        } else if (!is.na(raw_text_content) && stringr::str_detect(raw_text_content, "^<v\\s")) {
+        } else if (
+          !is.na(raw_text_content) &&
+            stringr::str_detect(raw_text_content, "^<v\\s")
+        ) {
           # Else, check current text line (raw_text_content) for MS Teams VTT
           # style (<v Speaker>Text)
           # This is only checked if the line above was not a VTT Cue ID with a
           # speaker.
           # Regex checks for "<v" then a space.
-          extracted_name_ms_teams <- stringr::str_extract(raw_text_content, '(?<=<v\\s)([^>]+)(?=>)')
+          extracted_name_ms_teams <- stringr::str_extract(
+            raw_text_content,
+            '(?<=<v\\s)([^>]+)(?=>)'
+          )
           if (!is.na(extracted_name_ms_teams)) {
             speaker_to_assign <- extracted_name_ms_teams
           }
@@ -435,7 +447,6 @@ add_chat_transcript <- function(
           )
       },
       error = \(e) {
-
         cli::cli_abort(
           c(
             "Error parsing chat file: {.file {file_name}}",

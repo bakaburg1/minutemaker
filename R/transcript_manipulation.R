@@ -15,7 +15,6 @@ clean_transcript <- function(
   transcript_data,
   remove_silence = FALSE
 ) {
-
   # Remove double spaces and spaces at the beginning and end of the text
   transcript_data$text <- stringr::str_squish(transcript_data$text)
 
