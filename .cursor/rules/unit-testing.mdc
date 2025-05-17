@@ -9,6 +9,16 @@ In general follow the guidelines in the code already used in the tests/testthat 
 
 ---
 
+# Procedure
+
+1. Start by writing the test_that() skeleton of all the test it make sense to implement for a given code file, without implementing them. In each write a comment with the instruction about what to test.
+2. Implement each test one by one and after each implementation use devtools::test(filter="test_file_name_matching_string") to see if the tests work.
+3. Iterate until all the test succeed (no Failures or Warnings), and then pass at the next test.
+4. Continue until all tests are successfully implemented.
+
+
+---
+
 ## Formatting & structure
 
 1. **Indentation:** 2 spaces, never tabs.
@@ -128,7 +138,7 @@ Use the **most specific** expectation available:
     )
   })
   ```
-
+- Important: Never mock functions from the base package since you'll probably break something. Do it only strictly necessary and consider it as possible culprit in case of a test failure.
 ---
 
 ## Edge-case coverage checklist
