@@ -27,7 +27,7 @@ test_that("clean_transcript basic cleaning works", {
       silent(), # NA becomes silent
       silent(), # "" becomes silent
       "repeated text",
-      silent()  # Second occurrence of "repeated text" becomes silent
+      silent() # Second occurrence of "repeated text" becomes silent
     )
   )
 
@@ -40,7 +40,6 @@ test_that("clean_transcript basic cleaning works", {
   result_data <- clean_transcript(input_data)
 
   expect_equal(result_data, expected_data)
-
 })
 
 test_that("clean_transcript removes silence correctly", {
@@ -110,7 +109,10 @@ test_that("clean_transcript handles empty input", {
   )
 
   result_empty_with_extras <- clean_transcript(empty_transcript_with_extras)
-  expect_identical(result_empty_with_extras, expected_empty_after_extras_removed)
+  expect_identical(
+    result_empty_with_extras,
+    expected_empty_after_extras_removed
+  )
 
   result_empty_with_extras_remove_silence <- clean_transcript(
     empty_transcript_with_extras,
@@ -133,7 +135,8 @@ test_that("clean_transcript removes isolated text segments", {
   # "isolated" (idx 5) becomes s. Then transcript is (s,s,s,s,s,s,s,s,s,"control").
   # Then "control" (idx 10) is checked. Neighbours (idx 6,7,8,9) are all s. So it becomes s.
   expected_text_case1 <- c(s, s, s, s, s, s, s, s, s, s)
-  input_case1$start <- seq_len(nrow(input_case1)); input_case1$end <- input_case1$start + 1
+  input_case1$start <- seq_len(nrow(input_case1))
+  input_case1$end <- input_case1$start + 1
   result_case1 <- clean_transcript(input_case1)
   expect_identical(result_case1$text, expected_text_case1)
 
@@ -144,7 +147,8 @@ test_that("clean_transcript removes isolated text segments", {
   # "isolated" (idx 1) -> s. Then (s,s,s,s,s,"control").
   # "control" (idx 6) -> s.
   expected_text_case2 <- c(s, s, s, s, s, s)
-  input_case2$start <- seq_len(nrow(input_case2)); input_case2$end <- input_case2$start + 1
+  input_case2$start <- seq_len(nrow(input_case2))
+  input_case2$end <- input_case2$start + 1
   result_case2 <- clean_transcript(input_case2)
   expect_identical(result_case2$text, expected_text_case2)
 
@@ -155,7 +159,8 @@ test_that("clean_transcript removes isolated text segments", {
   # "control" (idx 1) has s,s,s,s after. Becomes s. Transcript: (s,s,s,s,s,"isolated")
   # "isolated" (idx 6) has s,s,s,s before. Becomes s.
   expected_text_case3 <- c(s, s, s, s, s, s)
-  input_case3$start <- seq_len(nrow(input_case3)); input_case3$end <- input_case3$start + 1
+  input_case3$start <- seq_len(nrow(input_case3))
+  input_case3$end <- input_case3$start + 1
   result_case3 <- clean_transcript(input_case3)
   expect_identical(result_case3$text, expected_text_case3)
 
@@ -164,7 +169,8 @@ test_that("clean_transcript removes isolated text segments", {
   # "isolated" (idx 2) is surrounded by s (idx 1) and (s, "control") (idx 3,4). Not all silent. Stays.
   # "control" (idx 4) is surrounded by (s, "isolated", s) (idx 1,2,3). Not all silent. Stays.
   expected_text_case4 <- c(s, "isolated", s, "control")
-  input_case4$start <- seq_len(nrow(input_case4)); input_case4$end <- input_case4$start + 1
+  input_case4$start <- seq_len(nrow(input_case4))
+  input_case4$end <- input_case4$start + 1
   result_case4 <- clean_transcript(input_case4)
   expect_identical(result_case4$text, expected_text_case4)
 
@@ -173,13 +179,21 @@ test_that("clean_transcript removes isolated text segments", {
   input_case5 <- dplyr::tibble(
     text = c(s, s, "not isolated", "another text", s, s, "control")
   )
-  expected_text_case5 <- c(s, s, "not isolated", "another text", s, s, "control")
+  expected_text_case5 <- c(
+    s,
+    s,
+    "not isolated",
+    "another text",
+    s,
+    s,
+    "control"
+  )
   # "control" at the end (idx 7) will be checked. Preceded by (idx 3,4,5,6)
   # c("not isolated", "another text", s, s). Not all silent. Stays.
-  input_case5$start <- seq_len(nrow(input_case5)); input_case5$end <- input_case5$start + 1
+  input_case5$start <- seq_len(nrow(input_case5))
+  input_case5$end <- input_case5$start + 1
   result_case5 <- clean_transcript(input_case5)
   expect_identical(result_case5$text, expected_text_case5)
-
 
   # Case 6: Only one segment, should not become silent by this rule
   # This case was correct previously.
@@ -188,13 +202,13 @@ test_that("clean_transcript removes isolated text segments", {
   result_case6 <- clean_transcript(input_case6)
   expect_identical(result_case6$text, expected_text_case6)
 
-
   # Case 7: Two segments, one text, one silent. Text ("text") becomes silent.
   input_case7 <- dplyr::tibble(text = c("text", s))
   # "text" (idx 1) is followed by s (idx 2). All surrounding (just idx 2) is silent. Becomes s.
   # Then transcript is (s,s). Second s remains s.
   expected_text_case7 <- c(s, s)
-  input_case7$start <- as.integer(1:2); input_case7$end <- as.integer(2:3) # Ensure integer type
+  input_case7$start <- as.integer(1:2)
+  input_case7$end <- as.integer(2:3) # Ensure integer type
   result_case7 <- clean_transcript(input_case7)
   expect_identical(result_case7$text, expected_text_case7)
 })
@@ -221,7 +235,8 @@ test_that("clean_transcript removes segments with high word repetition", {
   text_dup_becomes_silent <- "original" # This will be silent() before rep check
 
   input_data <- dplyr::tibble(
-    start = 1:6, end = 2:7,
+    start = 1:6,
+    end = 2:7,
     text = c(
       text_rep_11,
       text_rep_10,
@@ -243,12 +258,12 @@ test_that("clean_transcript removes segments with high word repetition", {
     start = c(1L, 2L, 3L, 4L, 5L, 6L), # Ensure integer type for start/end
     end = c(2L, 3L, 4L, 5L, 6L, 7L),
     text = c(
-      s,                             # repetition > 10
-      text_rep_10,                   # repetition <= 10
-      text_no_comma_rep,             # repetition = 1 (no commas)
-      s,                             # already silent
-      text_dup_source,               # original text
-      s                              # becomes silent due to duplication
+      s, # repetition > 10
+      text_rep_10, # repetition <= 10
+      text_no_comma_rep, # repetition = 1 (no commas)
+      s, # already silent
+      text_dup_source, # original text
+      s # becomes silent due to duplication
     )
   )
 
@@ -265,10 +280,21 @@ test_that("clean_transcript removes segments with high word repetition", {
   expect_identical(clean_transcript(input_mixed), expected_mixed)
 
   # Case: Text with mixed items, max repetition is <= 10
-  text_mixed_low_rep <- paste(c(rep("X", 5), rep("Y", 10), "Z"), collapse = ", ")
-  input_mixed_low <- dplyr::tibble(start = 1L, end = 2L, text = text_mixed_low_rep)
+  text_mixed_low_rep <- paste(
+    c(rep("X", 5), rep("Y", 10), "Z"),
+    collapse = ", "
+  )
+  input_mixed_low <- dplyr::tibble(
+    start = 1L,
+    end = 2L,
+    text = text_mixed_low_rep
+  )
   # Max repetition for "Y" is 10, so it should remain
-  expected_mixed_low <- dplyr::tibble(start = 1L, end = 2L, text = text_mixed_low_rep)
+  expected_mixed_low <- dplyr::tibble(
+    start = 1L,
+    end = 2L,
+    text = text_mixed_low_rep
+  )
   expect_identical(clean_transcript(input_mixed_low), expected_mixed_low)
 })
 
@@ -280,14 +306,16 @@ test_that("clean_transcript removes low confidence segments", {
     start = 1:5,
     end = 2:6,
     text = c("text1", "text2", "text3", "text4", "text5"),
-    avg_logprob =    c(-0.6,  -0.4,  -0.7,  -0.2,   NA_real_),
-    no_speech_prob = c( 0.95,  0.95,  0.8,   0.99,   0.99)
+    avg_logprob = c(-0.6, -0.4, -0.7, -0.2, NA_real_),
+    no_speech_prob = c(0.95, 0.95, 0.8, 0.99, 0.99)
     # speaker column to test its preservation
     # speaker = paste0("spk", 1:5)
   )
   # Add a speaker column to ensure it's preserved
-  input_with_speaker <- dplyr::mutate(input_template, speaker = paste0("spk", 1:5))
-
+  input_with_speaker <- dplyr::mutate(
+    input_template,
+    speaker = paste0("spk", 1:5)
+  )
 
   # Expected outcomes:
   # text1: avg_logprob < -0.5 AND no_speech_prob > 0.9  -> silent
@@ -301,8 +329,8 @@ test_that("clean_transcript removes low confidence segments", {
   # Expected data frame structure after clean_transcript
   # (avg_logprob and no_speech_prob columns removed)
   expected_df_structure <- dplyr::tibble(
-    start = c(1L,2L,3L,4L,5L), # Ensure integer type
-    end = c(2L,3L,4L,5L,6L),
+    start = c(1L, 2L, 3L, 4L, 5L), # Ensure integer type
+    end = c(2L, 3L, 4L, 5L, 6L),
     text = expected_text_after_confidence,
     speaker = paste0("spk", 1:5) # Speaker column preserved
   )
@@ -311,27 +339,41 @@ test_that("clean_transcript removes low confidence segments", {
   expect_identical(result_data, expected_df_structure)
 
   # Case: What if only one confidence column is present? Rule should not apply.
-  input_missing_no_speech <- input_with_speaker |> dplyr::select(-no_speech_prob)
+  input_missing_no_speech <- input_with_speaker |>
+    dplyr::select(-no_speech_prob)
   # Expect no changes due to confidence, and avg_logprob NOT removed
   expected_missing_no_speech <- input_missing_no_speech
-  expect_identical(clean_transcript(input_missing_no_speech), expected_missing_no_speech)
+  expect_identical(
+    clean_transcript(input_missing_no_speech),
+    expected_missing_no_speech
+  )
 
   input_missing_avg_logprob <- input_with_speaker |> dplyr::select(-avg_logprob)
   # Expect no changes due to confidence, and no_speech_prob NOT removed
   expected_missing_avg_logprob <- input_missing_avg_logprob
-  expect_identical(clean_transcript(input_missing_avg_logprob), expected_missing_avg_logprob)
+  expect_identical(
+    clean_transcript(input_missing_avg_logprob),
+    expected_missing_avg_logprob
+  )
 
   # Case: No confidence columns present. Should run without error.
   input_no_confidence <- dplyr::tibble(
-    start = 1L, end = 2L, text = "text_no_conf", speaker = "spk_a"
+    start = 1L,
+    end = 2L,
+    text = "text_no_conf",
+    speaker = "spk_a"
   )
   expected_no_confidence <- input_no_confidence # no change, no columns removed
-  expect_identical(clean_transcript(input_no_confidence), expected_no_confidence)
+  expect_identical(
+    clean_transcript(input_no_confidence),
+    expected_no_confidence
+  )
 
   # Case: Confidence columns present, but all text becomes silent due to other rules first
   # e.g. all text is "" or NA initially
   input_all_silent_initially <- dplyr::tibble(
-    start = 1:2, end = 2:3,
+    start = 1:2,
+    end = 2:3,
     text = c(NA_character_, ""),
     avg_logprob = c(-0.6, -0.7),
     no_speech_prob = c(0.95, 0.96),
@@ -340,11 +382,15 @@ test_that("clean_transcript removes low confidence segments", {
   # text becomes c(s,s) from NA/"" normalization. Confidence rule still applies
   # to original row structure but text is already silent. Columns should be removed.
   expected_all_silent <- dplyr::tibble(
-    start = c(1L, 2L), end = c(2L, 3L),
+    start = c(1L, 2L),
+    end = c(2L, 3L),
     text = c(s, s),
     speaker = c("spkA", "spkB")
   )
-  expect_identical(clean_transcript(input_all_silent_initially), expected_all_silent)
+  expect_identical(
+    clean_transcript(input_all_silent_initially),
+    expected_all_silent
+  )
 })
 
 # Tests for extract_text_from_transcript() ---
@@ -352,12 +398,19 @@ test_that("clean_transcript removes low confidence segments", {
 test_that("extract_text_from_transcript extracts full transcript if no times given", {
   s <- silent() # "[...]"
 
-
   # Sample transcript data
   sample_transcript <- dplyr::tibble(
     start = c(0, 10, 20, 30, 40, 50, 60),
-    end =   c(10, 20, 30, 40, 50, 60, 70),
-    text =  c("Hello", "world", s, "Speaker 2 here", "Yes", "Another from Spk2", s),
+    end = c(10, 20, 30, 40, 50, 60, 70),
+    text = c(
+      "Hello",
+      "world",
+      s,
+      "Speaker 2 here",
+      "Yes",
+      "Another from Spk2",
+      s
+    ),
     speaker = c("Alice", "Alice", "Alice", "Bob", "Bob", "Bob", "Bob")
   )
 
@@ -368,7 +421,10 @@ test_that("extract_text_from_transcript extracts full transcript if no times giv
     sep = "\n\n"
   )
   # Warning no longer expected
-  result1 <- extract_text_from_transcript(sample_transcript, import_diarization = TRUE)
+  result1 <- extract_text_from_transcript(
+    sample_transcript,
+    import_diarization = TRUE
+  )
   expect_identical(result1, expected_with_diarization)
 
   # Expected output WITHOUT diarization
@@ -378,7 +434,10 @@ test_that("extract_text_from_transcript extracts full transcript if no times giv
     sep = "\n\n"
   )
   # Warning no longer expected
-  result2 <- extract_text_from_transcript(sample_transcript, import_diarization = FALSE)
+  result2 <- extract_text_from_transcript(
+    sample_transcript,
+    import_diarization = FALSE
+  )
   expect_identical(result2, expected_without_diarization)
 
   # Define expected text when all segments are combined into one block
@@ -418,7 +477,7 @@ test_that("extract_text_from_transcript extracts full transcript if no times giv
     res_long_warn <- extract_text_from_transcript(long_transcript)
   } |>
     expect_warning("Summarising a transcript covering more than 1 hour")
-    # The .data deprecation warning is no longer expected here either
+  # The .data deprecation warning is no longer expected here either
 
   expected_long_no_diar <- "short1\nshort2"
   expect_identical(
@@ -432,11 +491,18 @@ test_that("extract_text_from_transcript extracts full transcript if no times giv
 test_that("extract_text_from_transcript uses agenda element times", {
   s <- silent()
 
-
   sample_transcript <- dplyr::tibble(
     start = c(0, 10, 20, 30, 40, 50, 60),
-    end =   c(10, 20, 30, 40, 50, 60, 70),
-    text =  c("First", "Second", s, "Third (Bob)", "Fourth (Bob)", "Fifth (Alice)", s),
+    end = c(10, 20, 30, 40, 50, 60, 70),
+    text = c(
+      "First",
+      "Second",
+      s,
+      "Third (Bob)",
+      "Fourth (Bob)",
+      "Fifth (Alice)",
+      s
+    ),
     speaker = c("Alice", "Alice", "Alice", "Bob", "Bob", "Alice", "Alice")
   )
   agenda <- list(from = 10, to = 50) # Numeric seconds
@@ -447,7 +513,10 @@ test_that("extract_text_from_transcript uses agenda element times", {
     sep = "\n\n"
   )
   # Warning no longer expected
-  result1 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda)
+  result1 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda
+  )
   expect_identical(result1, expected_text_agenda_diar)
 
   expected_text_agenda_no_diar <- paste(
@@ -456,34 +525,55 @@ test_that("extract_text_from_transcript uses agenda element times", {
     sep = "\n\n"
   )
   # Warning no longer expected
-  result2 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda, import_diarization = FALSE)
+  result2 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda,
+    import_diarization = FALSE
+  )
   expect_identical(result2, expected_text_agenda_no_diar)
 
   agenda_empty <- list(from = 100, to = 200)
   # Warning no longer expected
-  result3 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda_empty)
+  result3 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda_empty
+  )
   expect_identical(result3, "")
 
   agenda_one_segment <- list(from = 0, to = 10)
   expected_one_segment_diar <- "Speaker: Alice\nFirst"
   # Warning no longer expected
-  result4 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda_one_segment)
+  result4 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda_one_segment
+  )
   expect_identical(result4, expected_one_segment_diar)
 
   expected_one_segment_no_diar <- "First"
   # Warning no longer expected
-  result5 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda_one_segment, import_diarization = FALSE)
+  result5 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda_one_segment,
+    import_diarization = FALSE
+  )
   expect_identical(result5, expected_one_segment_no_diar)
 
   agenda_one_speaker <- list(from = 30, to = 50)
   expected_one_speaker_diar <- "Speaker: Bob\nThird (Bob)\nFourth (Bob)"
   # Warning no longer expected
-  result6 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda_one_speaker)
+  result6 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda_one_speaker
+  )
   expect_identical(result6, expected_one_speaker_diar)
 
   expected_one_speaker_no_diar <- "Third (Bob)\nFourth (Bob)"
   # Warning no longer expected
-  result7 <- extract_text_from_transcript(sample_transcript, agenda_element = agenda_one_speaker, import_diarization = FALSE)
+  result7 <- extract_text_from_transcript(
+    sample_transcript,
+    agenda_element = agenda_one_speaker,
+    import_diarization = FALSE
+  )
   expect_identical(result7, expected_one_speaker_no_diar)
 })
 
@@ -492,23 +582,37 @@ test_that("extract_text_from_transcript uses explicit start/end times", {
 
   sample_transcript <- dplyr::tibble(
     start = c(0, 10, 20, 30, 40),
-    end =   c(10, 20, 30, 40, 50),
-    text =  c("A", "B", s, "D", "E"),
+    end = c(10, 20, 30, 40, 50),
+    text = c("A", "B", s, "D", "E"),
     speaker = c("S1", "S1", "S1", "S2", "S2")
   )
   expected_text <- paste("Speaker: S1\nB", "Speaker: S2\nD", sep = "\n\n")
   # Warning no longer expected
-  result1 <- extract_text_from_transcript(sample_transcript, start_time = 10, end_time = 40)
+  result1 <- extract_text_from_transcript(
+    sample_transcript,
+    start_time = 10,
+    end_time = 40
+  )
   expect_identical(result1, expected_text)
 
   expected_text_no_diar <- paste("B", "D", sep = "\n\n")
   # Warning no longer expected
-  result2 <- extract_text_from_transcript(sample_transcript, start_time = 10, end_time = 40, import_diarization = FALSE)
+  result2 <- extract_text_from_transcript(
+    sample_transcript,
+    start_time = 10,
+    end_time = 40,
+    import_diarization = FALSE
+  )
   expect_identical(result2, expected_text_no_diar)
 })
 
 test_that("extract_text_from_transcript errors for invalid agenda times", {
-  sample_transcript <- dplyr::tibble(start = 0L, end = 1L, text = "t", speaker = "s")
+  sample_transcript <- dplyr::tibble(
+    start = 0L,
+    end = 1L,
+    text = "t",
+    speaker = "s"
+  )
   agenda_bad_from <- list(from = "bad", to = 10)
   agenda_bad_to <- list(from = 0, to = "bad")
   agenda_missing_from <- list(to = 10)
@@ -518,20 +622,32 @@ test_that("extract_text_from_transcript errors for invalid agenda times", {
   msg <- "Agenda element must contain 'from' and 'to' fields in numeric format."
 
   expect_error(
-    extract_text_from_transcript(sample_transcript, agenda_element = agenda_bad_from),
+    extract_text_from_transcript(
+      sample_transcript,
+      agenda_element = agenda_bad_from
+    ),
     msg
   )
   expect_error(
-    extract_text_from_transcript(sample_transcript, agenda_element = agenda_bad_to),
+    extract_text_from_transcript(
+      sample_transcript,
+      agenda_element = agenda_bad_to
+    ),
     msg
   )
   # The function also expects both fields to be present if agenda_element is not NULL
   expect_error(
-    extract_text_from_transcript(sample_transcript, agenda_element = agenda_missing_from),
+    extract_text_from_transcript(
+      sample_transcript,
+      agenda_element = agenda_missing_from
+    ),
     msg
   )
   expect_error(
-    extract_text_from_transcript(sample_transcript, agenda_element = agenda_missing_to),
+    extract_text_from_transcript(
+      sample_transcript,
+      agenda_element = agenda_missing_to
+    ),
     msg
   )
 })
@@ -542,14 +658,14 @@ test_that("merge_transcripts basic merging works (no diarization)", {
   s <- silent() # "[...]"
 
   transcript_x_refined <- dplyr::tibble(
-    start = c(0L, 10L, 16L, 22L, 30L), # x[2], x[3], x[4] are silent initially
-    end   = c(5L, 15L, 21L, 28L, 35L),
-    text  = c("AAA", s, s, s, "BBB")
+    start = c(0L, 10L, 16L, 22L, 30L),
+    end = c(5L, 15L, 21L, 28L, 35L),
+    text = c("AAA", s, s, s, "BBB")
   )
   transcript_y_refined <- dplyr::tibble(
     start = c(10L, 20L),
-    end   = c(15L, 29L),
-    text  = c("YYY1", "YYY2_covers_two")
+    end = c(15L, 29L),
+    text = c("YYY1", "YYY2_covers_two")
   )
 
   # Expected based on careful trace:
@@ -559,74 +675,63 @@ test_that("merge_transcripts basic merging works (no diarization)", {
   # No segments are removed by the redundancy check in this scenario.
   expected_data_corrected <- dplyr::tibble(
     start = c(0L, 10L, 16L, 20L, 30L),
-    end   = c(5L, 15L, 21L, 29L, 35L),
-    text  = c("AAA", "YYY1", s, "YYY2_covers_two", "BBB")
+    end = c(5L, 15L, 21L, 29L, 35L),
+    text = c("AAA", "YYY1", s, "YYY2_covers_two", "BBB")
   )
 
-  # Ensure cli symbols are consistent for message checking later
-  testthat::local_reproducible_output(unicode = TRUE)
-
-  result <- merge_transcripts(
-    transcript_x_refined,
-    transcript_y_refined,
-    import_diarization = FALSE
-  )
-  expect_identical(result, expected_data_corrected)
-
-  # Test messages using testthat::capture_messages
-  captured_msgs <- testthat::capture_messages(
-    merge_transcripts(
+  {
+    result <- merge_transcripts(
       transcript_x_refined,
       transcript_y_refined,
       import_diarization = FALSE
     )
-  )
+  } |>
+    expect_message("Added 2 segments.*Removed 0 segments")
 
-  expect_length(captured_msgs, 1)
-  # Check for the exact message content based on the previous test run's actual output
-  # The symbols ✔ and ℹ should be stable due to local_reproducible_output.
-  expect_equal(captured_msgs[1], "✔ Added 2 segments.\nℹ Removed 0 segments.")
+  expect_identical(result, expected_data_corrected)
 })
 
 test_that("merge_transcripts handles no empty segments", {
   s <- silent()
   transcript_x_no_empty <- dplyr::tibble(
     start = c(0L, 10L),
-    end   = c(5L, 15L),
-    text  = c("Text A", "Text B"),
+    end = c(5L, 15L),
+    text = c("Text A", "Text B"),
     speaker = c("spk_x1", "spk_x2") # Original speakers in x
   )
   # transcript_y is needed for the diarization import scenario
   transcript_y_targeted_speakers <- dplyr::tibble(
     start = c(0L, 2L, 10L, 12L), # Times to ensure they fall in ranges for x1 and x2
-    end   = c(1L, 3L, 11L, 13L),
-    text  = c("y_a1", "y_a2", "y_b1", "y_b2"), # Text content of y doesn't matter for x text
-    speaker = c("SPEAKER_FOR_A", "SPEAKER_FOR_A", "SPEAKER_FOR_B", "SPEAKER_FOR_B")
+    end = c(1L, 3L, 11L, 13L),
+    text = c("y_a1", "y_a2", "y_b1", "y_b2"), # Text content of y doesn't matter for x text
+    speaker = c(
+      "SPEAKER_FOR_A",
+      "SPEAKER_FOR_A",
+      "SPEAKER_FOR_B",
+      "SPEAKER_FOR_B"
+    )
   )
 
   # Scenario 1: import_diarization = FALSE
-  testthat::local_reproducible_output(unicode = TRUE) # For cli symbols in messages
-
   expect_message(
     result_no_diar <- merge_transcripts(
       transcript_x_no_empty,
       transcript_y_targeted_speakers, # y can be anything here, not used for text
       import_diarization = FALSE
     ),
-    regexp = "No empty segments found in the transcript.",
-    fixed = TRUE
+    "No empty segments found in the transcript"
   )
   # clean_transcript is called at the end of merge_transcripts.
-  # For this input, clean_transcript(transcript_x_no_empty) is transcript_x_no_empty.
+  # For this input, clean_transcript(transcript_x_no_empty) is
+  # transcript_x_no_empty.
   expect_identical(result_no_diar, transcript_x_no_empty)
-
 
   # Scenario 2: import_diarization = TRUE
   # No text segments in x should change. Speakers in x should be updated.
   expected_data_imputed_speakers <- dplyr::tibble(
     start = c(0L, 10L),
-    end   = c(5L, 15L),
-    text  = c("Text A", "Text B"),
+    end = c(5L, 15L),
+    text = c("Text A", "Text B"),
     speaker = c("SPEAKER_FOR_A", "SPEAKER_FOR_B") # Imputed speakers
   )
 
@@ -655,25 +760,18 @@ test_that("merge_transcripts handles no empty segments", {
     .package = "minutemaker"
   )
 
-  testthat::local_reproducible_output(unicode = TRUE) # For cli symbols in messages
-  captured_msgs_diar <- testthat::capture_messages({
+  {
     result_imputed_speakers <- merge_transcripts(
       transcript_x_no_empty,
       transcript_y_targeted_speakers,
       import_diarization = TRUE
     )
-  })
-  expect_identical(result_imputed_speakers, expected_data_imputed_speakers)
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 0 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization...")
 
-  # Expected messages for import_diarization=TRUE and no empty segments:
-  # 1. "Merging..."
-  # 2. "✔ Added 0 segments.\nℹ Removed 0 segments."
-  # 3. "Importing diarization..."
-  expect_length(captured_msgs_diar, 3)
-  expect_match(captured_msgs_diar[1], "Merging...", fixed = TRUE)
-  # Use expect_equal for the composite message to ensure exact match including symbols
-  expect_equal(captured_msgs_diar[2], "✔ Added 0 segments.\nℹ Removed 0 segments.")
-  expect_match(captured_msgs_diar[3], "Importing diarization...", fixed = TRUE)
+  expect_identical(result_imputed_speakers, expected_data_imputed_speakers)
 })
 
 test_that("merge_transcripts handles transcripts with no overlap", {
@@ -681,15 +779,15 @@ test_that("merge_transcripts handles transcripts with no overlap", {
   # Transcript X: Segments from 0-5s and 10-15s
   transcript_x_no_overlap <- dplyr::tibble(
     start = c(0L, 10L),
-    end   = c(5L, 15L),
-    text  = c("Text A from X", "Text B from X"),
+    end = c(5L, 15L),
+    text = c("Text A from X", "Text B from X"),
     speaker = c("spk_x1", "spk_x2")
   )
   # Transcript Y: Segments from 20-25s and 30-35s (no overlap with X)
   transcript_y_no_overlap <- dplyr::tibble(
     start = c(20L, 30L),
-    end   = c(25L, 35L),
-    text  = c("Text C from Y", "Text D from Y"),
+    end = c(25L, 35L),
+    text = c("Text C from Y", "Text D from Y"),
     speaker = c("spk_y1", "spk_y2")
   )
 
@@ -697,18 +795,16 @@ test_that("merge_transcripts handles transcripts with no overlap", {
   # Should be transcript_x after clean_transcript (which does nothing here)
   expected_no_diar <- clean_transcript(transcript_x_no_overlap)
 
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_no_diar <- testthat::capture_messages({
+  {
     result_no_diar <- merge_transcripts(
       transcript_x_no_overlap,
       transcript_y_no_overlap,
       import_diarization = FALSE
     )
-  })
+  } |>
+    expect_message("No empty segments found in the transcript")
+
   expect_identical(result_no_diar, expected_no_diar)
-  expect_length(captured_msgs_no_diar, 1)
-  # If no empty segments, a specific message is given.
-  expect_equal(captured_msgs_no_diar[1], "No empty segments found in the transcript.")
 
   # Expected result when import_diarization = TRUE:
   # Text should still be from X. Speakers might change based on Y.
@@ -717,8 +813,8 @@ test_that("merge_transcripts handles transcripts with no overlap", {
   # Mock compute_text_sim to control this.
   expected_diar_imputed <- dplyr::tibble(
     start = c(0L, 10L),
-    end   = c(5L, 15L),
-    text  = c("Text A from X", "Text B from X"),
+    end = c(5L, 15L),
+    text = c("Text A from X", "Text B from X"),
     speaker = c("spk_y1", "spk_y2") # Arbitrarily assign Y speakers
   )
 
@@ -728,7 +824,11 @@ test_that("merge_transcripts handles transcripts with no overlap", {
   # Mock compute_text_sim:
   # y_probes from transcript_y_no_overlap will have texts:
   # c("Text C from Y", "Text D from Y") and speakers c("spk_y1", "spk_y2")
-  mock_compute_text_sim_no_overlap <- function(x_text, y_texts, embedding_matrix) {
+  mock_compute_text_sim_no_overlap <- function(
+    x_text,
+    y_texts,
+    embedding_matrix
+  ) {
     if (x_text == "Text A from X") {
       return(c(0.9, 0.1)) # Assign spk_y1
     } else if (x_text == "Text B from X") {
@@ -740,44 +840,35 @@ test_that("merge_transcripts handles transcripts with no overlap", {
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove_model,
     compute_text_sim = mock_compute_text_sim_no_overlap,
-    # tokenize_text is used by compute_text_sim, but generate_glove_model
-    # is mocked directly, so tokenize_text inside generate_glove_model
-    # won't be called. compute_text_sim's internal call to tokenize_text
-    # should be fine if the mock_glove_model has appropriate dummy rownames
-    # if needed, or if tokenize_text isn't critical path for the mock logic.
-    # Let's assume the mock_glove_model and mock_compute_text_sim are sufficient.
     .package = "minutemaker"
   )
 
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_diar <- testthat::capture_messages({
+  {
     result_diar <- merge_transcripts(
       transcript_x_no_overlap,
       transcript_y_no_overlap,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 0 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
+
   expect_identical(result_diar, expected_diar_imputed)
-  # Messages: Merging..., "✔ Added 0 segments.\nℹ Removed 0 segments.", "Importing diarization..."
-  # When import_diarization is TRUE, the added/removed messages appear even if 0.
-  expect_length(captured_msgs_diar, 3)
-  expect_match(captured_msgs_diar[1], "Merging...", fixed = TRUE)
-  expect_equal(captured_msgs_diar[2], "✔ Added 0 segments.\nℹ Removed 0 segments.")
-  expect_match(captured_msgs_diar[3], "Importing diarization...", fixed = TRUE)
 })
 
 test_that("merge_transcripts handles empty transcript_y", {
   s <- silent()
   transcript_x_standard <- dplyr::tibble(
     start = c(0L, 10L, 20L),
-    end   = c(5L, 15L, 25L),
-    text  = c("Text A", s, "Text C"), # Has a silent segment
+    end = c(5L, 15L, 25L),
+    text = c("Text A", s, "Text C"), # Has a silent segment
     speaker = c("spk_x1", NA_character_, "spk_x3")
   )
   transcript_y_empty <- dplyr::tibble(
     start = integer(0),
-    end   = integer(0),
-    text  = character(0),
+    end = integer(0),
+    text = character(0),
     speaker = character(0)
   )
 
@@ -801,7 +892,10 @@ test_that("merge_transcripts handles empty transcript_y", {
   mock_glove_model <- matrix(1, dimnames = list("a", "v1"))
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove_model,
-    compute_text_sim = function(...) stop("compute_text_sim should not be called if diarization runs with empty y"),
+    compute_text_sim = function(...)
+      stop(
+        "compute_text_sim should not be called if diarization runs with empty y"
+      ),
     .package = "minutemaker"
   )
 
@@ -818,34 +912,39 @@ test_that("merge_transcripts handles empty transcript_y", {
 
   # Scenario 3: import_diarization = FALSE, x has NO silent segments
   transcript_x_no_silent <- dplyr::tibble(
-    start = c(0L, 10L), end = c(5L, 15L), text = c("A", "B"), speaker = c("s1", "s2")
+    start = c(0L, 10L),
+    end = c(5L, 15L),
+    text = c("A", "B"),
+    speaker = c("s1", "s2")
   )
   expected_x_no_silent_cleaned <- clean_transcript(transcript_x_no_silent)
 
-  testthat::local_reproducible_output(unicode = FALSE)
-  {
-    res_x_no_silent <- merge_transcripts(transcript_x_no_silent, transcript_y_empty, FALSE)
-  } |>
-    expect_message(regexp = "No empty segments found in the transcript", fixed = TRUE)
+  expect_message(
+    res_x_no_silent <- merge_transcripts(
+      transcript_x_no_silent,
+      transcript_y_empty,
+      import_diarization = FALSE
+    ),
+    "No empty segments found in the transcript"
+  )
   expect_identical(res_x_no_silent, expected_x_no_silent_cleaned)
 })
 
 test_that("merge_transcripts handles empty transcript_x", {
   transcript_x_empty_base <- dplyr::tibble(
     start = integer(0),
-    end   = integer(0),
-    text  = character(0)
+    end = integer(0),
+    text = character(0)
   )
   transcript_y_standard <- dplyr::tibble(
     start = c(0L, 10L),
-    end   = c(5L, 15L),
-    text  = c("Text A from Y", "Text B from Y"),
+    end = c(5L, 15L),
+    text = c("Text A from Y", "Text B from Y"),
     speaker = c("spk_y1", "spk_y2")
   )
 
   # Scenario 1: import_diarization = FALSE, x is empty (no speaker col)
-  expected_s1 <- clean_transcript(transcript_x_empty_base) # Has start, end, text (all char(0))
-  testthat::local_reproducible_output(unicode = FALSE) # To strip cli symbols for matching
+  expected_s1 <- clean_transcript(transcript_x_empty_base)
   {
     result_s1 <- merge_transcripts(
       transcript_x_empty_base,
@@ -853,41 +952,45 @@ test_that("merge_transcripts handles empty transcript_x", {
       import_diarization = FALSE
     )
   } |>
-    # No "Merging..." message if import_diarization is FALSE
-    expect_message(regexp = "No empty segments found in the transcript", fixed = TRUE)
+    expect_message("No empty segments found in the transcript")
+
   expect_identical(result_s1, expected_s1)
 
   # Scenario 2: import_diarization = TRUE, x is empty (no speaker col)
-  # Expected output has speaker = logical(0) based on previous findings
   expected_s2 <- dplyr::tibble(
-    start = integer(0), end = integer(0), text = character(0), speaker = logical(0)
+    start = integer(0),
+    end = integer(0),
+    text = character(0),
+    speaker = logical(0)
   )
   mock_glove_model <- matrix(1, dimnames = list("a", "v1"))
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove_model,
-    compute_text_sim = function(...) stop("compute_text_sim should not be called if x is empty"),
+    compute_text_sim = function(...)
+      stop("compute_text_sim should not be called if x is empty"),
     .package = "minutemaker"
   )
-  testthat::local_reproducible_output(unicode = TRUE) # For cli symbols
-  captured_msgs_s2 <- testthat::capture_messages({
+  {
     result_s2 <- merge_transcripts(
       transcript_x_empty_base,
       transcript_y_standard,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 0 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
+
   expect_identical(result_s2, expected_s2)
-  expect_length(captured_msgs_s2, 3)
-  expect_match(captured_msgs_s2[1], "^Merging\\.\\.\\.$", fixed = FALSE)
-  expect_match(captured_msgs_s2[2], "^✔ Added 0 segments\\.\\nℹ Removed 0 segments\\.$", fixed = FALSE)
-  expect_match(captured_msgs_s2[3], "^Importing diarization\\.\\.\\.$", fixed = FALSE)
 
   # Scenario 3: import_diarization = FALSE, x is empty WITH speaker = char(0)
   transcript_x_empty_with_speaker_char <- dplyr::tibble(
-    start = integer(0), end = integer(0), text = character(0), speaker = character(0)
+    start = integer(0),
+    end = integer(0),
+    text = character(0),
+    speaker = character(0)
   )
   expected_s3_no_diar <- clean_transcript(transcript_x_empty_with_speaker_char)
-  testthat::local_reproducible_output(unicode = FALSE)
   {
     result_s3_no_diar <- merge_transcripts(
       transcript_x_empty_with_speaker_char,
@@ -895,33 +998,35 @@ test_that("merge_transcripts handles empty transcript_x", {
       import_diarization = FALSE
     )
   } |>
-    # No "Merging..." message
-    expect_message(regexp = "No empty segments found in the transcript", fixed = TRUE)
+    expect_message("No empty segments found in the transcript\\.")
+
   expect_identical(result_s3_no_diar, expected_s3_no_diar)
 
   # Scenario 4: import_diarization = TRUE, x is empty WITH speaker = char(0)
-  # Expected output also has speaker = logical(0)
   expected_s4_diar <- dplyr::tibble(
-      start = integer(0), end = integer(0), text = character(0), speaker = logical(0)
+    start = integer(0),
+    end = integer(0),
+    text = character(0),
+    speaker = logical(0)
   )
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove_model,
-    compute_text_sim = function(...) stop("compute_text_sim should not be called if x is empty"),
+    compute_text_sim = function(...) {
+      stop("compute_text_sim should not be called if x is empty")
+    },
     .package = "minutemaker"
   )
-  testthat::local_reproducible_output(unicode = TRUE) # For cli symbols
-  captured_msgs_s4 <- testthat::capture_messages({
+  {
     result_s4_diar <- merge_transcripts(
       transcript_x_empty_with_speaker_char,
       transcript_y_standard,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 0 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
   expect_identical(result_s4_diar, expected_s4_diar)
-  expect_length(captured_msgs_s4, 3)
-  expect_match(captured_msgs_s4[1], "^Merging\\.\\.\\.$", fixed = FALSE)
-  expect_match(captured_msgs_s4[2], "^✔ Added 0 segments\\.\\nℹ Removed 0 segments\\.$", fixed = FALSE)
-  expect_match(captured_msgs_s4[3], "^Importing diarization\\.\\.\\.$", fixed = FALSE)
 })
 
 test_that("merge_transcripts handles empty speaker values", {
@@ -931,15 +1036,15 @@ test_that("merge_transcripts handles empty speaker values", {
 
   transcript_x_base <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = c("X_txt1", s, "X_txt3", s, "X_txt5", s),
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = c("X_txt1", s, "X_txt3", s, "X_txt5", s),
     speaker = c("spk_x1", na_spk, "spk_x3", empty_spk, "spk_x5", na_spk)
   )
 
   transcript_y_varied_spk <- dplyr::tibble(
     start = c(10L, 30L, 50L),
-    end   = c(15L, 35L, 55L),
-    text  = c("Y_fill_NA", "Y_fill_empty", "Y_fill_spkY3"),
+    end = c(15L, 35L, 55L),
+    text = c("Y_fill_NA", "Y_fill_empty", "Y_fill_spkY3"),
     speaker = c(na_spk, empty_spk, "spk_y3")
   )
 
@@ -948,22 +1053,28 @@ test_that("merge_transcripts handles empty speaker values", {
   # Message: Added/Removed combined into one string by capture_messages here.
   expected_s1 <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = c("X_txt1", "Y_fill_NA", "X_txt3", "Y_fill_empty", "X_txt5", "Y_fill_spkY3"),
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = c(
+      "X_txt1",
+      "Y_fill_NA",
+      "X_txt3",
+      "Y_fill_empty",
+      "X_txt5",
+      "Y_fill_spkY3"
+    ),
     speaker = c("spk_x1", na_spk, "spk_x3", na_spk, "spk_x5", na_spk)
   )
 
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_s1 <- testthat::capture_messages({
+  {
     result_s1 <- merge_transcripts(
       transcript_x_base,
       transcript_y_varied_spk,
       import_diarization = FALSE
     )
-  })
+  } |>
+    expect_message("Added 3 segments.*Removed 0 segments")
+
   expect_identical(result_s1, expected_s1)
-  expect_length(captured_msgs_s1, 1)
-  expect_match(captured_msgs_s1[1], "Added 3 segments.*Removed 0 segments", fixed = FALSE)
 
   # --- Scenario 2: import_diarization = TRUE ---
   # Expected: "" speaker from y_probes becomes NA in output.
@@ -971,18 +1082,25 @@ test_that("merge_transcripts handles empty speaker values", {
   expected_spk_s2 <- c(na_spk, na_spk, na_spk, na_spk, "spk_y3", "spk_y3")
   expected_s2 <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = c("X_txt1", "Y_fill_NA", "X_txt3", "Y_fill_empty", "X_txt5", "Y_fill_spkY3"),
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = c(
+      "X_txt1",
+      "Y_fill_NA",
+      "X_txt3",
+      "Y_fill_empty",
+      "X_txt5",
+      "Y_fill_spkY3"
+    ),
     speaker = expected_spk_s2
   )
   mock_glove_model_s2 <- matrix(1, dimnames = list("a", "v1"))
   mock_compute_text_sim_s2 <- function(x_text, y_texts, embedding_matrix) {
     # y_probes$speaker order assumed: NA, "", "spk_y3"
-    if (x_text == "X_txt1")       return(c(0.7, 0.2, 0.1)) # -> NA
-    if (x_text == "Y_fill_NA")    return(c(0.7, 0.2, 0.1)) # -> NA
-    if (x_text == "X_txt3")       return(c(0.2, 0.7, 0.1)) # -> "" (becomes NA in output)
+    if (x_text == "X_txt1") return(c(0.7, 0.2, 0.1)) # -> NA
+    if (x_text == "Y_fill_NA") return(c(0.7, 0.2, 0.1)) # -> NA
+    if (x_text == "X_txt3") return(c(0.2, 0.7, 0.1)) # -> "" (becomes NA in output)
     if (x_text == "Y_fill_empty") return(c(0.1, 0.7, 0.2)) # -> "" (becomes NA in output)
-    if (x_text == "X_txt5")       return(c(0.1, 0.2, 0.7)) # -> "spk_y3"
+    if (x_text == "X_txt5") return(c(0.1, 0.2, 0.7)) # -> "spk_y3"
     if (x_text == "Y_fill_spkY3") return(c(0.1, 0.2, 0.7)) # -> "spk_y3"
     return(c(0.7, 0.2, 0.1)) # Default to NA for any other texts
   }
@@ -991,20 +1109,18 @@ test_that("merge_transcripts handles empty speaker values", {
     compute_text_sim = mock_compute_text_sim_s2,
     .package = "minutemaker"
   )
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_s2 <- testthat::capture_messages({
+  {
     result_s2 <- merge_transcripts(
       transcript_x_base,
       transcript_y_varied_spk,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 3 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
+
   expect_identical(result_s2, expected_s2)
-  # Messages: Merging (1), Added+Removed (1), Importing (1) = 3 total
-  expect_length(captured_msgs_s2, 3)
-  expect_match(captured_msgs_s2[1], "Merging...", fixed = TRUE)
-  expect_match(captured_msgs_s2[2], "Added 3 segments.*Removed 0 segments", fixed = FALSE)
-  expect_match(captured_msgs_s2[3], "Importing diarization...", fixed = TRUE)
 
   # --- Scenario 3: import_diarization = TRUE, x has no speaker column ---
   transcript_x_no_spk_col <- dplyr::select(transcript_x_base, -speaker)
@@ -1014,19 +1130,17 @@ test_that("merge_transcripts handles empty speaker values", {
     compute_text_sim = mock_compute_text_sim_s2,
     .package = "minutemaker"
   )
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_s3 <- testthat::capture_messages({
+  {
     result_s3 <- merge_transcripts(
       transcript_x_no_spk_col,
       transcript_y_varied_spk,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 3 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
   expect_identical(result_s3, expected_s3)
-  expect_length(captured_msgs_s3, 3)
-  expect_match(captured_msgs_s3[1], "Merging...", fixed = TRUE)
-  expect_match(captured_msgs_s3[2], "Added 3 segments.*Removed 0 segments", fixed = FALSE)
-  expect_match(captured_msgs_s3[3], "Importing diarization...", fixed = TRUE)
 
   # --- Scenario 4: import_diarization = TRUE, y has no speaker column ---
   transcript_y_no_spk_col <- dplyr::select(transcript_y_varied_spk, -speaker)
@@ -1038,17 +1152,13 @@ test_that("merge_transcripts handles empty speaker values", {
 
   # The call to merge_transcripts is expected to error out.
   # On its way to erroring, it's also expected to produce a warning.
-  expect_error(
-    expect_warning(
-      merge_transcripts(
-        transcript_x_base,
-        transcript_y_no_spk_col,
-        import_diarization = TRUE
-      ),
-      regexp = "Unknown or uninitialised column: `speaker`"
-    ),
-    regexp = "Column `speaker` not found"
-  )
+  merge_transcripts(
+    transcript_x_base,
+    transcript_y_no_spk_col,
+    import_diarization = TRUE
+  ) |>
+    expect_warning("Unknown or uninitialised column: `speaker`") |>
+    expect_error("Column `speaker` not found")
 })
 
 test_that("merge_transcripts handles segments too short for similarity", {
@@ -1058,50 +1168,53 @@ test_that("merge_transcripts handles segments too short for similarity", {
   # Transcript X: some normal, some silent, one originally short
   transcript_x_initial <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = c("Normal X1", s, "Normal X3", s, "X5short", s),
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = c("Normal X1", s, "Normal X3", s, "X5short", s),
     speaker = c("spk_X1", na_spk, "spk_X3", na_spk, "spk_X5", na_spk)
   )
 
   # Transcript Y: some normal text, some very short text to fill x's silent segments
   transcript_y_source <- dplyr::tibble(
     start = c(10L, 30L, 50L), # To fill x[2], x[4], x[6]
-    end   = c(15L, 35L, 55L),
-    text  = c("Normal Y_fill1", "Y_short_fill2", "Y_veryshort_fill3"), # Y_short_fill2 and Y_veryshort_fill3 are problematic
+    end = c(15L, 35L, 55L),
+    text = c("Normal Y_fill1", "Y_short_fill2", "Y_veryshort_fill3"), # Y_short_fill2 and Y_veryshort_fill3 are problematic
     speaker = c("spk_Y_norm", "spk_Y_short", "spk_Y_veryshort")
   )
 
   # --- Scenario 1: import_diarization = TRUE ---
-  # Expected text: silent segments of x filled by y
-  # Expected speakers: NA for X5short, Y_short_fill2, Y_veryshort_fill3
-  expected_text_s1 <- c("Normal X1", "Normal Y_fill1", "Normal X3", "Y_short_fill2", "X5short", "Y_veryshort_fill3")
-  expected_speakers_s1 <- c("spk_Y_norm", "spk_Y_norm", "spk_Y_norm", na_spk, na_spk, na_spk)
-
+  expected_text_s1 <- c(
+    "Normal X1",
+    "Normal Y_fill1",
+    "Normal X3",
+    "Y_short_fill2",
+    "X5short",
+    "Y_veryshort_fill3"
+  )
+  expected_speakers_s1 <- c(
+    "spk_Y_norm",
+    "spk_Y_norm",
+    "spk_Y_norm",
+    na_spk,
+    na_spk,
+    na_spk
+  )
   expected_data_s1 <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = expected_text_s1,
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = expected_text_s1,
     speaker = expected_speakers_s1
   )
-
-  # Mocking generate_glove_model to return a simple matrix
-  mock_glove <- matrix(c(1,2), ncol=1, dimnames=list(c("normal","y_fill1"), "d1"))
-
-  # Mocking compute_text_sim
-  # y_probes will be built from transcript_y_source unique speakers: spk_Y_norm, spk_Y_short, spk_Y_veryshort
-  # Their texts will be "Normal Y_fill1", "Y_short_fill2", "Y_veryshort_fill3"
-  # The mock_sim must return a vector of length(y_texts) it receives.
+  mock_glove <- matrix(
+    c(1, 2),
+    ncol = 1,
+    dimnames = list(c("normal", "y_fill1"), "d1")
+  )
   mock_sim <- function(x_text, y_texts, embedding_matrix) {
     num_y_probes <- length(y_texts)
-    res <- rep(0.1, num_y_probes) # Default low similarity
-
+    res <- rep(0.1, num_y_probes)
     if (x_text %in% c("X5short", "Y_short_fill2", "Y_veryshort_fill3")) {
       return(rep(NA_real_, num_y_probes))
     }
-
-    # If x_text is one of the "normal" ones, and "Normal Y_fill1" (proxy for spk_Y_norm)
-    # is present in the current y_texts, give it high similarity.
-    # This ensures spk_Y_norm is chosen for these texts if its probe text is available.
     if (x_text %in% c("Normal X1", "Normal Y_fill1", "Normal X3")) {
       idx_of_norm_y_fill1 <- match("Normal Y_fill1", y_texts)
       if (!is.na(idx_of_norm_y_fill1)) {
@@ -1110,110 +1223,78 @@ test_that("merge_transcripts handles segments too short for similarity", {
     }
     return(res)
   }
-
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove,
     compute_text_sim = mock_sim,
     .package = "minutemaker"
   )
-
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_s1 <- testthat::capture_messages({
+  {
     result_s1 <- merge_transcripts(
       transcript_x_initial,
       transcript_y_source,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 3 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
 
   expect_identical(result_s1, expected_data_s1)
-  expect_length(captured_msgs_s1, 3) # Merging, Added/Removed, Importing
-  expect_match(captured_msgs_s1[1], "^Merging\\.\\.\\.$", fixed = FALSE)
-  # x has 3 silent segments, y provides 3 fills. So 3 added.
-  expect_match(captured_msgs_s1[2], "^✔ Added 3 segments\\.\\nℹ Removed 0 segments\\.$", fixed = FALSE)
-  expect_match(captured_msgs_s1[3], "^Importing diarization\\.\\.\\.$", fixed = FALSE)
 
   # --- Scenario 2: import_diarization = FALSE (Control) ---
-  # Expected text: silent segments of x filled by y
-  # Expected speakers: original speakers from x, unchanged by y
   expected_data_s2 <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
-    end   = c(5L, 15L, 25L, 35L, 45L, 55L),
-    text  = expected_text_s1, # Text merging still happens
+    end = c(5L, 15L, 25L, 35L, 45L, 55L),
+    text = expected_text_s1, # Text merging still happens
     speaker = c("spk_X1", na_spk, "spk_X3", na_spk, "spk_X5", na_spk) # Original speakers from x
   )
-  # clean_transcript called at the end of merge_transcripts converts "" to NA in speaker
-  # but here all original speakers are either non-empty or NA, so no change from that.
 
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs_s2 <- testthat::capture_messages({
+  {
     result_s2 <- merge_transcripts(
       transcript_x_initial,
       transcript_y_source,
       import_diarization = FALSE
     )
-  })
+  } |>
+    expect_message("Added 3 segments.*Removed 0 segments")
 
   expect_identical(result_s2, expected_data_s2)
-  expect_length(captured_msgs_s2, 1) # Only Added/Removed message
-  expect_match(captured_msgs_s2[1], "^✔ Added 3 segments\\.\\nℹ Removed 0 segments\\.$", fixed = FALSE)
 })
 
 test_that("merge_transcripts imports diarization correctly", {
   s <- silent()
 
-
   transcript_x_initial <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L), # x[2] and x[4] are silent
-    end   = c(5L, 15L, 25L, 35L, 45L),
-    text  = c("Original X1", s, "Original X3", s, "Original X5"),
+    end = c(5L, 15L, 25L, 35L, 45L),
+    text = c("Original X1", s, "Original X3", s, "Original X5"),
     speaker = c("SPK_X1", NA_character_, "SPK_X3", NA_character_, "SPK_X5")
   )
 
-  transcript_y_source <- dplyr::tibble(
-    start = c(10L, 12L, 30L, 32L), # Segments to fill x[2] and x[4]
-    end   = c(11L, 15L, 31L, 35L),
-    text  = c("Fill Y_A1", "Fill Y_A2", "Fill Y_B1", "Fill Y_B2"),
-    speaker = c("SPEAKER_A", "SPEAKER_A", "SPEAKER_B", "SPEAKER_B")
-  )
-  # y_probes for x[2] (text Fill Y_A1 Fill Y_A2) will be from SPEAKER_A.
-  # y_probes for x[4] (text Fill Y_B1 Fill Y_B2) will be from SPEAKER_B.
-
-  # Expected result after merging text and imputing speakers for filled segments
-  expected_merged_diag <- dplyr::tibble(
-    start = c(0L, 10L,    20L, 30L,    40L), # Start times of x[2],x[4] take from y
-    end   = c(5L, 15L,    25L, 35L,    45L), # End times of x[2],x[4] take from y
-    text  = c("Original X1", "Fill Y_A1 Fill Y_A2", "Original X3", "Fill Y_B1 Fill Y_B2", "Original X5"),
-    speaker = c("SPK_X1", "SPEAKER_A", "SPK_X3", "SPEAKER_B", "SPK_X5")
-  )
-  # Note: The actual merge_transcripts will update start/end for x[2] to 10L,15L (from y[1] then y[2])
-  # and for x[4] to 30L,35L. The text merge will be from y.
-  # The important part is that the text for original x[2] and x[4] becomes combined y text.
-  # Let's refine expected start/end based on how merge_transcripts updates them:
-  # x[2] (10-15,s) will be replaced by candidate from y. Candidate (10L,11L, "Fill Y_A1") first?
-  # This part of merge_transcripts is tricky: it finds ONE candidate from y to fill ONE silent from x.
-  # If y has multiple segments that could fill one silent segment in x, the current logic might only use the first closest.
-  # The `while (any(!transcript_x$seen))` loop iterates through x.
-  # If x[i] is silent: find closest in y. Update x[i]. Remove that y.
-  # This means `transcript_y_source` should probably just have two rows for this test to be clear.
-
   transcript_y_simple_fill <- dplyr::tibble(
     start = c(10L, 30L), # One segment for x[2], one for x[4]
-    end   = c(15L, 35L),
-    text  = c("Combined fill Y_A", "Combined fill Y_B"),
+    end = c(15L, 35L),
+    text = c("Combined fill Y_A", "Combined fill Y_B"),
     speaker = c("SPEAKER_A", "SPEAKER_B")
   )
 
-  # Based on the current implementation, merge_transcripts with import_diarization=TRUE
-  # will re-diarize ALL non-silent segments in the merged transcript_x using speakers from transcript_y.
-  # Original speakers in transcript_x that are not part of transcript_y will be lost.
+  # Based on the current implementation, merge_transcripts with
+  # import_diarization=TRUE
+  # will re-diarize ALL non-silent segments in the merged transcript_x using
+  # speakers from transcript_y.
+  # Original speakers in transcript_x that are not part of transcript_y will
+  # be lost.
   expected_merged_diag_actual_behavior <- dplyr::tibble(
-    start =   c(0L, 10L, 20L, 30L, 40L),
-    end   =   c(5L, 15L, 25L, 35L, 45L),
-    text  =   c("Original X1", "Combined fill Y_A", "Original X3", "Combined fill Y_B", "Original X5"),
-    # Speakers will be determined by compute_text_sim against y_probes from transcript_y_simple_fill
-    # y_probes$text = c("Combined fill Y_A", "Combined fill Y_B"), speakers = c("SPEAKER_A", "SPEAKER_B")
-    speaker = c("SPEAKER_A", "SPEAKER_A", "SPEAKER_A", "SPEAKER_B", "SPEAKER_A") # Based on mock below
+    start = c(0L, 10L, 20L, 30L, 40L),
+    end = c(5L, 15L, 25L, 35L, 45L),
+    text = c(
+      "Original X1",
+      "Combined fill Y_A",
+      "Original X3",
+      "Combined fill Y_B",
+      "Original X5"
+    ),
+    speaker = c("SPEAKER_A", "SPEAKER_A", "SPEAKER_A", "SPEAKER_B", "SPEAKER_A")
   )
 
   mock_glove_model <- matrix(1, dimnames = list("a", "v1"))
@@ -1229,28 +1310,25 @@ test_that("merge_transcripts imports diarization correctly", {
       } else if (x_text == "Combined fill Y_B") {
         return(c(0.0, 1.0)) # Prefers SPEAKER_B
       } else {
-        # For "Original X1", "Original X3", "Original X5"
-        # This mock will make them all prefer SPEAKER_A (due to which.max on c(0.5, 0.5) taking first)
+        # For "Original X1", "Original X3", "Original X5" This mock will make
+        # them all prefer SPEAKER_A (due to which.max on c(0.5, 0.5) taking
+        # first)
         return(c(0.5, 0.5))
       }
     },
     .package = "minutemaker"
   )
 
-  testthat::local_reproducible_output(unicode = TRUE)
-  captured_msgs <- testthat::capture_messages({
+  {
     result_merged_diag <- merge_transcripts(
       transcript_x_initial,
       transcript_y_simple_fill,
       import_diarization = TRUE
     )
-  })
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 2 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization")
 
   expect_identical(result_merged_diag, expected_merged_diag_actual_behavior)
-
-  # Messages: Merging (1), Added+Removed (1), Importing (1) = 3 total
-  expect_length(captured_msgs, 3)
-  expect_match(captured_msgs[1], "Merging...", fixed = TRUE)
-  expect_match(captured_msgs[2], "✔ Added 2 segments\\.\\nℹ Removed 0 segments\\.", fixed = FALSE)
-  expect_match(captured_msgs[3], "Importing diarization...", fixed = TRUE)
 })
