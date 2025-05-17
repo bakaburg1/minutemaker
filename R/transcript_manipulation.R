@@ -365,7 +365,7 @@ merge_transcripts <- function(
   # Change set empty speakers (e.g. empty, non-NA, strings) to NA
   if ("speaker" %in% names(transcript_x)) {
     # only try to clean if there are any actual speaker entries to evaluate
-    if(sum(!is.na(transcript_x$speaker)) > 0) {
+    if (sum(!is.na(transcript_x$speaker)) > 0) {
       transcript_x$speaker[is_silent(transcript_x$speaker)] <- NA
     }
   }
