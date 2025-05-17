@@ -177,7 +177,7 @@ extract_text_from_transcript <- function(
         .data$speaker[1],
         paste(.data$text, collapse = "\n")
       ),
-      .by = .data$speakerID
+      .by = "speakerID"
     ) |>
 
     # Extract the text
@@ -363,7 +363,12 @@ merge_transcripts <- function(
   }
 
   # Change set empty speakers (e.g. empty, non-NA, strings) to NA
-  transcript_x$speaker[is_silent(transcript_x$speaker)] <- NA
+  if ("speaker" %in% names(transcript_x)) {
+    # only try to clean if there are any actual speaker entries to evaluate
+    if(sum(!is.na(transcript_x$speaker)) > 0) {
+      transcript_x$speaker[is_silent(transcript_x$speaker)] <- NA
+    }
+  }
 
   clean_transcript(transcript_x)
 }
