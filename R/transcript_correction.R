@@ -248,6 +248,21 @@ apply_llm_correction <- function(
       made_changes <- FALSE
     }
 
+    # If changes were made, store the corrections map in the output JSON.
+    # Otherwise, ensure this field is NULL to remove it or prevent its creation
+    # if no actual changes were applied (e.g. if overwrite = TRUE but no text
+    # changes).
+    if (
+      made_changes &&
+        !is.null(corrections_map) &&
+        !rlang::is_empty(corrections_map)
+    ) {
+      final_transcript_data$corrections_applied <- corrections_map
+    } else {
+      # Explicitly set to NULL so jsonlite::write_json omits it or clears it.
+      final_transcript_data$corrections_applied <- NULL
+    }
+
     # Mark transcript as 'corrected' if `overwrite` is TRUE or if actual changes
     # were made (status = "corrections_applied" and made_changes=TRUE)
     should_write <- FALSE

@@ -95,6 +95,5 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
 
     expect_identical(result$transcript_data$text, "mocked transcript text")
     expect_identical(result$formatted_summary, "mock summary content")
-
   })
 })

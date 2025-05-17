@@ -837,4 +837,109 @@ test_that("correct_transcription_errors handles Unicode and special characters",
   })
 })
 
+test_that("apply_llm_correction properly handles corrections_applied field", {
+  temp_dir <- withr::local_tempdir(pattern = "test_apply_llm")
+
+  # Test case 1: Changes made - corrections_applied should be present
+  test_file_path <- create_temp_transcript_file(
+    simple_uncorrected_content,
+    temp_dir,
+    "temp_uncorrected.json"
+  )
+
+  mock_corrections_map <- list(
+    "Ths" = "This",
+    "tst" = "test"
+  )
+
+  mock_cte_with_corrections <- function(...) {
+    list(
+      corrected_text = "This is a test transcript.",
+      corrections_map = mock_corrections_map,
+      status = "corrections_applied",
+      made_changes = TRUE
+    )
+  }
+
+  testthat::local_mocked_bindings(
+    correct_transcription_errors = mock_cte_with_corrections,
+    .package = "minutemaker"
+  )
+
+  processed_files <- apply_llm_correction(
+    input_path = test_file_path,
+    terms = NULL,
+    overwrite = TRUE
+  )
+
+  final_data <- jsonlite::read_json(test_file_path)
+  expect_true(final_data$corrected)
+  expect_identical(final_data$corrections_applied, mock_corrections_map)
+  expect_identical(final_data$text, "This is a test transcript.")
+
+  # Test case 2: No changes made - corrections_applied should be NULL/absent
+  test_file_path2 <- create_temp_transcript_file(
+    simple_uncorrected_content,
+    temp_dir,
+    "temp_uncorrected2.json"
+  )
+
+  mock_cte_no_corrections <- function(...) {
+    list(
+      corrected_text = "Ths is a tst transcript.",
+      corrections_map = NULL,
+      status = "no_changes_signal",
+      made_changes = FALSE
+    )
+  }
+
+  testthat::local_mocked_bindings(
+    correct_transcription_errors = mock_cte_no_corrections,
+    .package = "minutemaker"
+  )
+
+  processed_files2 <- apply_llm_correction(
+    input_path = test_file_path2,
+    terms = NULL,
+    overwrite = TRUE
+  )
+
+  final_data2 <- jsonlite::read_json(test_file_path2)
+  expect_true(final_data2$corrected) # Should be TRUE due to overwrite=TRUE
+  expect_null(final_data2$corrections_applied)
+  expect_identical(final_data2$text, "Ths is a tst transcript.")
+
+  # Test case 3: Empty corrections map - corrections_applied should be NULL/absent
+  test_file_path3 <- create_temp_transcript_file(
+    simple_uncorrected_content,
+    temp_dir,
+    "temp_uncorrected3.json"
+  )
+
+  mock_cte_empty_corrections <- function(...) {
+    list(
+      corrected_text = "Ths is a tst transcript.",
+      corrections_map = list(),
+      status = "corrections_applied",
+      made_changes = FALSE
+    )
+  }
+
+  testthat::local_mocked_bindings(
+    correct_transcription_errors = mock_cte_empty_corrections,
+    .package = "minutemaker"
+  )
+
+  processed_files3 <- apply_llm_correction(
+    input_path = test_file_path3,
+    terms = NULL,
+    overwrite = TRUE
+  )
+
+  final_data3 <- jsonlite::read_json(test_file_path3)
+  expect_true(final_data3$corrected) # Should be TRUE due to overwrite=TRUE
+  expect_null(final_data3$corrections_applied)
+  expect_identical(final_data3$text, "Ths is a tst transcript.")
+})
+
 cat("\nAll testthat tests for transcript_correction.R defined.\n")
