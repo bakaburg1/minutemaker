@@ -511,11 +511,9 @@ test_that("extract_audio_segment retries and succeeds", {
     )
 
     # We expect a warning about the first attempt failing
-    suppressMessages(
-      expect_warning(
-        extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60),
-        "corrupted. Retrying"
-      )
+    expect_warning(
+      extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60),
+      "corrupted. Retrying"
     )
 
     # It should have called the sanity check twice
@@ -538,13 +536,11 @@ test_that("extract_audio_segment fails after max retries", {
       .package = "minutemaker"
     )
 
-    # It should throw an error after trying twice
-    suppressMessages(
-      expect_error(
-        extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60),
-        "Failed to create a valid segment"
-      )
-    )
+    # It should throw an error after trying twice, with warnings for each retry
+    extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60) |>
+      expect_warning("Generated segment.*is corrupted.*Retrying attempt 1/2") |>
+      expect_warning("Generated segment.*is corrupted.*Retrying attempt 2/2") |>
+      expect_error("Failed to create a valid segment")
   })
 })
 

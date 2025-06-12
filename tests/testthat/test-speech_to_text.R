@@ -52,18 +52,18 @@ test_that("perform_speech_to_text handles invalid paths and empty dirs", {
 test_that("perform_speech_to_text processes files and handles overwrite", {
   skip_if_not_installed("jsonlite")
   dummy_json <- list(text = "test", segments = list())
-  model_calls <- 0
+    model_calls <- 0
 
   # Mock the STT model to track calls and return dummy data
-  local_mocked_bindings(
+    local_mocked_bindings(
     use_whisper_local_stt = function(...) {
-      model_calls <<- model_calls + 1
-      dummy_json
-    },
+        model_calls <<- model_calls + 1
+        dummy_json
+      },
     # Mock the final parsing step
     parse_transcript_json = function(...) "parsed",
-    .package = "minutemaker"
-  )
+      .package = "minutemaker"
+    )
 
   withr::with_tempdir({
     # Create a dummy audio file
