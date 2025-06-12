@@ -246,9 +246,9 @@ is_audio_file_sane <- function(audio_file) {
 
 #' Extract Audio Segment
 #'
-#' This helper function extracts a single audio segment from a larger audio file,
-#' retrying once if the initial attempt results in a corrupted file. It serves
-#' as the core worker logic for [split_audio()].
+#' This helper function extracts a single audio segment from a larger audio
+#' file, retrying once if the initial attempt results in a corrupted file. It
+#' serves as the core worker logic for [split_audio()].
 #'
 #' @param audio_file The path to the source audio file.
 #' @param output_file The path where the extracted segment should be saved.
@@ -315,8 +315,8 @@ extract_audio_segment <- function(
 #'   20 minutes equate to more or less 7-8 MB.
 #' @param output_folder The path to the folder where to save the segments in.
 #' @param parallel A logical value indicating whether to process segments in
-#'   parallel. Defaults to `getOption("minutemaker_split_audio_parallel", FALSE)`.
-#'   Parallel processing requires the `mirai` package.
+#'   parallel. Defaults to `getOption("minutemaker_split_audio_parallel",
+#'   FALSE)`. Parallel processing requires the `mirai` package.
 #'
 #' @return Nothing, but saves the segments to files.
 #'
