@@ -548,6 +548,14 @@ JSON output should be:
 
 **CRITICAL RULES:**
 Apply these rules to your JSON output if corrections are made:
+- **Handle common words with care:** If a term to be corrected is a common
+  word (e.g., 'and', 'is', 'it'), do not create a direct mapping (e.g.,
+  '{{\"and\": \"AMD\"}}'). This is too aggressive and will lead to incorrect
+  replacements. Instead, include surrounding context in the key to make the
+  match specific. For example, instead of '{{\"and\": \"AMD\"}}', a better
+  mapping would be '{{\"and project\": \"AMD project\"}}' if the context
+  was \"and project\". This ensures that only the specific instance
+  is corrected.
 - If a first name (e.g., 'John', 'Anna') appears in the input text and is
   ALREADY SPELLED CORRECTLY according to the provided list or general knowledge,
   DO NOT expand it to a full name (e.g., 'Anna' to 'Anna Smith'), even if 'Anna
@@ -783,16 +791,61 @@ Apply these rules to your JSON output if corrections are made:
 #' @return The corrected text string with all replacements applied.
 #'
 apply_single_correction_set <- function(text, corr_map) {
+  # Return early if nothing to do
   if (rlang::is_empty(text) || !nzchar(text) || rlang::is_empty(corr_map)) {
     return(text)
   }
-  # Convert list to named character vector for str_replace_all
+
+  # Convert list to named character vector for replacement
   corrections <- unlist(corr_map)
 
-  # Order the correction keys by length in descending order
+  # Order the correction keys by length in descending order so that longer keys
+  # are replaced first (avoids partial overlaps)
   correction_order <- order(nchar(names(corrections)), decreasing = TRUE)
-  sorted_corrections <- corrections[correction_order]
+  corrections <- corrections[correction_order]
 
-  # Use fixed string replacement to handle special characters
-  return(stringr::str_replace_all(text, stringr::fixed(sorted_corrections)))
+  # Build regex patterns (names) and safely escaped replacement strings (values)
+  build_pattern <- function(key) {
+    # NOTE on the heavy escaping below  ------------------------------------
+    # * meta_chars is a *character class* listing all the regex metacharacters
+    #   we want to escape. In the final regular expression it should read:
+    #     [. \ ^ $ | ( ) [ ] { } * + ? \\ ]
+    #   (spaces added here only for clarity).  Inside an R string every
+    #   backslash itself must be escaped, hence the double `\\` sequences.
+    # * Replacement "\\\\\\1" looks crazy, but it boils down to two
+    #   chars sent to PCRE: a single backslash followed by the first capture
+    #   group (i.e. the matched metacharacter).  It therefore turns e.g. `.`
+    #   into `\.` and `*` into `\*`, which is exactly what we need for
+    #   literal matching.
+    meta_chars <- "([.|()\\^{}+*$?\\[\\]\\\\])"
+
+    escaped_key <- gsub(
+      meta_chars,       # pattern: any metacharacter
+      "\\\\\\1",  # replacement: backslash + the char itself
+      key,
+      perl = TRUE
+    )
+
+    # If the key is composed solely of word characters we can safely add word
+    # boundaries so we do not replace inside other words (e.g. 'hi' in
+    # 'think'). For keys that already contain non-word characters (punctuation,
+    # spaces, etc.) word boundaries may prevent a match, so we skip them.
+    if (grepl("^[A-Za-z0-9_]+$", key)) {
+      escaped_key <- paste0("\\b", escaped_key, "\\b")
+    }
+
+    escaped_key
+  }
+
+  # Generate the named vector expected by str_replace_all()
+  pattern_vec <- vapply(names(corrections), build_pattern, character(1))
+
+  # Escape backslashes in the replacement strings so they are kept literally in
+  # the output (otherwise sequences like "\\w" would be interpreted)
+  replacement_vec <- stringr::str_replace_all(corrections, "\\\\", "\\\\\\\\")
+
+  names(replacement_vec) <- pattern_vec
+
+  # Perform the replacements in one pass
+  stringr::str_replace_all(text, replacement_vec)
 }
