@@ -161,6 +161,52 @@ test_that("parallel processing works with proper worker setup", {
   })
 })
 
+test_that("parallel workers receive helper bindings", {
+  skip_if_not_installed(c("av", "mirai"))
+  skip_on_cran()
+
+  withr::with_tempdir({
+    # Ensure we start and stop with a clean pool of daemons
+    withr::defer({
+      if (mirai::status(.compute = "minutemaker")$daemons > 0) {
+        mirai::daemons(0, .compute = "minutemaker")
+      }
+    })
+
+    # Minimal mocks to avoid real audio/ffmpeg work
+    local_mocked_bindings(
+      av_media_info = function(...) list(duration = 60),
+      .package = "av"
+    )
+    local_mocked_bindings(
+      detectCores = function() 2,
+      .package = "parallel"
+    )
+    local_mocked_bindings(
+      is_audio_file_sane = function(...) TRUE,
+      .package = "minutemaker"
+    )
+
+    # Worker that needs is_audio_file_sane but has an empty environment,
+    # so it relies on the binding being injected into the worker session.
+    worker <- function(...) is_audio_file_sane("dummy.wav")
+    environment(worker) <- emptyenv()
+    local_mocked_bindings(
+      extract_audio_segment = worker,
+      .package = "minutemaker"
+    )
+
+    expect_no_error(
+      split_audio(
+        audio_file = "dummy.wav",
+        segment_duration = 1,
+        output_folder = "segments",
+        parallel = TRUE
+      )
+    )
+  })
+})
+
 # -------------------------------------------------------------------------
 # Individual Function Tests -----------------------------------------------
 # -------------------------------------------------------------------------

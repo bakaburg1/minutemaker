@@ -147,7 +147,16 @@ split_audio <- function(
 
       mirai::mirai(
         {
-          extract_audio_segment_func(
+          # Bind helper dependency into the worker environment so it is
+          # available even when the package namespace is not loaded in the
+          # daemon.
+          extract_audio_segment_bound <- extract_audio_segment_func
+          environment(extract_audio_segment_bound) <- list2env(
+            list(is_audio_file_sane = is_audio_file_sane),
+            parent = environment(extract_audio_segment_func)
+          )
+
+          extract_audio_segment_bound(
             audio_file = audio_file,
             output_file = output_file,
             start_time = start_time,
