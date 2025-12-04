@@ -980,9 +980,16 @@ test_that("error handling in add_chat_transcript for file/format issues", {
 
   temp_bad_chat_file <- file.path(temp_dir_for_test, "bad_chat.txt")
   writeLines("This is not a valid webex chat format line", temp_bad_chat_file)
-  expect_error(
-    add_chat_transcript(sample_transcript_data, normalizePath(temp_bad_chat_file, mustWork = TRUE), "10:00"),
-    "Error parsing chat file"
+  expect_warning(
+    expect_error(
+      add_chat_transcript(
+        sample_transcript_data,
+        normalizePath(temp_bad_chat_file, mustWork = TRUE),
+        "10:00"
+      ),
+      "Error parsing chat file"
+    ),
+    "Skipping chat line that looks like a continuation but has no previous message."
   )
 
   expect_error(
