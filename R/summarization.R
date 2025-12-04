@@ -388,8 +388,8 @@ summarise_transcript <- function(
 #'   time is not the start time of the event.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
-#' @param audience The audience of the event See `summarise_transcript`
-#'   for more details.
+#' @param audience The audience of the event See `summarise_transcript` for more
+#'   details.
 #' @param vocabulary The vocabulary used in the meeting. See
 #'   `summarise_transcript` for more details.
 #' @param consider_diarization Whether to take into account the diarization of
@@ -555,6 +555,64 @@ summarise_full_meeting <- function(
 }
 
 
+#' Prune Breakpoints Near Pauses
+#'
+#' This function removes breakpoints from a numeric vector that are too close to
+#' specified pauses. Specifically, it ensures that any breakpoint which is
+#' either the first or last in the sequence, or is within \code{pause_duration}
+#' units of a pause, is removed. This helps to guard against stale indices and
+#' unwanted breaks near areas of silence in transcript segmentation or
+#' windowing.
+#'
+#' @param breakpoints A numeric vector of candidate breakpoints (e.g., segment
+#'   start or end times in seconds).
+#' @param pauses A numeric vector indicating the locations of pauses (in the
+#'   same units as breakpoints).
+#' @param pause_duration A numeric value specifying the minimum allowed distance
+#'   (in the same units as breakpoints) between a pause and a breakpoint, or
+#'   between consecutive breakpoints near a pause, for a breakpoint to be kept.
+#'
+#' @return The pruned vector of breakpoints, with those too close to pauses
+#'   removed.
+#'
+#' @examples breakpoints <- c(0, 100, 200, 300, 400, 500) pauses <- c(200, 400)
+#'   pause_duration <- 50 prune_pause_breakpoints(breakpoints, pauses,
+#'   pause_duration)
+#'
+#' @keywords internal
+prune_pause_breakpoints <- function(breakpoints, pauses, pause_duration) {
+  for (pause in pauses) {
+    i <- match(pause, breakpoints)
+
+    # Skip if the pause breakpoint has already been removed
+    if (is.na(i)) {
+      next
+    }
+
+    # Remove the breakpoint if it's the first or last entry
+    if (i == 1 || i == length(breakpoints)) {
+      breakpoints <- breakpoints[-i]
+      next
+    }
+
+    # If the previous breakpoint is too close, remove the previous one
+    if (i > 1 && breakpoints[i] - breakpoints[i - 1] < pause_duration) {
+      breakpoints <- breakpoints[-(i - 1)]
+      i <- i - 1
+    }
+
+    # If the next breakpoint is too close, remove the next one
+    if (
+      i < length(breakpoints) &&
+        breakpoints[i + 1] - breakpoints[i] < pause_duration
+    ) {
+      breakpoints <- breakpoints[-(i + 1)]
+    }
+  }
+
+  breakpoints
+}
+
 #' Infer the agenda from a transcript
 #'
 #' This function takes a transcript and various optional parameters, and uses an
@@ -649,20 +707,11 @@ infer_agenda_from_transcript <- function(
 
   breakpoints <- c(breakpoints, pauses) |> sort()
 
-  for (i in which(breakpoints %in% pauses)) {
-    if (i == 1 || i == length(breakpoints)) {
-      breakpoints <- breakpoints[-i]
-      next
-    }
-
-    if (breakpoints[i] - breakpoints[i - 1] < pause_duration) {
-      breakpoints <- breakpoints[-(i - 1)]
-    }
-
-    if (breakpoints[i + 1] - breakpoints[i] < pause_duration) {
-      breakpoints <- breakpoints[-(i + 1)]
-    }
-  }
+  breakpoints <- prune_pause_breakpoints(
+    breakpoints,
+    pauses,
+    pause_duration
+  )
 
   last_segment <- max(transcript_data$start) - tail(breakpoints, n = 1)
 
@@ -727,7 +776,9 @@ infer_agenda_from_transcript <- function(
 
     # Check if the current segment was already processed
     if (cur_bp <= getOption("minutemaker_temp_agenda_last_bp", 0)) {
-      if (cur_bp == length(breakpoints)) stop <- TRUE
+      if (cur_bp == length(breakpoints)) {
+        stop <- TRUE
+      }
 
       cur_bp <- cur_bp + 1
 
@@ -742,7 +793,9 @@ infer_agenda_from_transcript <- function(
 
     # Skip empty segments
     if (nrow(transcript_segment) == 0) {
-      if (cur_bp == length(breakpoints)) stop <- TRUE
+      if (cur_bp == length(breakpoints)) {
+        stop <- TRUE
+      }
 
       cur_bp <- cur_bp + 1
 
@@ -856,7 +909,9 @@ infer_agenda_from_transcript <- function(
 
     options("minutemaker_temp_agenda_last_bp" = cur_bp)
 
-    if (cur_bp == length(breakpoints)) stop <- TRUE
+    if (cur_bp == length(breakpoints)) {
+      stop <- TRUE
+    }
 
     cur_bp <- cur_bp + 1
   }
@@ -871,13 +926,17 @@ infer_agenda_from_transcript <- function(
   # Remove segments that are too short or that precede the previous one.
   agenda_times <- agenda_times |>
     purrr::imap(\(x, i) {
-      if (i == 1) return(agenda_times[[i]])
+      if (i == 1) {
+        return(agenda_times[[i]])
+      }
 
       this_time <- agenda_times[[i]]
       prev_time <- agenda_times[[i - 1]]
 
       # segments should last at least 5 minutes and not be negative
-      if (this_time - prev_time < 150) return(NULL)
+      if (this_time - prev_time < 150) {
+        return(NULL)
+      }
 
       return(this_time)
     }) |>
@@ -994,15 +1053,30 @@ infer_agenda_from_transcript <- function(
       )
 
       # Get new title from LLM
-      new_title <- (llmR::prompt_llm(
-        prompt_set,
-        ...,
-        force_json = TRUE
-      ) |>
-        jsonlite::fromJSON())$new_title
+      new_title_result <- try(
+        {
+          (llmR::prompt_llm(
+            prompt_set,
+            ...,
+            force_json = TRUE
+          ) |>
+            jsonlite::fromJSON())$new_title
+        },
+        silent = TRUE
+      )
 
-      # Update the agenda item with new title
-      agenda[[idx]]$title <- new_title
+      # Update the agenda item with new title if successful
+      if (
+        !inherits(new_title_result, "try-error") &&
+          !is.null(new_title_result)
+      ) {
+        agenda[[idx]]$title <- new_title_result
+      } else {
+        cli::cli_warn(
+          "Could not regenerate title for duplicate item {idx}. Appending index."
+        )
+        agenda[[idx]]$title <- paste0(dup_title, " (", idx, ")")
+      }
     }
   }
 

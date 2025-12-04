@@ -306,8 +306,7 @@ mock_get_prompts <- function(prompt_name) {
     aggregate_diarised_bullets = "Aggregate with bullets and note speakers.",
 
     # Added to fix test errors
-    audience_template = "Audience: {audience}", # Placeholder
-    summary_structure = "Structure: {summary_structure}" # Placeholder
+    audience_template = "Audience: {audience}" # Placeholder
   )
 
   # Check if all requested prompt names exist
@@ -806,8 +805,9 @@ test_that("arguments are correctly passed for rolling method (to aggregation)", 
       set_prompts = mock_set_prompts,
       get_prompts = mock_get_prompts, # Used by various internal prompt generation
       extract_text_from_transcript = mock_extract_text_from_transcript,
-      generate_summarisation_prompt = function(transcript, args)
-        paste("Prompt for:", transcript),
+      generate_summarisation_prompt = function(transcript, args) {
+        paste("Prompt for:", transcript)
+      },
       generate_rolling_aggregation_prompt = spy_generate_rolling_aggregation_prompt,
       .package = "minutemaker"
     )
@@ -906,7 +906,9 @@ mock_summarise_transcript_meeting <- function(
 
 mock_validate_agenda <- function(agenda) TRUE
 mock_validate_agenda_element <- function(elem, from = TRUE, to = TRUE) {
-  if (!is.null(elem$title) && elem$title == "Talk C") return(FALSE)
+  if (!is.null(elem$title) && elem$title == "Talk C") {
+    return(FALSE)
+  }
   return(TRUE)
 }
 
@@ -1380,7 +1382,7 @@ test_that("summarise_full_meeting aborts if no talks are summarized", {
       expect_warning('"S1 - Bad Talk 1" is empty') |>
       expect_warning('"S2 - Bad Talk 2" is empty') |>
       expect_error(
-        regexp = "The final result tree has lenght zero. No talks were summarised."
+        regexp = "The final result tree has length zero. No talks were summarised."
       )
     # Ensure the output file was NOT created because of the abort
     expect_false(file.exists(temp_output_file_path))
