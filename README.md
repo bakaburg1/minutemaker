@@ -104,8 +104,11 @@ options(
   minutemaker_azure_api_version = "2024-06-01",
   
   # LLM for transcript correction
-  minutemaker_correction_llm_model = "your_preferred_correction_llm_label"
-  # Whether the correction LLM should include "reasoning" to increase the quality of the correction on non-reasoning models (e.g., OpenAi o3 or Google Gemini 2.5 series)
+  minutemaker_correction_llm_model = "your_preferred_correction_llm_label",
+  
+  # Whether the correction LLM should include "reasoning" to increase the
+  # quality of the correction on non-reasoning models (e.g., OpenAi o3 or Google
+  # Gemini 2.5 series)
   minutemaker_include_llm_reasoning = TRUE 
 )
 ```
@@ -475,7 +478,7 @@ summary_structure_with_agenda <- stringr::str_glue("
   {get_prompts("summary_structure")}
   Here is an agenda of the event to keep into account while summarizing:
   {agenda_text}
-  Stricly follow the agenda to understand which information is worth summarizing.
+  Strictly follow the agenda to understand which information is worth summarizing.
 ")
 
 
