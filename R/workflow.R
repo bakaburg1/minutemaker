@@ -301,9 +301,9 @@ speech_to_summary_workflow <- function(
   if (purrr::is_empty(list.files(stt_output_dir))) {
     cli::cli_abort(
       c(
-        "Skipping LLM correction: STT output directory is missing or empty:
+        "Speech-to-text output directory is missing or empty:
         {.path {stt_output_dir}}",
-        "i" = "Ensure the speech-to-text process completed successfully"
+        "i" = "Ensure the speech-to-text step completed successfully before continuing the workflow."
       )
     )
   }
@@ -617,6 +617,18 @@ speech_to_summary_workflow <- function(
     extra_summarise_args
   )
 
+  # If an agenda is available, weave it into the summary structure so prompts
+  # stay agenda-aware even when producing a single-part summary.
+  if (!isFALSE(agenda) && !is.null(agenda)) {
+    summarization_args$summary_structure <- stringr::str_glue(
+      "
+    {summary_structure}
+    Here is an agenda of the event to keep into account while summarizing:
+    {format_agenda(agenda)}
+    Strictly follow the agenda to understand which information is worth summarizing."
+    )
+  }
+
   if (isFALSE(agenda) || isFALSE(multipart_summary)) {
     # Summarize as single talk
     cli::cli_inform("...with single part approach...")
@@ -631,15 +643,6 @@ speech_to_summary_workflow <- function(
     if (!validate_agenda(agenda)) {
       cli::cli_abort("The agenda is not valid.")
     }
-
-    # TODO: put this prompt in the set_prompts function
-    summarization_args$summary_structure <- stringr::str_glue(
-      "
-    {summary_structure}
-    Here is an agenda of the event to keep into account while summarizing:
-    {agenda}
-    Strictly follow the agenda to understand which information is worth summarizing."
-    )
 
     # Necessary extra arguments for the summarization of whole events
     summarization_args$agenda <- agenda
