@@ -861,6 +861,46 @@ test_that("adds chat from a WebEx file correctly (testing parsing logic)", {
   expect_equal(parsed_chat_df, expected_df)
 })
 
+test_that("add_chat_transcript interleaves chat rows with transcript data", {
+  temp_dir_for_test <- withr::local_tempdir()
+  chat_content_lines <- c(
+    "02/20/2023\t00:00:02\tUser One from User One to Everyone:\tFirst message",
+    "02/20/2023\t00:00:12\tUser Two from User Two to Me (Privately):\tSecond message",
+    "02/20/2023\t00:00:22\tUser Three from User Three to Everyone:\tThis is a message",
+    "that spans two lines in the raw file."
+  )
+  temp_chat_file <- helper_create_temp_chat_file(chat_content_lines, dir = temp_dir_for_test)
+
+  result <- add_chat_transcript(
+    transcript_data = sample_transcript_data,
+    chat_transcript = normalizePath(temp_chat_file, mustWork = TRUE),
+    start_time = "00:00:00"
+  )
+
+  expected <- dplyr::tibble(
+    start = c(2, 5, 12, 15, 22, 25),
+    end = c(2, 10, 12, 20, 22, 30),
+    speaker = c(
+      "User One (from chat)",
+      "Alice",
+      "User Two (from chat)",
+      "Bob",
+      "User Three (from chat)",
+      "Alice"
+    ),
+    text = c(
+      "First message",
+      "Hello",
+      "Second message",
+      "Hi there",
+      "This is a message that spans two lines in the raw file.",
+      "How are you?"
+    )
+  )
+
+  expect_equal(result, expected)
+})
+
 test_that("add_chat_transcript handles pre-parsed data.frame correctly", {
   chat_df <- data.frame(
     start = c(8, 18),
@@ -873,10 +913,13 @@ test_that("add_chat_transcript handles pre-parsed data.frame correctly", {
     chat_transcript = chat_df,
     start_time = "00:00:00"
   )
-  expect_identical(nrow(result), nrow(sample_transcript_data))
-  expect_identical(result$start, sample_transcript_data$start)
-  expect_identical(result$text, sample_transcript_data$text)
-  expect_identical(result$speaker, sample_transcript_data$speaker)
+  expected <- dplyr::tibble(
+    start = c(5, 8, 15, 18, 25),
+    end = c(10, 8, 20, 18, 30),
+    speaker = c("Alice", "Chatter Alpha", "Bob", "Chatter Bravo", "Alice"),
+    text = c("Hello", "Chat message one", "Hi there", "Chat message two", "How are you?")
+  )
+  expect_equal(result, expected)
 
   bad_chat_df <- data.frame(s = 1, p = "P", t = "T")
   expect_error(

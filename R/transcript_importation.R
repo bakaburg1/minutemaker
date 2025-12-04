@@ -422,12 +422,19 @@ add_chat_transcript <- function(
         for (i in rev(seq_along(chat_transcript))) {
           curr <- chat_transcript[[i]]
           if (ncol(curr) == 1) {
-            prev <- chat_transcript[[i - 1]]
-            chat_transcript[[i - 1]][1, ncol(prev)] <- paste(
-              prev[1, ncol(prev)],
-              curr[1, ncol(curr)]
-            )
-            chat_transcript[[i]] <- NULL
+            if (i > 1 && ncol(chat_transcript[[i - 1]]) >= 1) {
+              prev <- chat_transcript[[i - 1]]
+              chat_transcript[[i - 1]][1, ncol(prev)] <- paste(
+                prev[1, ncol(prev)],
+                curr[1, ncol(curr)]
+              )
+              chat_transcript[[i]] <- NULL
+            } else {
+              cli::cli_warn(
+                "Skipping chat line that looks like a continuation but has no previous message."
+              )
+              chat_transcript[[i]] <- NULL
+            }
           }
         }
 
@@ -437,11 +444,10 @@ add_chat_transcript <- function(
           mutate(
             date = NULL,
             start = parse_event_time(.data$start) |>
-              as.numeric(),
-            start = .data$start - start_time,
-            speaker = stringr::str_remove(.data$speaker, "from ") |>
-              # Do not remove the white space in the regex, is important!
-              stringr::str_remove("( to everyone)?:") |>
+              as.numeric() - start_time,
+            end = .data$start,
+            speaker = stringr::str_remove(.data$speaker, "(?i)\\sfrom\\s.*") |>
+              stringr::str_squish() |>
               stringr::str_replace_all("(?<=\\s)[a-z]", toupper),
             speaker = paste(.data$speaker, "(from chat)")
           )
@@ -465,6 +471,14 @@ add_chat_transcript <- function(
         and {.var text} columns."
       )
     }
+
+    if (!"end" %in% names(chat_transcript)) {
+      chat_transcript <- chat_transcript |>
+        dplyr::mutate(end = .data$start, .after = "start")
+    } else {
+      chat_transcript <- chat_transcript |>
+        dplyr::mutate(end = dplyr::coalesce(.data$end, .data$start))
+    }
   } else {
     cli::cli_abort(
       "Unsupported chat data format.",
@@ -474,6 +488,7 @@ add_chat_transcript <- function(
   }
 
   # Add the chat messages to the transcript
-  # left_join should position the chat messages in the right place
-  dplyr::left_join(transcript_data, chat_transcript)
+  dplyr::bind_rows(transcript_data, chat_transcript) |>
+    dplyr::arrange(.data$start) |>
+    dplyr::as_tibble()
 }
