@@ -33,8 +33,6 @@ is_audio_file_sane <- function(audio_file) {
 #'
 #' @return The path to the created segment file if successful.
 #'
-#' @export
-#'
 #' @keywords internal
 extract_audio_segment <- function(
   audio_file,
@@ -67,7 +65,7 @@ extract_audio_segment <- function(
 
     if (verbose) {
       cli::cli_warn(
-        "Generated segment {.file {basename(output_file)}} is corrupted. Retrying attempt {attempt}/{max_attempts}..."
+        "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
       )
     }
   }
@@ -126,28 +124,37 @@ split_audio <- function(
     rlang::check_installed("mirai", reason = "for parallel processing.")
 
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
-      cli::cli_alert_info("Starting mirai daemons for parallel audio splitting...")
+      cli::cli_alert_info(
+        "Starting mirai daemons for parallel audio splitting..."
+      )
       n_daemons <- max(1, parallel::detectCores() - 1)
-      mirai::daemons(n = n_daemons, dispatcher = FALSE, .compute = "minutemaker")
+      mirai::daemons(
+        n = n_daemons,
+        dispatcher = FALSE,
+        .compute = "minutemaker"
+      )
       on.exit(mirai::daemons(0, .compute = "minutemaker"), add = TRUE)
     } else {
-      cli::cli_alert_info("Using {mirai::status(.compute = 'minutemaker')$daemons} existing minutemaker daemons.")
+      cli::cli_alert_info(
+        "Using {mirai::status(.compute = 'minutemaker')$daemons} existing minutemaker daemons."
+      )
     }
 
     tasks <- lapply(1:num_segments, \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-      duration <- segment_length_sec  # Capture in local scope
-      
-      mirai::mirai({
-        extract_audio_segment_func(
-          audio_file = audio_file,
-          output_file = output_file,
-          start_time = start_time,
-          duration = duration,
-          verbose = FALSE # Less verbose in parallel
-        )
-      },
+      duration <- segment_length_sec # Capture in local scope
+
+      mirai::mirai(
+        {
+          extract_audio_segment_func(
+            audio_file = audio_file,
+            output_file = output_file,
+            start_time = start_time,
+            duration = duration,
+            verbose = FALSE # Less verbose in parallel
+          )
+        },
         extract_audio_segment_func = extract_audio_segment,
         is_audio_file_sane = is_audio_file_sane,
         audio_file = audio_file,
@@ -168,9 +175,14 @@ split_audio <- function(
       still_running <- mirai::unresolved(tasks)
 
       for (i in seq_along(tasks)) {
-        if (processed_flags[i]) next
+        if (processed_flags[i]) {
+          next
+        }
 
-        is_still_running <- any(purrr::map_lgl(still_running, ~ identical(.x, tasks[[i]])))
+        is_still_running <- any(purrr::map_lgl(
+          still_running,
+          ~ identical(.x, tasks[[i]])
+        ))
 
         if (!is_still_running) {
           result <- tasks[[i]][]
@@ -179,14 +191,18 @@ split_audio <- function(
             fail_fast_triggered <- TRUE
             break
           }
-          cli::cli_alert_success("Segment {i}/{length(tasks)} processed successfully.")
+          cli::cli_alert_success(
+            "Segment {i}/{length(tasks)} processed successfully."
+          )
           processed_flags[i] <- TRUE
         }
       }
     }
 
     if (fail_fast_triggered) {
-      cli::cli_alert_warning("Halting due to worker error. Checking source file integrity...")
+      cli::cli_alert_warning(
+        "Halting due to worker error. Checking source file integrity..."
+      )
       if (!is_audio_file_sane(audio_file)) {
         cli::cli_abort(
           c(
@@ -210,7 +226,7 @@ split_audio <- function(
     purrr::walk(1:num_segments, \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-      
+
       extract_audio_segment(
         audio_file = audio_file,
         output_file = output_file,

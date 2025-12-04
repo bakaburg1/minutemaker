@@ -47,7 +47,7 @@ test_that("split_audio works sequentially with real audio", {
     )
     
     # Check results
-    segments <- list.files("segments", pattern = "*.mp3", full.names = TRUE)
+    segments <- list.files("segments", pattern = "\\.mp3$", full.names = TRUE)
     expect_length(segments, 2)
     
     # Verify segments are valid
@@ -87,7 +87,7 @@ test_that("split_audio works in parallel with real audio", {
     )
     
     # Check that segments were created
-    segments <- list.files("segments", pattern = "*.mp3", full.names = TRUE)
+    segments <- list.files("segments", pattern = "\\.mp3$", full.names = TRUE)
     expect_length(segments, 2)
     
     # Verify segments are valid
@@ -294,7 +294,7 @@ test_that("extract_audio_segment retry logic works", {
         duration = 60,
         verbose = TRUE
       ),
-      "Generated segment.*is corrupted.*Retrying attempt"
+      "Generated segment.*is corrupted.*Attempt .*failed, retrying"
     )
     
     # Should return the path even though our mock validation "failed" first time
@@ -513,7 +513,7 @@ test_that("extract_audio_segment retries and succeeds", {
     # We expect a warning about the first attempt failing
     expect_warning(
       extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60),
-      "corrupted. Retrying"
+      "corrupted.*Attempt .*failed, retrying"
     )
 
     # It should have called the sanity check twice
@@ -538,8 +538,8 @@ test_that("extract_audio_segment fails after max retries", {
 
     # It should throw an error after trying twice, with warnings for each retry
     extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60) |>
-      expect_warning("Generated segment.*is corrupted.*Retrying attempt 1/2") |>
-      expect_warning("Generated segment.*is corrupted.*Retrying attempt 2/2") |>
+      expect_warning("Generated segment.*is corrupted.*Attempt 1 of 2 failed, retrying") |>
+      expect_warning("Generated segment.*is corrupted.*Attempt 2 of 2 failed, retrying") |>
       expect_error("Failed to create a valid segment")
   })
 })
