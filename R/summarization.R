@@ -575,9 +575,15 @@ summarise_full_meeting <- function(
 #' @return The pruned vector of breakpoints, with those too close to pauses
 #'   removed.
 #'
-#' @examples breakpoints <- c(0, 100, 200, 300, 400, 500) pauses <- c(200, 400)
-#'   pause_duration <- 50 prune_pause_breakpoints(breakpoints, pauses,
-#'   pause_duration)
+#' @examples
+#' breakpoints <- c(0, 100, 200, 300, 400, 500)
+#' pauses <- c(200, 400)
+#' pause_duration <- 50
+#' minutemaker:::prune_pause_breakpoints(
+#'   breakpoints,
+#'   pauses,
+#'   pause_duration
+#' )
 #'
 #' @keywords internal
 prune_pause_breakpoints <- function(breakpoints, pauses, pause_duration) {

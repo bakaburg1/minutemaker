@@ -107,6 +107,9 @@ split_audio <- function(
   # Calculate segment length in seconds
   segment_length_sec <- segment_duration * 60
 
+  # Bind helper to a local symbol for use inside parallel workers
+  extract_audio_segment_func <- extract_audio_segment
+
   # Get the total duration of the file in seconds
   media_info <- av::av_media_info(audio_file)
   total_duration_sec <- media_info$duration

@@ -23,7 +23,7 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
       apply_llm_correction = function(...) invisible(NULL),
       parse_transcript_json = function(stt_output_dir, ...) {
         # Return a minimal valid transcript tibble
-        tibble::tibble(
+        dplyr::tibble(
           text = "mocked transcript text",
           start_time = 0,
           end_time = 1000,
