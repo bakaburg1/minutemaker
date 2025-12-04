@@ -250,65 +250,6 @@ is_audio_file_sane <- function(audio_file) {
   return(status == 0)
 }
 
-#' Extract Audio Segment
-#'
-#' This helper function extracts a single audio segment from a larger audio
-#' file, retrying once if the initial attempt results in a corrupted file. It
-#' serves as the core worker logic for [split_audio()].
-#'
-#' @param audio_file The path to the source audio file.
-#' @param output_file The path where the extracted segment should be saved.
-#' @param start_time The start time in seconds for the segment.
-#' @param duration The duration of the segment in seconds.
-#' @param verbose A logical value indicating whether to print messages.
-#'
-#' @return The path to the created segment file if successful.
-#'
-#' @export
-#'
-#' @keywords internal
-extract_audio_segment <- function(
-  audio_file,
-  output_file,
-  start_time,
-  duration,
-  verbose = TRUE
-) {
-  if (verbose) {
-    cli::cli_alert("Outputting audio segment: {.file {basename(output_file)}}")
-  }
-
-  max_attempts <- 2
-  for (attempt in 1:max_attempts) {
-    # Ensure the directory exists before writing
-    if (!dir.exists(dirname(output_file))) {
-      dir.create(dirname(output_file), recursive = TRUE)
-    }
-
-    av::av_audio_convert(
-      audio_file,
-      output_file,
-      start_time = start_time,
-      total_time = duration
-    )
-
-    if (is_audio_file_sane(output_file)) {
-      return(output_file) # Success
-    }
-
-    if (verbose) {
-      cli::cli_warn(
-        "Generated segment {.file {basename(output_file)}} is corrupted. Retrying attempt {attempt}/{max_attempts}..."
-      )
-    }
-  }
-
-  # If the loop finishes, all attempts have failed.
-  cli::cli_abort(
-    "Failed to create a valid segment for {.file {basename(output_file)}} after {max_attempts} attempts."
-  )
-}
-
 #' Split an audio file into segments of a specified duration
 #'
 #' Some speech-to-text models have a limit on the size of the audio file. For
