@@ -76,6 +76,13 @@ apply_llm_correction <- function(
     }
   }
 
+  # Validate the terms parameter once before processing files.
+  if (!is.null(terms) && !is.character(terms)) {
+    cli::cli_abort(
+      "Parameter {.arg terms} must be a character vector or NULL."
+    )
+  }
+
   # Iterate over files, attempting correction for each.
   # NA_character_ is used to mark failures for later filtering.
   processed_files <- purrr::map_chr(files_to_process, \(file_path) {
@@ -99,7 +106,9 @@ apply_llm_correction <- function(
       }
     )
 
-    if (is.null(transcript_data)) return(NA_character_)
+    if (is.null(transcript_data)) {
+      return(NA_character_)
+    }
 
     # Check if the transcript has already been corrected and if overwrite is
     # FALSE
@@ -110,13 +119,6 @@ apply_llm_correction <- function(
         wrap = TRUE
       )
       return(file_path) # Return the path as it was processed (skipped)
-    }
-
-    # If terms is not a character vector or NULL, ignore it.
-    if (!is.null(terms) && !is.character(terms)) {
-      cli::cli_abort(
-        "Parameter {.arg terms} must be a character vector or NULL."
-      )
     }
 
     # --- Start Correction Attempt with Retry Logic ---
@@ -366,12 +368,12 @@ correct_transcription_errors <- function(
   converted_text <- as.character(unlist(text_to_correct))
 
   if (!rlang::is_character(converted_text)) {
+    utils::str(text_to_correct)
     cli::cli_abort(c(
       "x" = "Input {.arg text_to_correct} must be a character vector or
         list of character vectors.",
       "i" = "Structure of input:"
     ))
-    utils::str(text_to_correct)
   }
 
   # Collapse the input vector for the LLM prompt
@@ -820,8 +822,8 @@ apply_single_correction_set <- function(text, corr_map) {
     meta_chars <- "([.|()\\^{}+*$?\\[\\]\\\\])"
 
     escaped_key <- gsub(
-      meta_chars,       # pattern: any metacharacter
-      "\\\\\\1",  # replacement: backslash + the char itself
+      meta_chars, # pattern: any metacharacter
+      "\\\\\\1", # replacement: backslash + the char itself
       key,
       perl = TRUE
     )
