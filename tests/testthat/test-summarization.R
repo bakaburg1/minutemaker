@@ -925,8 +925,8 @@ mock_build_ids_from_agenda <- function(agenda) {
 
 test_that("summarise_full_meeting basic workflow, new output file", {
   withr::with_tempdir({
-    # temp_output_file is now inside the temp directory
-    temp_output_file_path <- file.path(tempdir(), "test_summary_output.R")
+    work_dir <- getwd()
+    temp_output_file_path <- file.path(work_dir, "test_summary_output.R")
 
     # Spy on summarise_transcript
     st_calls <- list()
@@ -1016,8 +1016,9 @@ test_that("summarise_full_meeting basic workflow, new output file", {
 
 test_that("summarise_full_meeting overwrite=FALSE skips existing talks", {
   withr::with_tempdir({
+    work_dir <- getwd()
     temp_output_file_path <- file.path(
-      tempdir(),
+      work_dir,
       "test_summary_overwrite_false.R"
     )
 
@@ -1110,8 +1111,9 @@ test_that("summarise_full_meeting overwrite=FALSE skips existing talks", {
 
 test_that("summarise_full_meeting overwrite=TRUE re-summarizes existing talks", {
   withr::with_tempdir({
+    work_dir <- getwd()
     temp_output_file_path <- file.path(
-      tempdir(),
+      work_dir,
       "test_summary_overwrite_true.R"
     )
 
@@ -1191,12 +1193,13 @@ test_that("summarise_full_meeting overwrite=TRUE re-summarizes existing talks", 
 
 test_that("summarise_full_meeting reads agenda from file path", {
   withr::with_tempdir({
-    temp_agenda_file_path <- file.path(tempdir(), "test_agenda_input.R")
+    work_dir <- getwd()
+    temp_agenda_file_path <- file.path(work_dir, "test_agenda_input.R")
     # Create the agenda file in the temp directory
     dput(sample_agenda_list, file = temp_agenda_file_path)
 
     temp_output_file_path <- file.path(
-      tempdir(),
+      work_dir,
       "test_summary_agenda_from_file.R"
     )
 
@@ -1260,7 +1263,8 @@ test_that("summarise_full_meeting reads agenda from file path", {
 
 test_that("summarise_full_meeting skips item with empty transcript subset and warns", {
   withr::with_tempdir({
-    temp_output_file_path <- file.path(tempdir(), "test_summary_empty_subset.R")
+    work_dir <- getwd()
+    temp_output_file_path <- file.path(work_dir, "test_summary_empty_subset.R")
 
     agenda_for_empty_subset <- list(
       sample_agenda_list[[1]],
@@ -1340,7 +1344,8 @@ test_that("summarise_full_meeting skips item with empty transcript subset and wa
 
 test_that("summarise_full_meeting aborts if no talks are summarized", {
   withr::with_tempdir({
-    temp_output_file_path <- file.path(tempdir(), "test_summary_abort_empty.R")
+    work_dir <- getwd()
+    temp_output_file_path <- file.path(work_dir, "test_summary_abort_empty.R")
 
     agenda_all_bad <- list(
       list(session = "S1", title = "Bad Talk 1", from = 700, to = 800),
