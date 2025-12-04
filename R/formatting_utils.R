@@ -61,7 +61,7 @@ format_summary_tree <- function(
     # Covert times from second to clock time if possible
     agenda_element <- convert_agenda_times(
       agenda_element,
-      convert_to = "clock",
+      convert_to = "clocktime",
       event_start_time = event_start_time,
       conversion_format = "%R"
     )
@@ -141,7 +141,7 @@ format_agenda <- function(
   # Covert times from second to clock time if possible
   agenda <- convert_agenda_times(
     agenda,
-    convert_to = "clock",
+    convert_to = "clocktime",
     event_start_time = event_start_time,
     conversion_format = "%R"
   )

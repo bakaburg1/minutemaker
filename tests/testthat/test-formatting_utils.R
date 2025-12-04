@@ -683,4 +683,54 @@ test_that("format_summary_tree handles empty summary_tree or non-matching agenda
   )
 })
 
+test_that("format_agenda and format_summary_tree use correct convert_to value", {
+  # Test that format_agenda correctly converts numeric times using "clocktime"
+  agenda_numeric <- list(
+    list(
+      title = "Test Talk",
+      from = 0,
+      to = 3600,
+      session = "S1",
+      speakers = "Speaker A"
+    )
+  )
+  
+  formatted <- format_agenda(
+    agenda_numeric,
+    event_start_time = "09:00"
+  )
+  
+  # Should convert 0s -> 09:00, 3600s -> 10:00 (with %R format)
+  expect_match(formatted, "Time: 09:00 - 10:00", fixed = TRUE)
+  
+  # Test format_summary_tree with numeric times
+  # Note: build_ids_from_agenda creates IDs like "S1_Test Talk" (with underscore)
+  agenda_for_tree <- list(
+    list(
+      title = "Test Talk",
+      from = 0,
+      to = 3600,
+      session = "S1",
+      speakers = "Speaker A"
+    )
+  )
+  
+  summary_tree <- list(
+    `S1_Test Talk` = list(
+      session = "S1",
+      title = "Test Talk",
+      summary = "Test summary"
+    )
+  )
+  
+  formatted_tree <- format_summary_tree(
+    summary_tree,
+    agenda_for_tree,
+    event_start_time = "09:00"
+  )
+  
+  # Should also convert times correctly
+  expect_match(formatted_tree, "Time: 09:00 - 10:00", fixed = TRUE)
+})
+
 # Final newline to satisfy linter

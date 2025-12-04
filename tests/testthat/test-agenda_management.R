@@ -281,4 +281,37 @@ test_that("convert_agenda_times respects custom conversion format", {
   expect_equal(converted[[1]]$to, "10:00")
 })
 
+test_that("convert_agenda_times requires exact convert_to value", {
+  agenda <- list(list(from = 0, to = 3600))
+  
+  # Exact value "clocktime" should work
+  expect_no_error(
+    convert_agenda_times(
+      agenda,
+      convert_to = "clocktime",
+      event_start_time = "09:00"
+    )
+  )
+  
+  # Partial match "clock" should work due to match.arg partial matching,
+  # but exact value is preferred for clarity
+  expect_no_error(
+    convert_agenda_times(
+      agenda,
+      convert_to = "clock",
+      event_start_time = "09:00"
+    )
+  )
+  
+  # Invalid value should fail
+  expect_error(
+    convert_agenda_times(
+      agenda,
+      convert_to = "invalid",
+      event_start_time = "09:00"
+    ),
+    "should be one of"
+  )
+})
+
 cat("\nAll testthat tests for agenda_management.R defined.\n")
