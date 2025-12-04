@@ -638,7 +638,7 @@ speech_to_summary_workflow <- function(
     {summary_structure}
     Here is an agenda of the event to keep into account while summarizing:
     {agenda}
-    Stricly follow the agenda to understand which information is worth summarizing."
+    Strictly follow the agenda to understand which information is worth summarizing."
     )
 
     # Necessary extra arguments for the summarization of whole events
