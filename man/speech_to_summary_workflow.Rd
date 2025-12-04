@@ -7,7 +7,7 @@
 speech_to_summary_workflow(
   target_dir = getwd(),
   source_audio = list.files(target_dir, pattern = ".*\\\\.(wav|mp\\\\d)$", full.names =
-    T)[1],
+    TRUE)[1],
   split_audio = TRUE,
   split_audio_duration = 40,
   stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
