@@ -586,7 +586,6 @@ speech_to_summary_workflow <- function(
             or remove it."
         )
       )
-      return(invisible(transcript_data))
     } else {
       cli::cli_abort(
         "The {.code overwrite_formatted_output} argument must be
