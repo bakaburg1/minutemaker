@@ -35,4 +35,5 @@ Suggests:
     text2vec (>= 0.6.4),
     tictoc (>= 1.2),
     usethis (>= 2.2.3),
-    withr (>= 3.0.2)
+    withr (>= 3.0.2),
+    mirai (>= 2.5.3)
