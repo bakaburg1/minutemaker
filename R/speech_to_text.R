@@ -544,9 +544,7 @@ use_whisper_local_stt <- function(
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
     cli::cli_alert_info(
-      "Conda environment '",
-      conda_env,
-      "' does not exist. Creating it now..."
+      "Conda environment {.str {conda_env}} does not exist. Creating it now..."
     )
 
     reticulate::conda_create(conda_env, python_version = "3.9")
@@ -650,9 +648,7 @@ use_mlx_whisper_local_stt <- function(
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
     cli::cli_alert_info(
-      "Conda environment '",
-      conda_env,
-      "' does not exist. Creating it now..."
+      "Conda environment {.str {conda_env}} does not exist. Creating it now..."
     )
 
     reticulate::conda_create(conda_env, python_version = "3.9")
