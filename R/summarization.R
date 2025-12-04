@@ -546,7 +546,7 @@ summarise_full_meeting <- function(
 
   if (length(result_tree) == 0) {
     cli::cli_abort(
-      "The final result tree has lenght zero. No talks were summarised."
+      "The final result tree has length zero. No talks were summarised."
     )
   }
 
