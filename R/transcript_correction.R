@@ -449,6 +449,9 @@ correct_transcription_errors <- function(
 
   # Initialize llm_call_failed flag for this function call
   llm_call_failed <- FALSE
+  # Capture this function environment so we can set the flag explicitly without
+  # climbing further up the parent chain.
+  flag_env <- environment()
 
   # -- Prepare the LLM prompts --
 
@@ -595,12 +598,6 @@ Apply these rules to your JSON output if corrections are made:
   # Force JSON is FALSE since we request an xml tag
   force_json_value <- FALSE
 
-  # Store parent environment to modify variables in closures
-  parent_env <- parent.frame()
-
-  # Silence the linter for variables used in closures only
-  parent_env
-
   tryCatch(
     {
       # Run the LLM call.
@@ -613,8 +610,8 @@ Apply these rules to your JSON output if corrections are made:
     error = \(e) {
       cli::cli_warn("LLM call failed: {e$message}")
 
-      # Edit flag in parent environment.
-      parent_env$llm_call_failed <- TRUE
+      # Flip the flag in the current function environment so the caller sees it.
+      assign("llm_call_failed", TRUE, envir = flag_env)
     }
   )
 
