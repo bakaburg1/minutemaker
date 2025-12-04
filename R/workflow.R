@@ -134,7 +134,7 @@ speech_to_summary_workflow <- function(
   source_audio = list.files(
     target_dir,
     pattern = ".*\\.(wav|mp\\d)$",
-    full.names = T
+    full.names = TRUE
   )[1],
   split_audio = TRUE,
   split_audio_duration = 40,
@@ -213,8 +213,14 @@ speech_to_summary_workflow <- function(
 
   # Check if the stt audio dir is empty or overwrite is TRUE
   if (overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))) {
-    if (purrr::is_empty(source_audio)) {
-      cli::cli_abort("No valid source audio file provided.")
+    if (
+      purrr::is_empty(source_audio) ||
+        is.na(source_audio) ||
+        !file.exists(source_audio)
+    ) {
+      cli::cli_abort(
+        "No valid source audio file provided: {.str {source_audio %||% 'NULL'}}"
+      )
     }
 
     if (isFALSE(split_audio)) {
