@@ -268,6 +268,10 @@ apply_llm_correction <- function(
     # Mark transcript as 'corrected' if `overwrite` is TRUE or if actual changes
     # were made (status = "corrections_applied" and made_changes=TRUE)
     should_write <- FALSE
+    write_message_type <- NULL
+
+    # Silence the linter for variables used in string templates only
+    write_message_type
 
     if (overwrite) {
       final_transcript_data$corrected <- TRUE
@@ -285,11 +289,6 @@ apply_llm_correction <- function(
       final_transcript_data$corrected <- TRUE
       should_write <- TRUE
       write_message_type <- "Applied corrections and saved"
-    }
-
-    # Silence the linter for variables used in string templates only
-    if (exists("write_message_type")) {
-      write_message_type
     }
 
     if (should_write) {
@@ -372,7 +371,7 @@ correct_transcription_errors <- function(
     cli::cli_abort(c(
       "x" = "Input {.arg text_to_correct} must be a character vector or
         list of character vectors.",
-      "i" = "Structure of input:"
+      "i" = "Got: {.cls {class(text_to_correct)}}"
     ))
   }
 
@@ -586,7 +585,7 @@ Apply these rules to your JSON output if corrections are made:
   # Default LLM parameters; temperature = 0 for deterministic output.
   base_llm_params <- list(
     # OpenAi reasoning models do not accept temperature parameter different from
-    # 1.
+    # 1. To review once migrated to ellmer.
     temperature = if (include_reasoning) 0 else 1
   )
 
@@ -791,7 +790,7 @@ Apply these rules to your JSON output if corrections are made:
 #'
 apply_single_correction_set <- function(text, corr_map) {
   # Return early if nothing to do
-  if (rlang::is_empty(text) || !nzchar(text) || rlang::is_empty(corr_map)) {
+  if (rlang::is_empty(text) || !any(nzchar(text)) || rlang::is_empty(corr_map)) {
     return(text)
   }
 
