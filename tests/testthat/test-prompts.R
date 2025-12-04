@@ -290,7 +290,7 @@ test_that("generate_summarisation_prompt() aborts if args elements have length >
 
   expect_error(
     generate_summarisation_prompt(transcript_text, args_bad),
-    "All arguments in args should have length 1:event_description"
+    "All arguments in args should have length 1:`event_description`"
   )
 })
 
@@ -436,7 +436,7 @@ test_that("generate_rolling_aggregation_prompt() aborts if args elements have le
 
   expect_error(
     generate_rolling_aggregation_prompt(summaries_vec, args_bad),
-    "All arguments in args should have length 1:event_description"
+    "All arguments in args should have length 1:`event_description`"
   )
 })
 
@@ -536,7 +536,7 @@ test_that("generate_agenda_inference_prompt() aborts if args elements have lengt
 
   expect_error(
     generate_agenda_inference_prompt(transcript_csv, args_bad),
-    "All arguments in args should have length 1:event_description"
+    "All arguments in args should have length 1:`event_description`"
   )
 })
 
@@ -640,7 +640,7 @@ test_that("generate_agenda_element_prompt() aborts if args elements have length 
 
   expect_error(
     generate_agenda_element_prompt(transcript_csv, args_bad),
-    "All arguments in args should have length 1:event_description"
+    "All arguments in args should have length 1:`event_description`"
   )
 })
 

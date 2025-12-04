@@ -380,7 +380,7 @@ generate_summarisation_prompt <- function(
   if (any(long_arguments)) {
     cli::cli_abort(
       "All arguments in args should have length
-      1:{stringr::str_flatten_comma(names(args)[long_arguments])}"
+      1:{.arg {names(args)[long_arguments]}}"
     )
   }
 
@@ -478,7 +478,7 @@ generate_rolling_aggregation_prompt <- function(
   if (any(long_arguments)) {
     cli::cli_abort(
       "All arguments in args should have length
-      1:{stringr::str_flatten_comma(names(args)[long_arguments])}"
+      1:{.arg {names(args)[long_arguments]}}"
     )
   }
 
@@ -532,7 +532,7 @@ generate_agenda_inference_prompt <- function(
   if (any(long_arguments)) {
     cli::cli_abort(
       "All arguments in args should have length
-      1:{stringr::str_flatten_comma(names(args)[long_arguments])}"
+      1:{.arg {names(args)[long_arguments]}}"
     )
   }
 
@@ -635,7 +635,7 @@ generate_agenda_element_prompt <- function(
   if (any(long_arguments)) {
     cli::cli_abort(
       "All arguments in args should have length
-      1:{stringr::str_flatten_comma(names(args)[long_arguments])}"
+      1:{.arg {names(args)[long_arguments]}}"
     )
   }
 
