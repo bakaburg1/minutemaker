@@ -40,7 +40,9 @@ perform_speech_to_text <- function(
   ...
 ) {
   audio_files <- character()
-  if (is.null(initial_prompt)) initial_prompt <- ""
+  if (is.null(initial_prompt)) {
+    initial_prompt <- ""
+  }
 
   # Check if file_path is a folder
   if (dir.exists(audio_path)) {
@@ -105,14 +107,18 @@ perform_speech_to_text <- function(
       transcript_json <- jsonlite::read_json(output_file_name)
     } else {
       # Remove the output file if it already exists
-      if (file.exists(output_file_name)) file.remove(output_file_name)
+      if (file.exists(output_file_name)) {
+        file.remove(output_file_name)
+      }
 
       # Append the last text from the previous file to the initial prompt
       initial_prompt <- paste0(initial_prompt, ". ", last_text) |>
         stringr::str_replace_all("\\.+", ".") |>
         stringr::str_remove("^\\. $")
 
-      if (requireNamespace("tictoc", quietly = TRUE)) tictoc::tic()
+      if (requireNamespace("tictoc", quietly = TRUE)) {
+        tictoc::tic()
+      }
 
       cli::cli_alert(
         "Running speech-to-text model {.val {model}}..."
@@ -351,28 +357,37 @@ split_audio <- function(
     rlang::check_installed("mirai", reason = "for parallel processing.")
 
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
-      cli::cli_alert_info("Starting mirai daemons for parallel audio splitting...")
+      cli::cli_alert_info(
+        "Starting mirai daemons for parallel audio splitting..."
+      )
       n_daemons <- max(1, parallel::detectCores() - 1)
-      mirai::daemons(n = n_daemons, dispatcher = FALSE, .compute = "minutemaker")
+      mirai::daemons(
+        n = n_daemons,
+        dispatcher = FALSE,
+        .compute = "minutemaker"
+      )
       on.exit(mirai::daemons(0, .compute = "minutemaker"), add = TRUE)
     } else {
-      cli::cli_alert_info("Using {mirai::status(.compute = 'minutemaker')$daemons} existing minutemaker daemons.")
+      cli::cli_alert_info(
+        "Using {mirai::status(.compute = 'minutemaker')$daemons} existing minutemaker daemons."
+      )
     }
 
     tasks <- lapply(1:num_segments, \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-      duration <- segment_length_sec  # Capture in local scope
-      
-      mirai::mirai({
-        extract_audio_segment_func(
-          audio_file = audio_file,
-          output_file = output_file,
-          start_time = start_time,
-          duration = duration,
-          verbose = FALSE # Less verbose in parallel
-        )
-      },
+      duration <- segment_length_sec # Capture in local scope
+
+      mirai::mirai(
+        {
+          extract_audio_segment_func(
+            audio_file = audio_file,
+            output_file = output_file,
+            start_time = start_time,
+            duration = duration,
+            verbose = FALSE # Less verbose in parallel
+          )
+        },
         extract_audio_segment_func = extract_audio_segment,
         is_audio_file_sane = is_audio_file_sane,
         audio_file = audio_file,
@@ -393,9 +408,14 @@ split_audio <- function(
       still_running <- mirai::unresolved(tasks)
 
       for (i in seq_along(tasks)) {
-        if (processed_flags[i]) next
+        if (processed_flags[i]) {
+          next
+        }
 
-        is_still_running <- any(purrr::map_lgl(still_running, ~ identical(.x, tasks[[i]])))
+        is_still_running <- any(purrr::map_lgl(
+          still_running,
+          ~ identical(.x, tasks[[i]])
+        ))
 
         if (!is_still_running) {
           result <- tasks[[i]][]
@@ -404,14 +424,18 @@ split_audio <- function(
             fail_fast_triggered <- TRUE
             break
           }
-          cli::cli_alert_success("Segment {i}/{length(tasks)} processed successfully.")
+          cli::cli_alert_success(
+            "Segment {i}/{length(tasks)} processed successfully."
+          )
           processed_flags[i] <- TRUE
         }
       }
     }
 
     if (fail_fast_triggered) {
-      cli::cli_alert_warning("Halting due to worker error. Checking source file integrity...")
+      cli::cli_alert_warning(
+        "Halting due to worker error. Checking source file integrity..."
+      )
       if (!is_audio_file_sane(audio_file)) {
         cli::cli_abort(
           c(
@@ -435,7 +459,7 @@ split_audio <- function(
     purrr::walk(1:num_segments, \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-      
+
       extract_audio_segment(
         audio_file = audio_file,
         output_file = output_file,
@@ -614,7 +638,9 @@ use_azure_whisper_stt <- function(
       )
     }
 
-    if (is.na(wait_for)) wait_for <- 30
+    if (is.na(wait_for)) {
+      wait_for <- 30
+    }
 
     cli::cli_alert_warning("Retrying in {wait_for} seconds...")
 
@@ -700,10 +726,11 @@ use_openai_whisper_stt <- function(
         initial_prompt = initial_prompt,
         temperature = temperature
       )
-    } else
+    } else {
       cli::cli_abort(
         "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
       )
+    }
   }
 
   # Return the response
@@ -1092,14 +1119,18 @@ use_parakeet_mlx_stt <- function(
       # In non-interactive mode, read from captured files
       stdout_content <- if (
         file.exists(stdout_file_path) && file.size(stdout_file_path) > 0
-      )
-        paste(readLines(stdout_file_path), collapse = "\n") else
+      ) {
+        paste(readLines(stdout_file_path), collapse = "\n")
+      } else {
         "(stdout empty or not found)"
+      }
       stderr_content <- if (
         file.exists(stderr_file_path) && file.size(stderr_file_path) > 0
-      )
-        paste(readLines(stderr_file_path), collapse = "\n") else
+      ) {
+        paste(readLines(stderr_file_path), collapse = "\n")
+      } else {
         "(stderr empty or not found)"
+      }
       error_message <- paste0(
         error_intro,
         "Stdout:\n",
@@ -1129,10 +1160,10 @@ use_parakeet_mlx_stt <- function(
   )
 
   # 7. Transform JSON data to the required R list structure
-  if (is.null(json_data$text) || is.null(json_data$sentences)) {
+  if (is.null(json_data$text) && is.null(json_data$sentences)) {
     error_intro <- paste0(
-      "parakeet-mlx JSON output is missing.",
-      "Expected 'text' or 'sentences' field.",
+      "parakeet-mlx JSON output is missing both ",
+      "'text' and 'sentences' fields.",
       "JSON content structure received (max.level=2):\n",
       paste(
         utils::capture.output(utils::str(json_data, max.level = 2)),

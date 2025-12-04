@@ -83,3 +83,66 @@ test_that("perform_speech_to_text processes files and handles overwrite", {
     expect_equal(model_calls, 2)
   })
 })
+
+test_that("use_parakeet_mlx_stt accepts NULL text when sentences are present", {
+  skip_if_not_installed("jsonlite")
+
+  strip_quotes <- function(x) {
+    gsub("^['\"]|['\"]$", "", x)
+  }
+
+  audio_file <- tempfile(fileext = ".wav")
+  write_dummy_wav(audio_file)
+
+  local_mocked_bindings(
+    Sys.which = function(command) {
+      if (identical(command, "parakeet-mlx")) {
+        return("/fake/parakeet-mlx")
+      }
+      base::Sys.which(command)
+    },
+    system2 = function(command, args, stdout = "", stderr = "", ...) {
+      audio_arg <- strip_quotes(args[1])
+      output_idx <- which(args == "--output-dir")
+      output_dir <- strip_quotes(args[output_idx + 1])
+      output_name <- paste0(
+        tools::file_path_sans_ext(basename(audio_arg)),
+        ".json"
+      )
+      output_path <- file.path(output_dir, output_name)
+
+      jsonlite::write_json(
+        list(
+          text = NULL,
+          sentences = list(
+            list(
+              id = 0,
+              start = 0,
+              end = 1,
+              text = "Segment text"
+            )
+          )
+        ),
+        output_path,
+        auto_unbox = TRUE,
+        null = "null"
+      )
+
+      if (nzchar(stdout)) {
+        file.create(stdout)
+      }
+      if (nzchar(stderr)) {
+        file.create(stderr)
+      }
+
+      0
+    },
+    .package = "base"
+  )
+
+  result <- use_parakeet_mlx_stt(audio_file = audio_file)
+
+  expect_equal(result$text, "")
+  expect_equal(length(result$segments), 1)
+  expect_equal(result$segments[[1]]$text, "Segment text")
+})
