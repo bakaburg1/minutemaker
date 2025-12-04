@@ -1,6 +1,6 @@
 #' Check if transcript segments are silent
 #'
-#' Check if transcript segments are silent, e.g., [...], NA, or empty strings.
+#' Check if transcript segments are silent, e.g., `[...]`, NA, or empty strings.
 #'
 #' @param segments A vector of transcript segments.
 #'
@@ -12,7 +12,7 @@ is_silent <- function(segments) {
 
 #' Generate text for silent segments
 #'
-#' @return The "silent" symbol, i.e., "[...]".
+#' @return The "silent" symbol, i.e., `[...]`.
 silent <- function() {
   "[...]"
 }

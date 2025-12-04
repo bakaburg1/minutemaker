@@ -17,5 +17,5 @@ A data frame containing the cleaned transcript data.
 }
 \description{
 Cleans a transcript by removing isolated text, consecutive segments with the
-same text, and, optionally, silence segments "\link{...}".
+same text, and, optionally, silence segments \verb{[...]}.
 }

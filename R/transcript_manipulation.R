@@ -1,7 +1,7 @@
 #' Clean transcript
 #'
 #' Cleans a transcript by removing isolated text, consecutive segments with the
-#' same text, and, optionally, silence segments "[...]".
+#' same text, and, optionally, silence segments `[...]`.
 #'
 #' @param transcript_data A data frame containing the transcript data.
 #' @param remove_silence A boolean indicating whether silence segments should be
@@ -301,7 +301,7 @@ merge_transcripts <- function(
     cli::cli_inform("Importing diarization...")
 
     transcript_y <- stored_y
-    transcript_x$speaker <- NA
+    transcript_x$speaker <- NA_character_
 
     for (i in seq_len(nrow(transcript_x))) {
       x_text <- transcript_x$text[i]

@@ -7,7 +7,7 @@
 silent()
 }
 \value{
-The "silent" symbol, i.e., "\link{...}".
+The "silent" symbol, i.e., \verb{[...]}.
 }
 \description{
 Generate text for silent segments

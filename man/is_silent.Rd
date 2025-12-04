@@ -13,5 +13,5 @@ is_silent(segments)
 A logical vector indicating if the segment is silent.
 }
 \description{
-Check if transcript segments are silent, e.g., \link{...}, NA, or empty strings.
+Check if transcript segments are silent, e.g., \verb{[...]}, NA, or empty strings.
 }

@@ -961,7 +961,7 @@ test_that("merge_transcripts handles empty transcript_x", {
     start = integer(0),
     end = integer(0),
     text = character(0),
-    speaker = logical(0)
+    speaker = character(0)
   )
   mock_glove_model <- matrix(1, dimnames = list("a", "v1"))
   testthat::local_mocked_bindings(
@@ -1007,7 +1007,7 @@ test_that("merge_transcripts handles empty transcript_x", {
     start = integer(0),
     end = integer(0),
     text = character(0),
-    speaker = logical(0)
+    speaker = character(0)
   )
   testthat::local_mocked_bindings(
     generate_glove_model = function(...) mock_glove_model,
