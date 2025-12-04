@@ -245,7 +245,7 @@ final_transcript <- add_chat_transcript(
   chat_transcript = "path-to-chat-file.txt",
   # Necessary to align the chat messages with the transcript
   # can use both HH::MM AM/PM or HH:MM:SS
-  chat_start_time = "12:00 PM"
+  start_time = "12:00 PM"
 )
 
 # Optionally, you can save the transcript to a file
@@ -593,71 +593,69 @@ used to perform all the steps in one go.
 # are omitted since the defaults are fine but some (e.g. the output paths and
 # the overwrite arguments) are shown for clarity.
 speech_to_summary_workflow(
+  target_dir = work_dir,
+
+  # Arguments for `split_audio`
+  source_audio = file.path(work_dir, "recording.mp3"),
+  split_audio = TRUE,
+  split_audio_duration = 40,
+  stt_audio_dir = file.path(work_dir, "audio_to_transcribe"),
+  overwrite_stt_audio = FALSE,
+
   # Arguments for `perform_speech_to_text`
-  audio_path = "recording_parts",
-
-  stt_intermediate_dir = "transcripts",
-  stt_overwrite_intermediate_files = FALSE,
+  stt_output_dir = file.path(work_dir, "transcription_output_data"),
   stt_model = getOption("minutemaker_stt_model"),
-
   stt_initial_prompt = initial_prompt,
+  stt_language = "en",
+  stt_overwrite_output_files = FALSE,
 
-  # Arguments for LLM-based transcript correction
-  # This step is run after STT and before merging/chat addition
+  # Arguments for LLM-based transcript correction (runs after STT)
   enable_llm_correction = TRUE, # Defaults to TRUE
   # `vocabulary` is also used for `terms` in `apply_llm_correction`
-  # llm_correction_model = getOption("minutemaker_correction_llm_model") # Implicitly used
-  # llm_correction_include_reasoning = getOption("minutemaker_include_llm_reasoning") # Implicitly used
 
-  # Arguments for `merge_transcripts`
-  # Assumes an existing .vtt transcript file in the working directory
-  transcript_to_merge = list.files(pattern = "\\.vtt")[[1]],
-
-  # Arguments for `add_chat_transcript`
-  # Assumes an existing Chat.txt file in the name in the working
-  # directory
-  chat_file = list.files(pattern = "Chat")[[1]],
-  chat_start_time = "09:00 AM", # or e.g. 14:00:00
-
-  transcript_output_file = "transcript.csv",
+  # Arguments for `parse_transcript_json`
+  transcript_file = file.path(work_dir, "transcript.csv"),
+  event_start_time = "09:00 AM",
   overwrite_transcript = FALSE,
 
-  # Arguments for `summarise_full_meeting`
-  # Assumes an existing agenda.R file in the working directory
-  # If an agenda doesn't exist, will ask if the LLM should infer it (see
-  # following arguments)
-  agenda_file = "agenda.R", # Changed from agenda to agenda_file for clarity if path
+  # Arguments for `merge_transcripts`
+  transcript_to_merge = list.files(
+    work_dir,
+    pattern = "\\.(vtt|srt)",
+    full.names = TRUE
+  )[1],
+  import_diarization_on_merge = TRUE,
 
-  # Arguments for `infer_agenda_from_transcript`
+  # Arguments for `add_chat_transcript`
+  chat_file = list.files(work_dir, pattern = "Chat", full.names = TRUE)[1],
+  chat_format = "webex",
+
+  # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
+  use_agenda = "yes", # or "ask"/"no"
+  agenda_file = file.path(work_dir, "agenda.R"),
   expected_agenda = NULL,
-  agenda_generation_window_size = 7200,
-  agenda_generation_output_file = file.path(target_dir, "agenda.R"), # ensure target_dir is defined
+  agenda_generation_window_size = 3600,
   extra_agenda_generation_args = NULL,
-  
-  # Whether to produce a summary for each agenda items (TRUE) or just an overall
-  # summary considering keeping the agenda into account to focus the
-  # summarization (FALSE). By default is TRUE if the agenda exists and is in the
-  # correct format.
-  multipart_summary = TRUE, # Example: explicitly set, or use validate_agenda(dget(agenda_file))
-  
-  summarization_output_file = "event_summary.R",
-  
+
+  # Arguments for the summarization
+  multipart_summary = TRUE,
   event_description = event_description,
   audience = audience,
   vocabulary = vocabulary, # Used for summarization AND LLM correction
-  
-  # you can pass summary_sections, diarization_instructions, or
-  # output_instructions to override the default prompts
-  # Using summary_structure_with_agenda from previous example
-  summary_structure = summary_structure_with_agenda, 
-  diarization_instructions = diarization_instructions,
-  
-  llm_provider = getOption("minutemaker_llm_provider"), # This should be llmR::get_llmr_model_name() or similar
-  
+  consider_diarization = TRUE,
+  summary_structure = summary_structure_with_agenda,
+  extra_diarization_instructions = diarization_instructions,
+  extra_output_instructions = output_instructions,
+  llm_provider = getOption("llmr_llm_provider"),
+  summarization_window_size = 15,
+  summarization_output_length = 1,
+  summarization_method = "simple",
+
+  summarization_output_file = file.path(work_dir, "event_summary.R"),
   overwrite_summary_tree = FALSE,
-  
+
   # Arguments for `format_summary_tree`
-  formatted_output_file = "event_summary.txt", # Renamed from formatted_output
+  formatted_output_file = file.path(work_dir, "event_summary.txt"),
   overwrite_formatted_output = FALSE
 )
 
