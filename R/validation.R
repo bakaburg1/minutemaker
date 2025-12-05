@@ -287,11 +287,7 @@ validate_agenda <- function(
         cli::cli_warn(
           c(
             general_warn,
-            "x" = paste0(
-              "Failed to read the agenda file {.file {agenda}}: ",
-              conditionMessage(cnd),
-              "."
-            )
+            "x" = "Failed to read the agenda file {.file {agenda}}: {.code {conditionMessage(cnd)}}."
           ),
           wrap = TRUE
         )
@@ -302,11 +298,7 @@ validate_agenda <- function(
         cli::cli_warn(
           c(
             general_warn,
-            "x" = paste0(
-              "Failed to read the agenda file '{agenda}': ",
-              conditionMessage(cnd),
-              "."
-            )
+            "x" = "Failed to read the agenda file '{.file {agenda}}': {.code {conditionMessage(cnd)}}."
           ),
           wrap = TRUE
         )
