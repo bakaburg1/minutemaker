@@ -358,8 +358,8 @@ load_serialized_object_or_abort <- function(path, label) {
     warning = function(cnd) {
       cli::cli_abort(
         c(
-          "Failed to read the {label} file '{path}'.",
-          "x" = conditionMessage(cnd)
+          "Failed to read the {label} file {.file {path}}.",
+          "x" = "{.code {conditionMessage(cnd)}}."
         ),
         parent = cnd
       )
@@ -367,8 +367,8 @@ load_serialized_object_or_abort <- function(path, label) {
     error = function(cnd) {
       cli::cli_abort(
         c(
-          "Failed to read the {label} file '{path}'.",
-          "x" = conditionMessage(cnd)
+          "Failed to read the {label} file {.file {path}}.",
+          "x" = "{.code {conditionMessage(cnd)}}."
         ),
         parent = cnd
       )
@@ -421,22 +421,22 @@ check_summary_tree_consistency <- function(summary_tree) {
 
   # Construct the detailed error message for cli_abort
   max_len <- max(length(obs_ids), length(exp_ids))
-  error_details <- purrr::map(seq_len(max_len), \(i) {
+  error_details <- purrr::map_chr(seq_len(max_len), \(i) {
     obs <- if (i <= length(obs_ids)) obs_ids[i] else NA
     exp <- if (i <= length(exp_ids)) exp_ids[i] else NA
 
     if (is.na(obs) || is.na(exp) || !identical(obs, exp)) {
-      c(
-        "!" = cli::format_inline(
-          "ID mismatch at index {i}:
-          {.val {obs}} != {.val {exp}}",
-          .envir = rlang::env(i = i, obs = obs, exp = exp)
+      paste0(
+        "! ",
+        cli::format_inline(
+          "ID mismatch at index {i}: {.val {obs}} != {.val {exp}}"
         )
       )
+    } else {
+      ""
     }
   }) |>
-    purrr::compact() |>
-    unlist()
+    purrr::discard(~ !nzchar(.x))
 
   cli::cli_abort(
     c(
