@@ -19,7 +19,8 @@
 /*.Rcheck/
 
 # RStudio files
-.Rproj.user/
+# Custom files
+.Rdata/
 
 # produced vignettes
 vignettes/*.html
