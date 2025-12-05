@@ -351,6 +351,8 @@ generate_summarisation_prompt <- function(
     args$output_length <- "3"
   }
 
+  args$transcript <- transcript
+
   # Aggregate arguments if length > 1 vectors
   if (length(args$extra_diarization_instructions) > 1) {
     args$extra_diarization_instructions <- paste(
