@@ -95,7 +95,7 @@ generate_glove_model <- function(
     tcm,
     n_iter = iterations,
     convergence_tol = 0.01,
-    n_threads = parallel::detectCores()
+    n_threads = max(1, parallel::detectCores() - 1)
   )
 
   # Obtain the context vectors and add them to the main vectors to get the
@@ -161,13 +161,17 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
 
   # Return NA if the source segment embedding is empty (e.g., it was just one
   # non-informative word, like a salutation)
-  if (length(x_emb) == 0) return(rep(NA, length(y_texts)))
+  if (length(x_emb) == 0) {
+    return(rep(NA, length(y_texts)))
+  }
 
   # Compute cosine similarity with each comparative text
   purrr::map(y_texts, function(y_text) {
     emb <- get_text_embedding(y_text, embedding_matrix)
 
-    if (length(emb) == 0) return(NA)
+    if (length(emb) == 0) {
+      return(NA)
+    }
 
     text2vec::sim2(t(x_emb), t(emb), method = "cosine", norm = "l2") |>
       as.vector()
