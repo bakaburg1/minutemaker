@@ -21,8 +21,8 @@
 #'   instructions and the placeholder for extra custom instructions.
 #' @param audience_template The template for inserting the audience and summary
 #'   focus description.
-#' @param summary_template The template for inserting the summary structure
-#'   instructions.
+#' @param summarisation_template The template for inserting the summary
+#'   structure instructions.
 #' @param summary_structure The default summary structure instructions.
 #' @param output_template The general output instruction template, with
 #'   placeholders for trascript summarisation/summaries' aggregation output
@@ -50,7 +50,7 @@ set_prompts <- function(
   vocabulary_template = NULL,
   diarization_template = NULL,
   audience_template = NULL,
-  summary_template = NULL,
+  summarisation_template = NULL,
   summary_structure = NULL,
   output_template = NULL,
   output_summarisation = NULL,

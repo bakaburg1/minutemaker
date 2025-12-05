@@ -129,6 +129,7 @@ test_that("get_prompts() handles requests for invalid prompt names", {
 # Tests for generate_summarisation_prompt() ---
 
 test_that("generate_summarisation_prompt() works with minimal arguments", {
+  .clear_minutemaker_prompts()
   # Set default prompts
   set_prompts(force = TRUE)
 
