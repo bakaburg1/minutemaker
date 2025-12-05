@@ -454,17 +454,47 @@ check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
     return()
   }
 
+  # Build a detailed mismatch report even when the vectors have different lengths
+  max_len <- max(length(agenda_ids), length(summary_ids))
+  # Prepare detailed mismatch messages across both vectors
+  error_details <- purrr::map_chr(seq_len(max_len), \(i) {
+    agenda_id <- NA_character_
+    summary_id <- NA_character_
+
+    # If the current index exists in agenda_ids, extract it; otherwise, leave as
+    # NA
+    if (i <= length(agenda_ids)) {
+      agenda_id <- agenda_ids[i]
+    }
+
+    # If the current index exists in summary_ids, extract it; otherwise, leave
+    # as NA
+    if (i <= length(summary_ids)) {
+      summary_id <- summary_ids[i]
+    }
+
+    # If either agenda_id or summary_id is missing, or if they are not
+    # identical, report the mismatch with a formatted message. Otherwise, return
+    # an empty string.
+    if (
+      is.na(agenda_id) ||
+        is.na(summary_id) ||
+        !identical(agenda_id, summary_id)
+    ) {
+      cli::format_inline(
+        "ID mismatch at index {i}: {.val {agenda_id}} != {.val {summary_id}}"
+      )
+    } else {
+      ""
+    }
+  }) |>
+    purrr::discard(~ !nzchar(.x))
+
   cli::cli_abort(
     c(
-      "The agenda and summary tree are not consistent: {test}",
-      purrr::map(seq_along(agenda_ids), \(i) {
-        if (agenda_ids[i] != summary_ids[i]) {
-          sprintf('"%s" != "%s"', agenda_ids[i], summary_ids[i])
-        }
-      }) |>
-        purrr::compact() |>
-        unlist() |>
-        paste(collapse = "\n")
+      "The agenda and summary tree are not consistent.",
+      "i" = "Comparison details: {test}",
+      error_details
     )
   )
 }
