@@ -155,8 +155,14 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
     }
 
     # Normalize the document embedding
-    doc_embedding <- doc_embedding /
-      sqrt(sum(doc_embedding^2) / length(doc_embedding))
+    norm2 <- sum(doc_embedding^2)
+
+    # Guard against zero-norm vectors that cannot be normalized
+    if (norm2 == 0) {
+      return(numeric(0))
+    }
+
+    doc_embedding <- doc_embedding / sqrt(norm2 / length(doc_embedding))
 
     return(doc_embedding)
   }
