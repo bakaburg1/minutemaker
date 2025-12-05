@@ -140,6 +140,11 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
     # embedding
     terms <- intersect(tokens, rownames(embedding_matrix))
 
+    # Return empty embedding when no terms have matching vectors
+    if (length(terms) == 0) {
+      return(numeric(0))
+    }
+
     embeddings <- embedding_matrix[terms, ]
 
     # Sum the embeddings if there are multiple terms
