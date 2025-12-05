@@ -18,10 +18,12 @@ cli::cli_alert_info(
 helper_create_test_audio <- function(path, valid = TRUE) {
   if (valid) {
     # Create a valid 2-second silent audio file using ffmpeg
-    system2("ffmpeg", 
-            c("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", 
-              "-t", "2", path), 
-            stdout = FALSE, stderr = FALSE)
+    system2(
+      "ffmpeg",
+      c("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", "-t", "2", path),
+      stdout = FALSE,
+      stderr = FALSE
+    )
   } else {
     # Create a corrupted file by writing text
     writeLines(c("This is not", "an audio file"), path)
@@ -36,28 +38,28 @@ helper_create_test_audio <- function(path, valid = TRUE) {
 test_that("split_audio works sequentially with real audio", {
   skip_if_not_installed("av")
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a valid 2-second audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     # Verify it was created and is valid
     expect_true(file.exists(audio_file))
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # Split into 1-second segments (should create 2 segments)
     split_audio(
       audio_file = audio_file,
-      segment_duration = 1/60, # 1 second in minutes
+      segment_duration = 1 / 60, # 1 second in minutes
       output_folder = "segments",
       parallel = FALSE
     )
-    
+
     # Check results
     segments <- list.files("segments", pattern = "\\.mp3$", full.names = TRUE)
     expect_length(segments, 2)
-    
+
     # Verify segments are valid
     sane_checks <- purrr::map_lgl(segments, is_audio_file_sane)
     expect_true(all(sane_checks))
@@ -67,7 +69,7 @@ test_that("split_audio works sequentially with real audio", {
 test_that("split_audio works in parallel with real audio", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Clean up any stray daemons from previous tests to avoid shell-init noise
     if (mirai::status(.compute = "minutemaker")$daemons > 0) {
@@ -80,29 +82,29 @@ test_that("split_audio works in parallel with real audio", {
         mirai::daemons(0, .compute = "minutemaker")
       }
     })
-    
+
     # Create a valid 2-second audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     # Verify it was created and is valid
     expect_true(file.exists(audio_file))
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # With explicit function passing, parallel processing should now work
     expect_no_error(
       split_audio(
         audio_file = audio_file,
-        segment_duration = 1/60, # 1 second in minutes
-        output_folder = "segments", 
+        segment_duration = 1 / 60, # 1 second in minutes
+        output_folder = "segments",
         parallel = TRUE
       )
     )
-    
+
     # Check that segments were created
     segments <- list.files("segments", pattern = "\\.mp3$", full.names = TRUE)
     expect_length(segments, 2)
-    
+
     # Verify segments are valid
     sane_checks <- purrr::map_lgl(segments, is_audio_file_sane)
     expect_true(all(sane_checks))
@@ -112,21 +114,21 @@ test_that("split_audio works in parallel with real audio", {
 test_that("split_audio handles corrupted source file properly", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a corrupted audio file
     audio_file <- "corrupt.wav"
     helper_create_test_audio(audio_file, valid = FALSE)
-    
+
     # Verify it's corrupted
     expect_true(file.exists(audio_file))
     expect_false(is_audio_file_sane(audio_file))
-    
+
     # Should fail when trying to get media info
     expect_error(
       split_audio(
         audio_file = audio_file,
-        segment_duration = 1/60,
+        segment_duration = 1 / 60,
         output_folder = "segments",
         parallel = TRUE
       ),
@@ -138,9 +140,9 @@ test_that("split_audio handles corrupted source file properly", {
 test_that("parallel processing works with proper worker setup", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
-  # This test demonstrates that parallel processing works when 
+  # This test demonstrates that parallel processing works when
   # the package is properly available to workers
-  
+
   withr::with_tempdir({
     # Set up daemons with package access and ensure cleanup
     withr::defer({
@@ -148,14 +150,14 @@ test_that("parallel processing works with proper worker setup", {
         mirai::daemons(0, .compute = "test_workers")
       }
     })
-    
+
     # Start daemons that have the package loaded
     mirai::daemons(2, .compute = "test_workers")
-    
-    # Create a valid 2-second audio file  
+
+    # Create a valid 2-second audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     # Test that extract_audio_segment works in isolation
     # (this simulates what the parallel version should do)
     expect_no_error({
@@ -167,7 +169,7 @@ test_that("parallel processing works with proper worker setup", {
         verbose = FALSE
       )
     })
-    
+
     # Verify the segment was created and is valid
     expect_true(file.exists(segment_path))
     expect_true(is_audio_file_sane(segment_path))
@@ -226,12 +228,12 @@ test_that("parallel workers receive helper bindings", {
 
 test_that("is_audio_file_sane detects valid audio files", {
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a valid audio file
     audio_file <- "valid.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     expect_true(file.exists(audio_file))
     expect_true(is_audio_file_sane(audio_file))
   })
@@ -239,12 +241,12 @@ test_that("is_audio_file_sane detects valid audio files", {
 
 test_that("is_audio_file_sane detects corrupted audio files", {
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a corrupted file
     corrupt_file <- "corrupt.wav"
     helper_create_test_audio(corrupt_file, valid = FALSE)
-    
+
     expect_true(file.exists(corrupt_file))
     expect_false(is_audio_file_sane(corrupt_file))
   })
@@ -254,20 +256,42 @@ test_that("is_audio_file_sane handles non-existent files", {
   expect_false(is_audio_file_sane("non_existent_file.wav"))
 })
 
+test_that("is_audio_file_sane handles paths with spaces and special chars", {
+  withr::with_tempdir({
+    audio_path <- file.path(getwd(), "path with space$special.wav")
+    writeLines("dummy", audio_path)
+
+    local_mocked_bindings(
+      system2 = function(command, args, stdout = FALSE, stderr = FALSE, ...) {
+        target_idx <- which(args == "-i") + 1L
+        target <- args[target_idx]
+        cmd <- paste("test -f", target)
+        status <- system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+        status
+      },
+      .package = "base"
+    )
+
+    expect_true(is_audio_file_sane(audio_path))
+  })
+})
+
 test_that("extract_audio_segment creates valid segments", {
   skip_if_not_installed("av")
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a valid 6-second audio file (enough for 2 segments of 2 seconds each)
     audio_file <- "test.wav"
-    system2("ffmpeg", 
-            c("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", 
-              "-t", "6", audio_file), 
-            stdout = FALSE, stderr = FALSE)
-    
+    system2(
+      "ffmpeg",
+      c("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", "-t", "6", audio_file),
+      stdout = FALSE,
+      stderr = FALSE
+    )
+
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # Create first segment (0-2 seconds)
     segment_path <- extract_audio_segment(
       audio_file = audio_file,
@@ -276,12 +300,12 @@ test_that("extract_audio_segment creates valid segments", {
       duration = 2,
       verbose = FALSE
     )
-    
+
     # Verify segment was created and is valid
     expect_true(file.exists(segment_path))
     expect_true(is_audio_file_sane(segment_path))
     expect_match(segment_path, "segment_1\\.mp3$")
-    
+
     # Create second segment (2-4 seconds)
     segment_path_2 <- extract_audio_segment(
       audio_file = audio_file,
@@ -290,7 +314,7 @@ test_that("extract_audio_segment creates valid segments", {
       duration = 2,
       verbose = FALSE
     )
-    
+
     # Verify second segment was created and is valid
     expect_true(file.exists(segment_path_2))
     expect_true(is_audio_file_sane(segment_path_2))
@@ -301,14 +325,14 @@ test_that("extract_audio_segment creates valid segments", {
 test_that("extract_audio_segment fails with corrupted source file", {
   skip_if_not_installed("av")
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a corrupted source file
     corrupt_file <- "corrupt.wav"
     helper_create_test_audio(corrupt_file, valid = FALSE)
-    
+
     expect_false(is_audio_file_sane(corrupt_file))
-    
+
     # Should fail when trying to process corrupted source (av throws the error first)
     expect_error(
       extract_audio_segment(
@@ -326,14 +350,14 @@ test_that("extract_audio_segment fails with corrupted source file", {
 test_that("extract_audio_segment retry logic works", {
   skip_if_not_installed("av")
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a valid audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # Mock is_audio_file_sane to fail first attempt, succeed second
     call_count <- 0
     testthat::local_mocked_bindings(
@@ -343,7 +367,7 @@ test_that("extract_audio_segment retry logic works", {
         return(call_count > 1)
       }
     )
-    
+
     # Should succeed after retry (with warning about first attempt)
     expect_warning(
       segment_path <- extract_audio_segment(
@@ -355,7 +379,7 @@ test_that("extract_audio_segment retry logic works", {
       ),
       "Generated segment.*is corrupted.*Attempt .*failed, retrying"
     )
-    
+
     # Should return the path even though our mock validation "failed" first time
     expect_match(segment_path, "segment_1\\.mp3$")
     expect_equal(call_count, 2) # Verify retry happened
@@ -365,19 +389,19 @@ test_that("extract_audio_segment retry logic works", {
 test_that("extract_audio_segment fails after max attempts", {
   skip_if_not_installed("av")
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Create a valid audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # Mock is_audio_file_sane to always fail
     testthat::local_mocked_bindings(
       is_audio_file_sane = function(file) FALSE
     )
-    
+
     # Should fail after 2 attempts
     expect_error(
       extract_audio_segment(
@@ -395,7 +419,7 @@ test_that("extract_audio_segment fails after max attempts", {
 test_that("split_audio parallel mode validates source file when workers fail", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
-  
+
   withr::with_tempdir({
     # Set up mirai daemons and ensure cleanup
     withr::defer({
@@ -403,25 +427,25 @@ test_that("split_audio parallel mode validates source file when workers fail", {
         mirai::daemons(0, .compute = "minutemaker")
       }
     })
-    
+
     # Create a valid audio file
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     expect_true(is_audio_file_sane(audio_file))
-    
+
     # Mock extract_audio_segment to always fail
     testthat::local_mocked_bindings(
       extract_audio_segment = function(...) {
         cli::cli_abort("Simulated worker failure")
       }
     )
-    
+
     # Should check source file and report it's OK when workers fail
     expect_error(
       split_audio(
         audio_file = audio_file,
-        segment_duration = 1/60,
+        segment_duration = 1 / 60,
         output_folder = "segments",
         parallel = TRUE
       ),
@@ -433,19 +457,19 @@ test_that("split_audio parallel mode validates source file when workers fail", {
 test_that("split_audio parallel mode detects corrupted source when workers fail", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
-  
+
   withr::with_tempdir({
-    # Set up mirai daemons and ensure cleanup  
+    # Set up mirai daemons and ensure cleanup
     withr::defer({
       if (mirai::status(.compute = "minutemaker")$daemons > 0) {
         mirai::daemons(0, .compute = "minutemaker")
       }
     })
-    
+
     # Create a valid audio file first
     audio_file <- "test.wav"
     helper_create_test_audio(audio_file, valid = TRUE)
-    
+
     # Simple mocking: make workers fail and source appear corrupted
     testthat::local_mocked_bindings(
       extract_audio_segment = function(...) {
@@ -456,13 +480,13 @@ test_that("split_audio parallel mode detects corrupted source when workers fail"
         FALSE
       }
     )
-    
+
     # Should detect source corruption when workers fail
     expect_error(
       split_audio(
         audio_file = audio_file,
-        segment_duration = 1/60,
-        output_folder = "segments", 
+        segment_duration = 1 / 60,
+        output_folder = "segments",
         parallel = TRUE
       ),
       "The source audio file.*appears to be corrupted"
@@ -536,7 +560,9 @@ test_that("extract_audio_segment succeeds on first try", {
   withr::with_tempdir({
     # Mock dependencies: av conversion always works, file is always sane
     local_mocked_bindings(
-      av_audio_convert = function(input, output, ...) invisible(file.create(output)),
+      av_audio_convert = function(input, output, ...) {
+        invisible(file.create(output))
+      },
       .package = "av"
     )
     local_mocked_bindings(
@@ -546,7 +572,13 @@ test_that("extract_audio_segment succeeds on first try", {
 
     # Expect no errors and the output file to be created
     expect_no_error(
-      extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60, verbose = FALSE)
+      extract_audio_segment(
+        "dummy.mp3",
+        "segment_1.mp3",
+        0,
+        60,
+        verbose = FALSE
+      )
     )
     expect_true(file.exists("segment_1.mp3"))
   })
@@ -558,7 +590,9 @@ test_that("extract_audio_segment retries and succeeds", {
     sane_calls <- 0
     # Mock dependencies: av works, sanity check fails on the first call
     local_mocked_bindings(
-      av_audio_convert = function(input, output, ...) invisible(file.create(output)),
+      av_audio_convert = function(input, output, ...) {
+        invisible(file.create(output))
+      },
       .package = "av"
     )
     local_mocked_bindings(
@@ -587,7 +621,9 @@ test_that("extract_audio_segment fails after max retries", {
   withr::with_tempdir({
     # Mock dependencies: av works, but sanity check ALWAYS fails
     local_mocked_bindings(
-      av_audio_convert = function(input, output, ...) invisible(file.create(output)),
+      av_audio_convert = function(input, output, ...) {
+        invisible(file.create(output))
+      },
       .package = "av"
     )
     local_mocked_bindings(
@@ -597,8 +633,12 @@ test_that("extract_audio_segment fails after max retries", {
 
     # It should throw an error after trying twice, with warnings for each retry
     extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60) |>
-      expect_warning("Generated segment.*is corrupted.*Attempt 1 of 2 failed, retrying") |>
-      expect_warning("Generated segment.*is corrupted.*Attempt 2 of 2 failed\\.") |>
+      expect_warning(
+        "Generated segment.*is corrupted.*Attempt 1 of 2 failed, retrying"
+      ) |>
+      expect_warning(
+        "Generated segment.*is corrupted.*Attempt 2 of 2 failed\\."
+      ) |>
       expect_error("Failed to create a valid segment")
   })
 })
@@ -632,7 +672,9 @@ test_that("split_audio parallel mode fail-fast works as expected", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
-    cli::cli_alert_info("Expect worker failure messages below; this test simulates a crash.")
+    cli::cli_alert_info(
+      "Expect worker failure messages below; this test simulates a crash."
+    )
 
     local_mocked_bindings(
       av_media_info = function(...) list(duration = 120),
@@ -660,13 +702,16 @@ test_that("split_audio parallel mode fail-fast works as expected", {
       },
       unresolved = function(...) list(),
       is_error_value = function(x) isTRUE(x$error),
-      `[.mirai` = function(x, ...) if(isTRUE(x$error)) x else x$result,
+      `[.mirai` = function(x, ...) if (isTRUE(x$error)) x else x$result,
       .package = "mirai"
     )
 
     # Ensure a cli alert is emitted, then the expected error surfaces.
     expect_condition(
-      try(split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE), silent = TRUE),
+      try(
+        split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE),
+        silent = TRUE
+      ),
       class = "cli_message"
     )
     expect_error(
@@ -680,7 +725,9 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
-    cli::cli_alert_info("Expect worker failure messages below; this test simulates a crash with corrupted source.")
+    cli::cli_alert_info(
+      "Expect worker failure messages below; this test simulates a crash with corrupted source."
+    )
 
     local_mocked_bindings(
       av_media_info = function(...) list(duration = 120),
@@ -708,17 +755,71 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
       },
       unresolved = function(...) list(),
       is_error_value = function(x) isTRUE(x$error),
-      `[.mirai` = function(x, ...) if(isTRUE(x$error)) x else x$result,
+      `[.mirai` = function(x, ...) if (isTRUE(x$error)) x else x$result,
       .package = "mirai"
     )
 
     expect_condition(
-      try(split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE), silent = TRUE),
+      try(
+        split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE),
+        silent = TRUE
+      ),
       class = "cli_message"
     )
     expect_error(
       split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE),
       "source audio file.*corrupted"
     )
+  })
+})
+
+test_that("split_audio marks processed flags after timeout fallback", {
+  skip_if_not_installed(c("av", "mirai"))
+  skip_on_cran()
+
+  withr::with_tempdir({
+    # Force a very short timeout so the loop falls back to sequential processing
+    withr::local_options(minutemaker_split_audio_parallel_timeout = 0.01)
+
+    # Keep mirai tasks unresolved so timeout triggers
+    local_mocked_bindings(
+      status = function(...) list(daemons = 0),
+      daemons = function(...) invisible(NULL),
+      mirai = function(expr, ...) structure(list(...), class = "mirai"),
+      unresolved = function(tasks) rep(TRUE, length(tasks)),
+      is_error_value = function(...) FALSE,
+      .package = "mirai"
+    )
+    # Avoid real audio work; just track calls
+    local_mocked_bindings(
+      av_media_info = function(...) list(duration = 120),
+      .package = "av"
+    )
+    calls <- 0
+    local_mocked_bindings(
+      extract_audio_segment = function(...) {
+        calls <<- calls + 1
+      },
+      .package = "minutemaker"
+    )
+
+    traced <- new.env(parent = emptyenv())
+    trace(
+      what = "split_audio",
+      exit = function() {
+        traced$processed <<- get0(
+          "processed_flags",
+          envir = parent.frame(),
+          inherits = FALSE
+        )
+      },
+      print = FALSE
+    )
+    withr::defer(untrace("split_audio"))
+
+    split_audio("dummy.wav", segment_duration = 1, parallel = TRUE)
+
+    expect_equal(calls, 2)
+    expect_equal(traced$processed, rep(TRUE, 2))
   })
 })

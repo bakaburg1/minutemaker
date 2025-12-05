@@ -220,16 +220,23 @@ split_audio <- function(
       still_running <- mirai::unresolved(tasks)
       # Some mirai versions may return a single logical for the whole vector;
       # expand it to align with tasks so we don't wait forever.
-      if (is.logical(still_running) && length(still_running) == 1L && length(tasks) > 1) {
+      if (
+        is.logical(still_running) &&
+          length(still_running) == 1L &&
+          length(tasks) > 1
+      ) {
         still_running <- rep(still_running, length(tasks))
       }
 
       # Bail out if tasks take too long to finish to avoid hanging indefinitely
-      if (as.numeric(difftime(
-        Sys.time(),
-        parallel_start_time,
-        units = "secs"
-      )) > max_parallel_wait) {
+      if (
+        as.numeric(difftime(
+          Sys.time(),
+          parallel_start_time,
+          units = "secs"
+        )) >
+          max_parallel_wait
+      ) {
         mirai::daemons(0, .compute = "minutemaker")
         cli::cli_alert_warning(
           c(
@@ -240,7 +247,7 @@ split_audio <- function(
         )
 
         pending_idxs <- which(!processed_flags)
-        purrr::walk(pending_idxs, \(i) {
+        for (i in pending_idxs) {
           start_time <- (i - 1) * segment_length_sec
           output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
           extract_audio_segment(
@@ -250,7 +257,7 @@ split_audio <- function(
             duration = segment_length_sec
           )
           processed_flags[i] <- TRUE
-        })
+        }
 
         fallback_used <- TRUE
         break
@@ -267,9 +274,16 @@ split_audio <- function(
         # versions), so handle both.
         task_unresolved <- TRUE
         if (is.logical(still_running)) {
-          task_unresolved <- if (length(still_running) >= i) still_running[i] else TRUE
+          task_unresolved <- if (length(still_running) >= i) {
+            still_running[i]
+          } else {
+            TRUE
+          }
         } else if (is.list(still_running)) {
-          task_unresolved <- any(purrr::map_lgl(still_running, ~ identical(.x, tasks[[i]])))
+          task_unresolved <- any(purrr::map_lgl(
+            still_running,
+            ~ identical(.x, tasks[[i]])
+          ))
         }
 
         if (isTRUE(task_unresolved)) {
@@ -294,7 +308,7 @@ split_audio <- function(
     }
 
     if (fail_fast_triggered) {
-      cli::cli_alert_warning(
+      cli::cli_alert_danger(
         "Halting due to worker error. Checking source file integrity..."
       )
       if (!is_audio_file_sane(audio_file)) {
