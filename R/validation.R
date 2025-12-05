@@ -453,7 +453,7 @@ check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
     c(
       "The agenda and summary tree are not consistent: {test}",
       purrr::map(seq_along(agenda_ids), \(i) {
-        if (!agenda_ids[i] %in% summary_ids[i]) {
+        if (agenda_ids[i] != summary_ids[i]) {
           sprintf('"%s" != "%s"', agenda_ids[i], summary_ids[i])
         }
       }) |>

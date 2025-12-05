@@ -1,8 +1,13 @@
 # Helper functions ---
 normalize_for_comparison <- function(text) {
-  if (is.null(text) || text == "") {
+  # Be robust to NULL, character(0), or multi-line vectors.
+  if (is.null(text) || length(text) == 0L) {
     return("")
-  } # Handle NULL or empty input
+  }
+  text <- paste(text, collapse = "\n")
+  if (identical(text, "")) {
+    return("")
+  }
   lines <- strsplit(text, "\n")[[1]]
   trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
   collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
@@ -131,25 +136,25 @@ test_that("format_agenda handles items with many NULL or empty fields gracefully
   # are printed. Also assuming no trailing semicolon on the last line of this
   # item block. And assuming str_flatten_comma(c(NA,"")) becomes "NA" not "NA,"
   # for the value part.
-  expected_item2_regex <- "Session: S2;\n    Description: NA;\n    Speakers: Speaker A;\n    Moderators: NA;\n    Time: 11:00 - 11:30"
+  expected_item2 <- "Session: S2;\n    Description: NA;\n    Speakers: Speaker A;\n    Moderators: NA;\n    Time: 11:00 - 11:30"
 
   # Use the same robust normalization - defined globally now
   normalized_formatted_text <- normalize_for_comparison(formatted_text)
   normalized_expected_item1 <- normalize_for_comparison(expected_item1)
-  normalized_expected_item2_regex <- normalize_for_comparison(
-    expected_item2_regex
+  normalized_expected_item2 <- normalize_for_comparison(
+    expected_item2
   )
 
   expect_match(
     normalized_formatted_text,
     normalized_expected_item1,
     fixed = TRUE
-  ) # This is line 145
+  )
   expect_match(
     normalized_formatted_text,
-    normalized_expected_item2_regex,
+    normalized_expected_item2,
     fixed = TRUE
-  ) # This is line 150 (approx)
+  )
 
   # Split the output to check individual items more easily
   agenda_parts <- strsplit(
@@ -590,9 +595,8 @@ test_that("format_summary_tree handles empty inputs and consistency checks", {
   )
 
   # Case 3: Both summary_tree and agenda are empty.
-  # check_agenda_summary_tree_consistency should pass.
-  # build_ids_from_agenda(list()) is character(0). Loop in format_summary_tree
-  # won't run. Output should be "".
+  # Validation should error because the summary tree cannot be validated.
+  # Expect "The summary tree is empty and cannot be validated".
   expect_error(
     format_summary_tree(list(), list(), event_start_time = "09:00"),
     regexp = "The summary tree is empty and cannot be validated"
