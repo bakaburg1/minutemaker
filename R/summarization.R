@@ -159,7 +159,7 @@ summarise_transcript <- function(
         is.list(transcript_data))
   ) {
     cli::cli_abort(
-      "`transcript_data` must be a character vector or a data frame."
+      "`transcript_data` must be a character vector or a data frame, or list of those objects."
     )
   }
 
@@ -172,8 +172,6 @@ summarise_transcript <- function(
   }
 
   method <- match.arg(method)
-
-  args <- as.list(environment())
 
   # Set the default prompts if not already set
   set_prompts()
@@ -268,6 +266,8 @@ summarise_transcript <- function(
       method <- "simple"
     }
   }
+
+  args <- as.list(environment())
 
   # Enclose single transcript data frames in a list
   if (is.data.frame(transcript_data)) {
@@ -1134,11 +1134,11 @@ entity_extractor <- function(
 
   acro_or_concepts <- entities[entities %in% c("acronyms", "concepts")]
 
-  task <- paste(
+  task <- paste0(
     "You will be passed one or more text documents. For each document, you ",
     "should extract the following entities from the text:\n\n",
     sprintf("-`%s`;", entities) |> paste(collapse = "\n"),
-    "Here is the text from which you should extract the entities:\n\n####\n\n",
+    "\nHere is the text from which you should extract the entities:\n\n####\n\n",
     text,
     "\n\n####\n\n",
     "You should return a JSON object of the entities found in the text, with each ",
@@ -1148,30 +1148,32 @@ entity_extractor <- function(
     "and the corresponding lists of entities as values.\n\n",
     if (length(acro_or_concepts) > 0) {
       paste0(
-        "If you find",
+        "If you find ",
         paste(acro_or_concepts, collapse = " or "),
-        "they should be returned list of strings, with each element ",
-        "formatted as 'entity: definition'",
+        ", they should be returned as a list of strings, with each element ",
+        "formatted as 'entity: definition', ",
         "trying to infer the definition from the context. ",
-        "If you are not 100% sure, or it's self explanatory, just list the concepts",
+        "If you are not 100% sure, or it's self-explanatory, just list the concepts ",
         "as strings.\n\n"
       )
+    } else {
+      ""
     },
     "Here is an example of the expected output:\n\n",
     '```json
- {
-   "people": ["John Doe", "Jane Smith"],
-   "organizations": ["Acme Corp"],
-   "acronyms": [
-     "LLM: Large Language Model",
-     "NLP: Natural Language Processing"
-   ],
-   "concepts": [
-     "Arxiv: Open access repository of scientific articles",
-     "Escherichia coli"
-   ]
- }
- ```',
+{
+  "people": ["John Doe", "Jane Smith"],
+  "organizations": ["Acme Corp"],
+  "acronyms": [
+    "LLM: Large Language Model",
+    "NLP: Natural Language Processing"
+  ],
+  "concepts": [
+    "Arxiv: Open access repository of scientific articles",
+    "Escherichia coli"
+  ]
+}
+```',
     "\n\n####\n\nProvide your JSON output below."
   )
 

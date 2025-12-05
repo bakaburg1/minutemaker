@@ -343,7 +343,8 @@ apply_llm_correction <- function(
 #' @param include_reasoning Logical, if TRUE, requests and messages LLM
 #'   reasoning.
 #' @param llm_extra_params A list of additional parameters for the LLM call,
-#'   merged with defaults (e.g., temperature = 0).
+#'   merged with defaults (e.g., temperature = 0 for standard models, or
+#'   reasoning_effort for reasoning models).
 #'
 #' @return A list containing:
 #' - `corrected_text`: Character vector, the input text with corrections
@@ -582,15 +583,21 @@ Apply these rules to your JSON output if corrections are made:
 
   messages_payload <- c(system = system_prompt, user = full_text_for_llm)
 
-  # Default LLM parameters; temperature = 0 for deterministic output.
-  base_llm_params <- list(
-    # OpenAi reasoning models do not accept temperature parameter different from
-    # 1. To review once migrated to ellmer.
-    temperature = if (include_reasoning) 0 else 1
-  )
+  # Default LLM parameters. Reasoning models do not accept temperature, so use
+  # reasoning_effort there and keep temperature only for non-reasoning calls.
+  base_llm_params <- if (include_reasoning) {
+    list(reasoning_effort = "medium")
+  } else {
+    list(temperature = 0)
+  }
 
   # Allow user-provided parameters to override defaults
   final_llm_params <- purrr::list_modify(base_llm_params, !!!llm_extra_params)
+
+  # Guard against passing temperature to reasoning models.
+  if (include_reasoning && "temperature" %in% names(final_llm_params)) {
+    final_llm_params <- final_llm_params[setdiff(names(final_llm_params), "temperature")]
+  }
 
   llm_response_str <- NULL
 
