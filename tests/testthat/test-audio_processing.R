@@ -594,6 +594,7 @@ test_that("split_audio logs mirai errors with conditionMessage", {
     write_dummy_wav("dummy.wav")
 
     condition_called <- FALSE
+    # Register temporary S3 methods to exercise conditionMessage dispatch.
     assign(
       "conditionMessage.fake_mirai_error",
       function(c) {
@@ -931,6 +932,7 @@ test_that("split_audio marks processed flags after timeout fallback", {
     )
 
     traced <- new.env(parent = emptyenv())
+    # Use trace() to observe processed_flags without changing the public API.
     trace(
       what = "split_audio",
       exit = function() {
