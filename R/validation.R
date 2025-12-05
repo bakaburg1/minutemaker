@@ -72,7 +72,6 @@ validate_agenda_element <- function(
   if (isTRUE(from) || isTRUE(to)) {
     for (field_name in c("from", "to")) {
       if (isTRUE(args[[field_name]])) {
-        # Check if the field (e.g., args$from) is required
         current_time_val <- agenda_element[[field_name]]
 
         if (is.null(current_time_val)) {
@@ -252,7 +251,7 @@ validate_agenda <- function(
     return(FALSE)
   }
 
-  if (!class(agenda) %in% c("list", "character")) {
+  if (!(inherits(agenda, "list") || is.character(agenda))) {
     cli::cli_warn(
       c(
         general_warn,
@@ -339,12 +338,18 @@ check_summary_tree_consistency <- function(summary_tree) {
   }
 
   # Construct the detailed error message for cli_abort
-  error_details <- purrr::map(seq_along(obs_ids), \(i) {
-    if (obs_ids[i] != exp_ids[i]) {
-      # Use cli's formatting for key-value pairs
+  max_len <- max(length(obs_ids), length(exp_ids))
+  error_details <- purrr::map(seq_len(max_len), \(i) {
+    obs <- if (i <= length(obs_ids)) obs_ids[i] else NA
+    exp <- if (i <= length(exp_ids)) exp_ids[i] else NA
+
+    if (is.na(obs) || is.na(exp) || !identical(obs, exp)) {
       c(
-        "!" = "ID mismatch at index {i}:
-        {.val {obs_ids[i]}} != {.val {exp_ids[i]}}"
+        "!" = cli::format_inline(
+          "ID mismatch at index {i}:
+          {.val {obs}} != {.val {exp}}",
+          .envir = rlang::env(i = i, obs = obs, exp = exp)
+        )
       )
     }
   }) |>

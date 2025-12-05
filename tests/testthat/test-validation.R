@@ -1,3 +1,17 @@
+# Tests for check_summary_tree_consistency() ---
+
+test_that("reports mismatching ids for nameless summary tree", {
+  summary_tree <- list(
+    list(title = NULL, summary = "First summary"),
+    list(title = NULL, summary = "Second summary")
+  )
+
+  expect_error(
+    check_summary_tree_consistency(summary_tree),
+    "ID mismatch at index 1",
+    fixed = TRUE
+  )
+})
 test_that("validate_agenda_element handles empty agenda element", {
   {
     # from = TRUE to trigger deeper checks if not empty
@@ -235,6 +249,23 @@ test_that("validate_agenda handles incorrect agenda input types", {
       fixed = TRUE
     )
   expect_false(res_df)
+
+  # Multi-class input
+  multi_class_agenda <- structure(
+    list(element = "value"),
+    class = c("foo", "bar")
+  )
+  {
+    res_multi <- validate_agenda(multi_class_agenda)
+  } |>
+    expect_warning(
+      regexp = paste(
+        "The agenda must be a list or a file path, but it's class",
+        "<foo/bar>."
+      ),
+      fixed = TRUE
+    )
+  expect_false(res_multi)
 })
 
 test_that("validate_agenda handles list with invalid elements", {
@@ -314,7 +345,7 @@ test_that("validate_agenda handles file path inputs correctly", {
   )
   valid_file_path <- create_dget_file(
     valid_agenda_for_file,
-    "valid_agenda.RData"
+    "valid_agenda.txt"
   )
   expect_no_warning(
     result_valid_file <- validate_agenda(
@@ -333,7 +364,7 @@ test_that("validate_agenda handles file path inputs correctly", {
   )
   invalid_file_path <- create_dget_file(
     invalid_agenda_for_file,
-    "invalid_agenda.RData"
+    "invalid_agenda.txt"
   )
 
   {
@@ -351,7 +382,7 @@ test_that("validate_agenda handles file path inputs correctly", {
   not_a_list_content <- 123
   not_list_file_path <- create_dget_file(
     not_a_list_content,
-    "not_list_agenda.RData"
+    "not_list_agenda.txt"
   )
   {
     res_not_list <- validate_agenda(not_list_file_path)
