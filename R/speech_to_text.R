@@ -94,7 +94,7 @@ perform_speech_to_text <- function(
 
     # Generate the output file name by replacing the extension with .json
     output_file_name <- basename(current_file) |>
-      stringr::str_remove("\\.(mp\\d|wav)$") |>
+      stringr::str_remove("\\.(m\\da|mp\\d|wav)$") |>
       paste0(".json")
     output_file_name <- file.path(output_dir, output_file_name)
 
@@ -802,12 +802,8 @@ use_parakeet_mlx_stt <- function(
   )
 
   # 3. Construct command arguments
-  # shQuote is important for paths that might contain spaces
-  quoted_audio_file <- shQuote(audio_file)
-  quoted_output_dir <- shQuote(temp_output_dir)
-
   args <- c(
-    quoted_audio_file,
+    audio_file,
     "--model",
     hf_model_name,
     "--output-format",
@@ -815,7 +811,7 @@ use_parakeet_mlx_stt <- function(
     "--chunk-duration",
     "0", # As per user request to disable internal chunking
     "--output-dir",
-    quoted_output_dir
+    temp_output_dir
     # Add "--verbose", "False" if CLI is too chatty, or make it an option
   )
 
