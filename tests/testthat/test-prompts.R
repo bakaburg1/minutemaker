@@ -162,29 +162,26 @@ test_that("generate_summarisation_prompt() works with minimal arguments", {
   expect_match(prompt, get_prompts("output_summarisation")[1], fixed = TRUE)
 })
 
-test_that(
-  "generate_summarisation_prompt() adds transcript when missing from args",
-  {
-    set_prompts(force = TRUE)
-    transcript_text <- "Transcript provided only as argument."
-    args <- list(
-      event_description = NULL,
-      recording_details = NULL,
-      vocabulary = NULL,
-      summary_structure = NULL,
-      consider_diarization = FALSE,
-      audience = NULL,
-      extra_output_instructions = NULL,
-      output_length = "1"
-    )
+test_that("generate_summarisation_prompt() adds transcript when missing from args", {
+  set_prompts(force = TRUE)
+  transcript_text <- "Transcript provided only as argument."
+  args <- list(
+    event_description = NULL,
+    recording_details = NULL,
+    vocabulary = NULL,
+    summary_structure = NULL,
+    consider_diarization = FALSE,
+    audience = NULL,
+    extra_output_instructions = NULL,
+    output_length = "1"
+  )
 
-    prompt <- generate_summarisation_prompt(transcript_text, args)
+  prompt <- generate_summarisation_prompt(transcript_text, args)
 
-    expect_match(prompt, transcript_text, fixed = TRUE)
-    expect_type(prompt, "character")
-    expect_length(prompt, 1)
-  }
-)
+  expect_match(prompt, transcript_text, fixed = TRUE)
+  expect_type(prompt, "character")
+  expect_length(prompt, 1)
+})
 
 test_that("generate_summarisation_prompt() includes all optional sections", {
   set_prompts(force = TRUE)
