@@ -25,9 +25,6 @@ format_summary_tree <- function(
   event_start_time = getOption("minutemaker_event_start_time"),
   output_file = NULL
 ) {
-  # Check the consistency of the summary tree and the agenda
-  check_agenda_summary_tree_consistency(agenda, summary_tree)
-
   # If summary_tree is a file path, load the data from the file
   if (is.character(summary_tree) && file.exists(summary_tree)) {
     summary_tree <- dget(summary_tree)
@@ -37,6 +34,9 @@ format_summary_tree <- function(
   if (is.character(agenda)) {
     agenda <- dget(agenda)
   }
+
+  # Check the consistency of the summary tree and the agenda
+  check_agenda_summary_tree_consistency(agenda, summary_tree)
 
   # Initialize the output string
   output <- ""
@@ -148,7 +148,7 @@ format_agenda <- function(
 
   # Generate a text version of the summary, with session, title, speakers,
   # moderators and summary, if not NULL/empty
-  purrr::map_chr(
+  output <- purrr::map_chr(
     agenda,
     ~ {
       .x$speakers <- stringr::str_flatten_comma(.x$speakers)
@@ -171,4 +171,6 @@ format_agenda <- function(
     }
   ) |>
     paste(collapse = "\n\n####################\n\n")
+
+  invisible(output)
 }

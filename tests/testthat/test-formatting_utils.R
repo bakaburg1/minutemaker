@@ -1,6 +1,8 @@
 # Helper functions ---
 normalize_for_comparison <- function(text) {
-  if (is.null(text) || text == "") return("") # Handle NULL or empty input
+  if (is.null(text) || text == "") {
+    return("")
+  } # Handle NULL or empty input
   lines <- strsplit(text, "\n")[[1]]
   trimmed_lines <- gsub("^[[:space:]]+|[[:space:]]+$", "", lines)
   collapsed_lines <- gsub("[[:space:]]{2,}", " ", trimmed_lines)
@@ -205,7 +207,7 @@ test_that("format_agenda handles file path input for agenda", {
       speakers = "Temp Speaker"
     )
   )
-  temp_file <- tempfile(fileext = ".RData")
+  temp_file <- tempfile(fileext = ".R")
   dput(temp_agenda_list, file = temp_file)
 
   on.exit(unlink(temp_file), add = TRUE)
@@ -349,8 +351,11 @@ test_that("format_summary_tree correctly formats a basic summary tree and agenda
   beta_part_actual <- parts[2]
 
   normalized_alpha_actual <- normalize_for_comparison(alpha_part_actual)
-  normalized_beta_actual <- if (!is.na(beta_part_actual))
-    normalize_for_comparison(beta_part_actual) else NA_character_
+  normalized_beta_actual <- if (!is.na(beta_part_actual)) {
+    normalize_for_comparison(beta_part_actual)
+  } else {
+    NA_character_
+  }
 
   expect_no_match(normalized_alpha_actual, "Moderators:", fixed = TRUE)
   if (!is.na(normalized_beta_actual)) {
@@ -372,8 +377,8 @@ test_that("format_summary_tree handles file path inputs", {
     `S_FILE_File Talk` = list(summary = "Summary from file.")
   )
 
-  temp_agenda_file <- tempfile(fileext = ".RData")
-  temp_summary_file <- tempfile(fileext = ".RData")
+  temp_agenda_file <- tempfile(fileext = ".R")
+  temp_summary_file <- tempfile(fileext = ".R")
   dput(temp_agenda_list, file = temp_agenda_file)
   dput(temp_summary_tree, file = temp_summary_file)
 
@@ -694,15 +699,15 @@ test_that("format_agenda and format_summary_tree use correct convert_to value", 
       speakers = "Speaker A"
     )
   )
-  
+
   formatted <- format_agenda(
     agenda_numeric,
     event_start_time = "09:00"
   )
-  
+
   # Should convert 0s -> 09:00, 3600s -> 10:00 (with %R format)
   expect_match(formatted, "Time: 09:00 - 10:00", fixed = TRUE)
-  
+
   # Test format_summary_tree with numeric times
   # Note: build_ids_from_agenda creates IDs like "S1_Test Talk" (with underscore)
   agenda_for_tree <- list(
@@ -714,7 +719,7 @@ test_that("format_agenda and format_summary_tree use correct convert_to value", 
       speakers = "Speaker A"
     )
   )
-  
+
   summary_tree <- list(
     `S1_Test Talk` = list(
       session = "S1",
@@ -722,13 +727,13 @@ test_that("format_agenda and format_summary_tree use correct convert_to value", 
       summary = "Test summary"
     )
   )
-  
+
   formatted_tree <- format_summary_tree(
     summary_tree,
     agenda_for_tree,
     event_start_time = "09:00"
   )
-  
+
   # Should also convert times correctly
   expect_match(formatted_tree, "Time: 09:00 - 10:00", fixed = TRUE)
 })
