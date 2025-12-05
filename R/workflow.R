@@ -253,7 +253,7 @@ speech_to_summary_workflow <- function(
     }
   } else {
     cli::cli_alert(
-      "Loading existing splitted audio files from
+      "Loading existing split audio files from
       {.path {basename(stt_audio_dir)}}..." |>
         stringr::str_squish()
     )
