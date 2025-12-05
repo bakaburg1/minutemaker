@@ -781,6 +781,13 @@ use_parakeet_mlx_stt <- function(
       stderr = TRUE
     )
 
+    # Surface installation output during interactive runs for easier debugging
+    if (interactive()) {
+      cli::cli_alert_info(
+        paste("Installation output:", paste(install_status, collapse = "\n"))
+      )
+    }
+
     # Check if installation was successful
     cli_path <- Sys.which("parakeet-mlx")
     if (cli_path == "") {
