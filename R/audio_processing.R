@@ -165,7 +165,15 @@ split_audio <- function(
         .compute = "minutemaker"
       )
       started_daemons <- TRUE
-      on.exit(mirai::daemons(0, .compute = "minutemaker"), add = TRUE)
+      # Ensure cleanup only shuts down daemons started by this invocation
+      on.exit(
+        {
+          if (isTRUE(started_daemons)) {
+            mirai::daemons(0, .compute = "minutemaker")
+          }
+        },
+        add = TRUE
+      )
     } else {
       cli::cli_alert_info(
         "Using {mirai::status(.compute = 'minutemaker')$daemons} existing minutemaker daemons."
@@ -243,6 +251,7 @@ split_audio <- function(
       ) {
         if (started_daemons) {
           mirai::daemons(0, .compute = "minutemaker")
+          started_daemons <- FALSE
         } else {
           cli::cli_alert_info(
             "Skipping shutdown of pre-existing mirai daemons after timeout."
