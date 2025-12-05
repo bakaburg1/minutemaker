@@ -422,19 +422,25 @@ test_that("validate_agenda handles file path inputs correctly", {
     )
   expect_false(res_not_list)
 
-  # Case 4: Non-existent file path validate_agenda uses file.exists(), so this
-  # won't try to dget. It will treat it as a character string that isn't a list,
-  # then fail. Or rather, it will not attempt to dget it and then the later
-  # `is.list(agenda)` check will fail because agenda is still the character
-  # path. The check `!class(agenda) %in% c("list", "character")` handles initial
-  # bad types. If it's character but not a file, it passes that. Then `dget` is
-  # not called. Then `if (!is.list(agenda))` fails. This matches the existing
-  # structure.
+  empty_agenda_file <- create_dget_file(
+    list(),
+    "empty_agenda.txt"
+  )
+  {
+    res_empty_file <- validate_agenda(empty_agenda_file)
+  } |>
+    expect_warning(
+      regexp = "The loaded agenda is empty.",
+      fixed = TRUE
+    )
+  expect_false(res_empty_file)
+
+  # Case 4: Non-existent file path should warn clearly and return FALSE
   {
     res_no_file <- validate_agenda("non_existent_file.RData")
   } |>
     expect_warning(
-      regexp = "the agenda is not a list, it's class <character>.",
+      regexp = "The agenda file path does not exist.",
       fixed = TRUE
     )
   expect_false(res_no_file)
@@ -457,6 +463,7 @@ test_that("validate_agenda handles file path inputs correctly", {
     valid_file_path,
     invalid_file_path,
     not_list_file_path,
+    empty_agenda_file,
     malformed_file_path
   ))
 })

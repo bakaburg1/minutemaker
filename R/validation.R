@@ -269,7 +269,18 @@ validate_agenda <- function(
   }
 
   # Check if the agenda is a file path
-  if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)) {
+  if (!purrr::is_empty(agenda) && is.character(agenda)) {
+    if (!file.exists(agenda)) {
+      cli::cli_warn(
+        c(
+          general_warn,
+          "x" = "The agenda file path does not exist."
+        )
+      )
+
+      return(FALSE)
+    }
+
     agenda_from_file <- tryCatch(
       dget(agenda),
       warning = function(cnd) {
@@ -305,6 +316,17 @@ validate_agenda <- function(
     )
 
     if (is.null(agenda_from_file)) {
+      return(FALSE)
+    }
+
+    if (purrr::is_empty(agenda_from_file)) {
+      cli::cli_warn(
+        c(
+          general_warn,
+          "x" = "The loaded agenda is empty."
+        )
+      )
+
       return(FALSE)
     }
 
