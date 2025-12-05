@@ -431,6 +431,8 @@ use_azure_whisper_stt <- function(
 #'   1. Defaults to 0.
 #' @param api_key The OpenAI API key. If not provided, it will be retrieved from
 #'   the global options.
+#' @param max_retries Maximum number of retries for temporary errors.
+#' @param .retry_count Internal counter for tracking retry attempts.
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
@@ -439,7 +441,9 @@ use_openai_whisper_stt <- function(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  api_key = getOption("minutemaker_openai_api_key")
+  api_key = getOption("minutemaker_openai_api_key"),
+  max_retries = 3,
+  .retry_count = 0
 ) {
   if (is.null(api_key)) {
     cli::cli_abort("OpenAI API key is not set.")
@@ -466,26 +470,35 @@ use_openai_whisper_stt <- function(
   # Make the HTTP request
   response <- httr::POST(url, headers, body = body)
 
-  # Check response status
+  response_text <- httr::content(response, "text")
+
   if (response$status_code != 200) {
     cli::cli_warn(
-      "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
+      "Error in OpenAI Whisper API request: {response_text}"
     )
     if (
       response$status_code == 429 ||
-        grepl("temporarily unable to process", httr::content(response, "text"))
+        grepl("temporarily unable to process", response_text)
     ) {
+      if (.retry_count >= max_retries) {
+        cli::cli_abort(
+          "Max retries reached for OpenAI Whisper API request: {response_text}"
+        )
+      }
       cli::cli_alert_warning("Retrying in 30 seconds...")
       Sys.sleep(30)
       return(use_openai_whisper_stt(
         audio_file = audio_file,
         language = language,
         initial_prompt = initial_prompt,
-        temperature = temperature
+        temperature = temperature,
+        api_key = api_key,
+        max_retries = max_retries,
+        .retry_count = .retry_count + 1
       ))
     } else {
       cli::cli_abort(
-        "Error in OpenAI Whisper API request: {httr::content(response, 'text')}"
+        "Error in OpenAI Whisper API request: {response_text}"
       )
     }
   }

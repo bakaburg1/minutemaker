@@ -52,18 +52,18 @@ test_that("perform_speech_to_text handles invalid paths and empty dirs", {
 test_that("perform_speech_to_text processes files and handles overwrite", {
   skip_if_not_installed("jsonlite")
   dummy_json <- list(text = "test", segments = list())
-    model_calls <- 0
+  model_calls <- 0
 
   # Mock the STT model to track calls and return dummy data
-    local_mocked_bindings(
+  local_mocked_bindings(
     use_whisper_local_stt = function(...) {
-        model_calls <<- model_calls + 1
-        dummy_json
-      },
+      model_calls <<- model_calls + 1
+      dummy_json
+    },
     # Mock the final parsing step
     parse_transcript_json = function(...) "parsed",
-      .package = "minutemaker"
-    )
+    .package = "minutemaker"
+  )
 
   withr::with_tempdir({
     # Create a dummy audio file
@@ -75,11 +75,19 @@ test_that("perform_speech_to_text processes files and handles overwrite", {
     expect_true(file.exists("transcription_output_data/test.json"))
 
     # Second run with overwrite=FALSE should NOT call the model
-    perform_speech_to_text("test.wav", model = "whisper_local", overwrite = FALSE)
+    perform_speech_to_text(
+      "test.wav",
+      model = "whisper_local",
+      overwrite = FALSE
+    )
     expect_equal(model_calls, 1)
 
     # Third run with overwrite=TRUE SHOULD call the model again
-    perform_speech_to_text("test.wav", model = "whisper_local", overwrite = TRUE)
+    perform_speech_to_text(
+      "test.wav",
+      model = "whisper_local",
+      overwrite = TRUE
+    )
     expect_equal(model_calls, 2)
   })
 })
@@ -145,4 +153,52 @@ test_that("use_parakeet_mlx_stt accepts NULL text when sentences are present", {
   expect_equal(result$text, "")
   expect_equal(length(result$segments), 1)
   expect_equal(result$segments[[1]]$text, "Segment text")
+})
+
+# Tests for use_openai_whisper_stt() --------------------------------------
+
+test_that("use_openai_whisper_stt stops after max retries", {
+  withr::with_tempdir({
+    audio_path <- write_dummy_wav("dummy.wav")
+    call_count <- 0
+
+    local_mocked_bindings(
+      POST = function(...) {
+        call_count <<- call_count + 1
+        list(status_code = 429)
+      },
+      content = function(x, type = NULL, ...) {
+        if (!is.null(type) && type == "text") {
+          return("temporarily unable to process")
+        }
+        list()
+      },
+      upload_file = function(path, ...) path,
+      .package = "httr"
+    )
+
+    local_mocked_bindings(
+      Sys.sleep = function(...) invisible(NULL),
+      .package = "base"
+    )
+
+    {
+      use_openai_whisper_stt(
+        audio_file = audio_path,
+        language = "en",
+        api_key = "key",
+        max_retries = 1
+      )
+    } |>
+      expect_warning(
+        "Error in OpenAI Whisper API request: temporarily unable to process",
+        fixed = TRUE
+      ) |>
+      expect_warning(
+        "Error in OpenAI Whisper API request: temporarily unable to process",
+        fixed = TRUE
+      ) |>
+      expect_error("Max retries reached", fixed = TRUE)
+    expect_equal(call_count, 2)
+  })
 })
