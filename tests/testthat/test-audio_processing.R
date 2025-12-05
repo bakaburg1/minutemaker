@@ -225,6 +225,57 @@ test_that("parallel timeout does not stop external daemons", {
   })
 })
 
+test_that("parallel timeout shuts down started daemons once", {
+  skip_if_not_installed(c("av", "mirai"))
+
+  withr::with_tempdir({
+    withr::local_options(
+      list(minutemaker_split_audio_parallel_timeout = 0)
+    )
+
+    call_log <- list(start = 0L, stop = 0L)
+    sequential_calls <- 0L
+
+    testthat::local_mocked_bindings(
+      status = function(...) list(daemons = 0),
+      daemons = function(n, ...) {
+        if (identical(n, 0)) {
+          call_log$stop <<- call_log$stop + 1L
+        } else {
+          call_log$start <<- call_log$start + 1L
+        }
+        invisible(NULL)
+      },
+      mirai = function(expr, ...) structure(list(...), class = "mirai"),
+      unresolved = function(tasks) rep(TRUE, length(tasks)),
+      is_error_value = function(...) FALSE,
+      .package = "mirai"
+    )
+    testthat::local_mocked_bindings(
+      av_media_info = function(...) list(duration = 60),
+      .package = "av"
+    )
+    testthat::local_mocked_bindings(
+      extract_audio_segment = function(...) {
+        sequential_calls <<- sequential_calls + 1L
+        invisible(NULL)
+      },
+      .package = "minutemaker"
+    )
+
+    split_audio(
+      audio_file = "fake.wav",
+      segment_duration = 1,
+      output_folder = "segments",
+      parallel = TRUE
+    )
+
+    expect_identical(call_log$start, 1L)
+    expect_identical(call_log$stop, 1L)
+    expect_identical(sequential_calls, 1L)
+  })
+})
+
 test_that("parallel workers receive helper bindings", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
