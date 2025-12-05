@@ -83,7 +83,7 @@ validate_agenda_element <- function(
 
         if (inherits(current_time_val, "integer")) {
           current_time_val <- as.numeric(current_time_val)
-          # Update for later class comparison
+          # Keep time classes aligned for downstream comparisons in this check
           agenda_element[[field_name]] <- current_time_val
         }
 
@@ -141,7 +141,12 @@ validate_agenda_element <- function(
         inherits(agenda_element[["to"]], c("numeric", "POSIXct", "character"))
 
       if (can_compare_types) {
-        if (!identical(class(agenda_element$from), class(agenda_element$to))) {
+        shared_time_class <- intersect(
+          class(agenda_element$from),
+          class(agenda_element$to)
+        )
+
+        if (length(shared_time_class) == 0) {
           cli::cli_warn(
             c(
               "Agenda element validation failed:",

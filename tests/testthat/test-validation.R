@@ -115,6 +115,21 @@ test_that("validate_agenda_element handles invalid time field types and values",
 })
 
 test_that("validate_agenda_element handles time class mismatch and order issues", {
+  subclassed_from <- structure(
+    as.POSIXct("2024-01-01 09:00", tz = "UTC"),
+    class = c("POSIXct", "POSIXt", "custom_time")
+  )
+  subclassed_to <- as.POSIXct("2024-01-01 10:00", tz = "UTC")
+  {
+    res0 <- validate_agenda_element(
+      list(from = subclassed_from, to = subclassed_to),
+      from = TRUE,
+      to = TRUE
+    )
+  } |>
+    expect_no_warning()
+  expect_true(res0)
+
   # Case 1: 'from' and 'to' times have different (but valid) classes
   # 36000 is 10:00
   agenda_item_class_mismatch <- list(from = "09:00", to = 36000)
