@@ -265,9 +265,10 @@ test_that("is_audio_file_sane handles paths with spaces and special chars", {
       system2 = function(command, args, stdout = FALSE, stderr = FALSE, ...) {
         target_idx <- which(args == "-i") + 1L
         target <- args[target_idx]
-        cmd <- paste("test -f", target)
-        status <- system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
-        status
+        if (file.exists(target)) {
+          return(0L)
+        }
+        return(1L)
       },
       .package = "base"
     )

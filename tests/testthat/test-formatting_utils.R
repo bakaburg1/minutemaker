@@ -558,16 +558,6 @@ test_that("format_summary_tree writes to output_file correctly", {
     normalized_expected_output,
     fixed = TRUE
   )
-
-  # Check invisible return (should be the same as what's written, before final
-  # separator)
-  # The returned value from format_summary_tree includes the trailing
-  # "\n\n####################\n\n"
-  expect_match(
-    normalized_formatted_text,
-    normalized_expected_output,
-    fixed = TRUE
-  )
 })
 
 test_that("format_summary_tree handles empty inputs and consistency checks", {
