@@ -435,7 +435,7 @@ summarise_full_meeting <- function(
 
   # Import agenda from file
   if (is.character(agenda)) {
-    agenda <- dget(agenda)
+    agenda <- load_serialized(agenda, "agenda")
   }
 
   # Convert the agenda times to seconds if they are in "HH:MM(:SS)( AM/PM)"
@@ -450,7 +450,7 @@ summarise_full_meeting <- function(
   if (!file.exists(output_file)) {
     result_tree <- list()
   } else {
-    result_tree <- dget(output_file)
+    result_tree <- load_serialized(output_file, "summary output")
   }
 
   # Build the id of each talk using the session and title

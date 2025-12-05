@@ -997,7 +997,10 @@ test_that("summarise_full_meeting basic workflow, new output file", {
 
     # Check the actual written file
     expect_true(file.exists(temp_output_file_path))
-    final_output_from_file <- dget(temp_output_file_path)
+    final_output_from_file <- minutemaker:::load_serialized(
+      temp_output_file_path,
+      "summary output"
+    )
 
     expect_length(final_output_from_file, 2)
     expect_named(
@@ -1093,7 +1096,10 @@ test_that("summarise_full_meeting overwrite=FALSE skips existing talks", {
     expect_true("Talk C" %in% processed_titles)
 
     # Check the actual written file
-    final_output_from_file <- dget(temp_output_file_path)
+    final_output_from_file <- minutemaker:::load_serialized(
+      temp_output_file_path,
+      "summary output"
+    )
     expect_length(final_output_from_file, 3)
     expect_identical(
       final_output_from_file[["Session 1 - Talk A"]]$summary,
@@ -1175,7 +1181,10 @@ test_that("summarise_full_meeting overwrite=TRUE re-summarizes existing talks", 
     expect_true(all(c("Talk A", "Talk B", "Talk C") %in% processed_titles))
 
     # Check the actual written file
-    final_output_from_file <- dget(temp_output_file_path)
+    final_output_from_file <- minutemaker:::load_serialized(
+      temp_output_file_path,
+      "summary output"
+    )
     expect_length(final_output_from_file, 3)
     expect_identical(
       final_output_from_file[["Session 1 - Talk A"]]$summary,
@@ -1253,7 +1262,10 @@ test_that("summarise_full_meeting reads agenda from file path", {
     expect_true("Talk B" %in% processed_titles)
 
     # Check the actual written output file
-    final_output_from_file <- dget(temp_output_file_path)
+    final_output_from_file <- minutemaker:::load_serialized(
+      temp_output_file_path,
+      "summary output"
+    )
     expect_length(final_output_from_file, 2)
     expect_identical(
       final_output_from_file[["Session 1 - Talk A"]]$summary,
@@ -1337,7 +1349,10 @@ test_that("summarise_full_meeting skips item with empty transcript subset and wa
     expect_true("Talk A" %in% sapply(st_calls_empty, function(x) x$title))
 
     # Check the output file: it should contain only Talk A
-    final_output_from_file <- dget(temp_output_file_path)
+    final_output_from_file <- minutemaker:::load_serialized(
+      temp_output_file_path,
+      "summary output"
+    )
     expect_length(final_output_from_file, 1)
     expect_named(final_output_from_file, "Session 1 - Talk A")
     expect_identical(result_tree, final_output_from_file) # result_tree should also contain only Talk A

@@ -27,12 +27,12 @@ format_summary_tree <- function(
 ) {
   # If summary_tree is a file path, load the data from the file
   if (is.character(summary_tree) && file.exists(summary_tree)) {
-    summary_tree <- dget(summary_tree)
+    summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
   # Import agenda from file
   if (is.character(agenda)) {
-    agenda <- dget(agenda)
+    agenda <- load_serialized(agenda, "agenda")
   }
 
   # Check the consistency of the summary tree and the agenda
@@ -135,7 +135,7 @@ format_agenda <- function(
 ) {
   # Import agenda from file
   if (is.character(agenda)) {
-    agenda <- dget(agenda)
+    agenda <- load_serialized(agenda, "agenda")
   }
 
   # Covert times from second to clock time if possible

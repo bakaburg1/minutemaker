@@ -281,30 +281,10 @@ validate_agenda <- function(
       return(FALSE)
     }
 
-    agenda_from_file <- tryCatch(
-      dget(agenda),
-      warning = function(cnd) {
-        cli::cli_warn(
-          c(
-            general_warn,
-            "x" = "Failed to read the agenda file {.file {agenda}}: {.code {conditionMessage(cnd)}}."
-          ),
-          wrap = TRUE
-        )
-
-        return(NULL)
-      },
-      error = function(cnd) {
-        cli::cli_warn(
-          c(
-            general_warn,
-            "x" = "Failed to read the agenda file '{.file {agenda}}': {.code {conditionMessage(cnd)}}."
-          ),
-          wrap = TRUE
-        )
-
-        return(NULL)
-      }
+    agenda_from_file <- load_serialized(
+      agenda,
+      "agenda",
+      on_error = "warn"
     )
 
     if (is.null(agenda_from_file)) {
@@ -351,31 +331,6 @@ validate_agenda <- function(
   return(TRUE)
 }
 
-# Load a serialized R object from a file path and abort with context on failure.
-load_serialized_object_or_abort <- function(path, label) {
-  tryCatch(
-    dget(path),
-    warning = function(cnd) {
-      cli::cli_abort(
-        c(
-          "Failed to read the {label} file {.file {path}}.",
-          "x" = "{.code {conditionMessage(cnd)}}."
-        ),
-        parent = cnd
-      )
-    },
-    error = function(cnd) {
-      cli::cli_abort(
-        c(
-          "Failed to read the {label} file {.file {path}}.",
-          "x" = "{.code {conditionMessage(cnd)}}."
-        ),
-        parent = cnd
-      )
-    }
-  )
-}
-
 #' Validate summary tree id consistency
 #'
 #' @param summary_tree A list containing the summary tree or a file path to it.
@@ -383,10 +338,7 @@ load_serialized_object_or_abort <- function(path, label) {
 #' @return Nothing, will throw an error if the summary tree is not consistent.
 check_summary_tree_consistency <- function(summary_tree) {
   if (is.character(summary_tree)) {
-    summary_tree <- load_serialized_object_or_abort(
-      summary_tree,
-      "summary tree"
-    )
+    summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
   if (length(summary_tree) == 0) {
@@ -456,17 +408,11 @@ check_summary_tree_consistency <- function(summary_tree) {
 #'   consistent.
 check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
   if (is.character(agenda)) {
-    agenda <- load_serialized_object_or_abort(
-      agenda,
-      "agenda"
-    )
+    agenda <- load_serialized(agenda, "agenda")
   }
 
   if (is.character(summary_tree)) {
-    summary_tree <- load_serialized_object_or_abort(
-      summary_tree,
-      "summary tree"
-    )
+    summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
   check_summary_tree_consistency(summary_tree)
