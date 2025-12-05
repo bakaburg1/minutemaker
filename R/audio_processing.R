@@ -64,9 +64,15 @@ extract_audio_segment <- function(
     }
 
     if (verbose) {
-      cli::cli_warn(
-        "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
-      )
+      if (attempt < max_attempts) {
+        cli::cli_warn(
+          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
+        )
+      } else {
+        cli::cli_warn(
+          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed."
+        )
+      }
     }
   }
 
@@ -104,6 +110,9 @@ split_audio <- function(
   # Check if the av package is installed and ask to install it if not
   rlang::check_installed("av")
 
+  # Use absolute paths so workers don't depend on their working directory
+  audio_file <- normalizePath(audio_file, mustWork = FALSE)
+
   # Calculate segment length in seconds
   segment_length_sec <- segment_duration * 60
 
@@ -114,6 +123,15 @@ split_audio <- function(
   media_info <- av::av_media_info(audio_file)
   total_duration_sec <- media_info$duration
 
+  if (!is.finite(total_duration_sec) || total_duration_sec <= 0) {
+    cli::cli_abort(
+      c(
+        "Cannot split audio with non-positive duration.",
+        "x" = "File {.file {basename(audio_file)}} has duration {total_duration_sec} seconds."
+      )
+    )
+  }
+
   # Calculate the number of segments
   num_segments <- ceiling(total_duration_sec / segment_length_sec)
 
@@ -121,10 +139,17 @@ split_audio <- function(
   if (!dir.exists(output_folder)) {
     dir.create(output_folder)
   }
+  output_folder <- normalizePath(output_folder, mustWork = TRUE)
 
   if (parallel) {
     # --- PARALLEL EXECUTION ---
     rlang::check_installed("mirai", reason = "for parallel processing.")
+
+    max_parallel_wait <- getOption(
+      "minutemaker_split_audio_parallel_timeout",
+      120
+    )
+    parallel_start_time <- Sys.time()
 
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
       cli::cli_alert_info(
@@ -179,35 +204,92 @@ split_audio <- function(
 
     cli::cli_alert_info("Started {length(tasks)} parallel splitting tasks.")
 
+    # Track processing status of each parallel task, initially all FALSE (not
+    # completed)
     processed_flags <- rep(FALSE, length(tasks))
+    # Flag to indicate if a failure has occurred, which should halt task
+    # processing
     fail_fast_triggered <- FALSE
+    fallback_used <- FALSE
 
+    # Continue loop until all tasks are processed or a failure occurs
     while (!all(processed_flags) && !fail_fast_triggered) {
-      Sys.sleep(0.2)
+      Sys.sleep(0.2) # Sleep briefly to avoid busy waiting
+
+      # Get status of all tasks: TRUE = task not finished, FALSE = task finished
       still_running <- mirai::unresolved(tasks)
+      # Some mirai versions may return a single logical for the whole vector;
+      # expand it to align with tasks so we don't wait forever.
+      if (is.logical(still_running) && length(still_running) == 1L && length(tasks) > 1) {
+        still_running <- rep(still_running, length(tasks))
+      }
+
+      # Bail out if tasks take too long to finish to avoid hanging indefinitely
+      if (as.numeric(difftime(
+        Sys.time(),
+        parallel_start_time,
+        units = "secs"
+      )) > max_parallel_wait) {
+        mirai::daemons(0, .compute = "minutemaker")
+        cli::cli_alert_warning(
+          c(
+            "Parallel splitting exceeded timeout of {max_parallel_wait} seconds.",
+            i = "Processed {sum(processed_flags)}/{length(tasks)} segments before timing out.",
+            i = "Falling back to sequential processing for remaining segments."
+          )
+        )
+
+        pending_idxs <- which(!processed_flags)
+        purrr::walk(pending_idxs, \(i) {
+          start_time <- (i - 1) * segment_length_sec
+          output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
+          extract_audio_segment(
+            audio_file = audio_file,
+            output_file = output_file,
+            start_time = start_time,
+            duration = segment_length_sec
+          )
+          processed_flags[i] <- TRUE
+        })
+
+        fallback_used <- TRUE
+        break
+      }
 
       for (i in seq_along(tasks)) {
         if (processed_flags[i]) {
+          # This segment has already finished successfully, skip to next
           next
         }
 
-        is_still_running <- any(purrr::map_lgl(
-          still_running,
-          ~ identical(.x, tasks[[i]])
-        ))
-
-        if (!is_still_running) {
-          result <- tasks[[i]][]
-          if (mirai::is_error_value(result)) {
-            cli::cli_alert_danger("A worker failed: {result$message}")
-            fail_fast_triggered <- TRUE
-            break
-          }
-          cli::cli_alert_success(
-            "Segment {i}/{length(tasks)} processed successfully."
-          )
-          processed_flags[i] <- TRUE
+        # Determine if task i is still running. `unresolved()` can return either
+        # a logical vector (modern mirai) or a list of unresolved tasks (older
+        # versions), so handle both.
+        task_unresolved <- TRUE
+        if (is.logical(still_running)) {
+          task_unresolved <- if (length(still_running) >= i) still_running[i] else TRUE
+        } else if (is.list(still_running)) {
+          task_unresolved <- any(purrr::map_lgl(still_running, ~ identical(.x, tasks[[i]])))
         }
+
+        if (isTRUE(task_unresolved)) {
+          next
+        }
+
+        # Task is resolved; check status
+        result <- tasks[[i]][]
+        if (mirai::is_error_value(result)) {
+          # Worker reported an error, log and activate fail-fast
+          cli::cli_alert_danger("A worker failed: {result$message}")
+          fail_fast_triggered <- TRUE
+          break
+        }
+        # Report successful processing of this segment
+        cli::cli_alert_success(
+          "Segment {i}/{length(tasks)} processed successfully."
+        )
+        # Mark this segment as completed
+        processed_flags[i] <- TRUE
       }
     }
 

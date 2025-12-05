@@ -6,6 +6,14 @@
 # Setup and Helper Functions ----------------------------------------------
 # -------------------------------------------------------------------------
 
+# These tests spin up and tear down mirai daemons in temp directories; you may
+# see shell-init/getcwd warnings like "error retrieving current directory".
+# They come from daemons shutting down after temp dirs are removed and are
+# harmless in this test context.
+cli::cli_alert_info(
+  "Audio processing tests start/stop mirai daemons; shell-init/getcwd warnings are expected and harmless here."
+)
+
 # Helper function to create test audio files
 helper_create_test_audio <- function(path, valid = TRUE) {
   if (valid) {
@@ -61,6 +69,11 @@ test_that("split_audio works in parallel with real audio", {
   skip_on_cran()
   
   withr::with_tempdir({
+    # Clean up any stray daemons from previous tests to avoid shell-init noise
+    if (mirai::status(.compute = "minutemaker")$daemons > 0) {
+      mirai::daemons(0, .compute = "minutemaker")
+    }
+
     # Set up mirai daemons and ensure cleanup
     withr::defer({
       if (mirai::status(.compute = "minutemaker")$daemons > 0) {
@@ -585,7 +598,7 @@ test_that("extract_audio_segment fails after max retries", {
     # It should throw an error after trying twice, with warnings for each retry
     extract_audio_segment("dummy.mp3", "segment_1.mp3", 0, 60) |>
       expect_warning("Generated segment.*is corrupted.*Attempt 1 of 2 failed, retrying") |>
-      expect_warning("Generated segment.*is corrupted.*Attempt 2 of 2 failed, retrying") |>
+      expect_warning("Generated segment.*is corrupted.*Attempt 2 of 2 failed\\.") |>
       expect_error("Failed to create a valid segment")
   })
 })
@@ -618,6 +631,9 @@ test_that("split_audio sequential mode calls worker function correctly", {
 test_that("split_audio parallel mode fail-fast works as expected", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
+    rlang::local_options(cli.default_handler = function(...) invisible(NULL))
+    cli::cli_alert_info("Expect worker failure messages below; this test simulates a crash.")
+
     local_mocked_bindings(
       av_media_info = function(...) list(duration = 120),
       .package = "av"
@@ -635,7 +651,8 @@ test_that("split_audio parallel mode fail-fast works as expected", {
       status = function(...) list(daemons = 0),
       daemons = function(...) invisible(),
       mirai = function(expr, ...) {
-        res <- try(eval(substitute(expr)), silent = TRUE)
+        env <- list2env(list(...), parent = environment())
+        res <- try(eval(substitute(expr), envir = env), silent = TRUE)
         if (inherits(res, "try-error")) {
           return(list(error = TRUE, message = as.character(res)))
         }
@@ -647,6 +664,11 @@ test_that("split_audio parallel mode fail-fast works as expected", {
       .package = "mirai"
     )
 
+    # Ensure a cli alert is emitted, then the expected error surfaces.
+    expect_condition(
+      try(split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE), silent = TRUE),
+      class = "cli_message"
+    )
     expect_error(
       split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE),
       "intermittent issue"
@@ -657,6 +679,9 @@ test_that("split_audio parallel mode fail-fast works as expected", {
 test_that("split_audio parallel mode checks for corrupted source on failure", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
+    rlang::local_options(cli.default_handler = function(...) invisible(NULL))
+    cli::cli_alert_info("Expect worker failure messages below; this test simulates a crash with corrupted source.")
+
     local_mocked_bindings(
       av_media_info = function(...) list(duration = 120),
       .package = "av"
@@ -674,7 +699,8 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
       status = function(...) list(daemons = 0),
       daemons = function(...) invisible(),
       mirai = function(expr, ...) {
-        res <- try(eval(substitute(expr)), silent = TRUE)
+        env <- list2env(list(...), parent = environment())
+        res <- try(eval(substitute(expr), envir = env), silent = TRUE)
         if (inherits(res, "try-error")) {
           return(list(error = TRUE, message = as.character(res)))
         }
@@ -686,9 +712,13 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
       .package = "mirai"
     )
 
+    expect_condition(
+      try(split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE), silent = TRUE),
+      class = "cli_message"
+    )
     expect_error(
       split_audio("dummy.mp3", segment_duration = 1, parallel = TRUE),
       "source audio file.*corrupted"
     )
   })
-}) 
+})
