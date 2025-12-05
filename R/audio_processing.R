@@ -12,7 +12,7 @@ is_audio_file_sane <- function(audio_file) {
   # Run ffmpeg with a null output to check for errors
   status <- system2(
     "ffmpeg",
-    args = c("-v", "error", "-i", shQuote(audio_file), "-f", "null", "-"),
+    args = c("-v", "error", "-i", audio_file, "-f", "null", "-"),
     stdout = FALSE,
     stderr = FALSE
   )
@@ -168,7 +168,7 @@ split_audio <- function(
       )
     }
 
-    tasks <- lapply(1:num_segments, \(i) {
+    tasks <- lapply(seq_len(num_segments), \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
       duration <- segment_length_sec # Capture in local scope
@@ -331,7 +331,7 @@ split_audio <- function(
     cli::cli_alert_success("All segments processed successfully.")
   } else {
     # --- SEQUENTIAL EXECUTION ---
-    purrr::walk(1:num_segments, \(i) {
+    purrr::walk(seq_len(num_segments), \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
 
