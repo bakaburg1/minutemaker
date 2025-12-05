@@ -72,7 +72,7 @@ perform_speech_to_text <- function(
 
   # Create the output directory if it doesn't exist
   if (!dir.exists(output_dir)) {
-    dir.create(output_dir)
+    dir.create(output_dir, recursive = TRUE)
   }
 
   # Initialize the prompt to link two transcripts
