@@ -151,6 +151,9 @@ split_audio <- function(
     )
     parallel_start_time <- Sys.time()
 
+    # Track whether this invocation owns the lifecycle of minutemaker daemons
+    started_daemons <- FALSE
+
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
       cli::cli_alert_info(
         "Starting mirai daemons for parallel audio splitting..."
@@ -161,6 +164,7 @@ split_audio <- function(
         dispatcher = FALSE,
         .compute = "minutemaker"
       )
+      started_daemons <- TRUE
       on.exit(mirai::daemons(0, .compute = "minutemaker"), add = TRUE)
     } else {
       cli::cli_alert_info(
@@ -237,7 +241,13 @@ split_audio <- function(
         )) >
           max_parallel_wait
       ) {
-        mirai::daemons(0, .compute = "minutemaker")
+        if (started_daemons) {
+          mirai::daemons(0, .compute = "minutemaker")
+        } else {
+          cli::cli_alert_info(
+            "Skipping shutdown of pre-existing mirai daemons after timeout."
+          )
+        }
         cli::cli_alert_warning(
           c(
             "Parallel splitting exceeded timeout of {max_parallel_wait} seconds.",
@@ -294,7 +304,21 @@ split_audio <- function(
         result <- tasks[[i]][]
         if (mirai::is_error_value(result)) {
           # Worker reported an error, log and activate fail-fast
-          cli::cli_alert_danger("A worker failed: {result$message}")
+          err_message <- tryCatch(
+            conditionMessage(result),
+            error = function(...) {
+              fallback <- tryCatch(
+                result$message,
+                error = function(...) NULL
+              )
+              if (is.null(fallback) || !nzchar(fallback)) {
+                return("Unknown worker error")
+              }
+              fallback
+            }
+          )
+          failure_message <- paste0("A worker failed: ", err_message)
+          cli::cli_alert_danger(failure_message)
           fail_fast_triggered <- TRUE
           break
         }

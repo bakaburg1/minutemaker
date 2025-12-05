@@ -176,6 +176,55 @@ test_that("parallel processing works with proper worker setup", {
   })
 })
 
+test_that("parallel timeout does not stop external daemons", {
+  skip_if_not_installed(c("av", "mirai"))
+
+  withr::with_tempdir({
+    withr::local_options(
+      list(minutemaker_split_audio_parallel_timeout = 0)
+    )
+
+    file.create("fake.wav")
+
+    call_log <- list(stop = 0L, start = 0L)
+
+    testthat::local_mocked_bindings(
+      av_media_info = function(...) list(duration = 90),
+      .package = "av"
+    )
+    testthat::local_mocked_bindings(
+      status = function(...) list(daemons = 2),
+      daemons = function(n, ...) {
+        if (identical(n, 0)) {
+          call_log$stop <<- call_log$stop + 1L
+        } else {
+          call_log$start <<- call_log$start + 1L
+        }
+        invisible(NULL)
+      },
+      mirai = function(...) "task",
+      unresolved = function(tasks) rep(TRUE, length(tasks)),
+      is_error_value = function(...) FALSE,
+      .package = "mirai"
+    )
+    testthat::local_mocked_bindings(
+      extract_audio_segment = function(...) "segment_path",
+      is_audio_file_sane = function(...) TRUE,
+      .package = "minutemaker"
+    )
+
+    split_audio(
+      audio_file = "fake.wav",
+      segment_duration = 1,
+      output_folder = "segments",
+      parallel = TRUE
+    )
+
+    expect_identical(call_log$start, 0L)
+    expect_identical(call_log$stop, 0L)
+  })
+})
+
 test_that("parallel workers receive helper bindings", {
   skip_if_not_installed(c("av", "mirai"))
   skip_on_cran()
@@ -535,6 +584,83 @@ test_that("split_audio creates the expected number of segments", {
       list.files(".", pattern = "^segment_\\d+\\.mp3$"),
       2
     )
+  })
+})
+
+test_that("split_audio logs mirai errors with conditionMessage", {
+  skip_if_not_installed(c("av", "mirai"))
+
+  withr::with_tempdir({
+    write_dummy_wav("dummy.wav")
+
+    condition_called <- FALSE
+    assign(
+      "conditionMessage.fake_mirai_error",
+      function(c) {
+        condition_called <<- TRUE
+        "worker boom"
+      },
+      envir = .GlobalEnv
+    )
+    base::registerS3method(
+      "conditionMessage",
+      "fake_mirai_error",
+      get("conditionMessage.fake_mirai_error", envir = .GlobalEnv)
+    )
+    withr::defer({
+      rm("conditionMessage.fake_mirai_error", envir = .GlobalEnv)
+    })
+    assign(
+      "[.fake_mirai",
+      function(x, ...) x$value,
+      envir = .GlobalEnv
+    )
+    withr::defer(rm("[.fake_mirai", envir = .GlobalEnv))
+
+    error_value <- structure(
+      list(),
+      class = c("fake_mirai_error", "error", "condition")
+    )
+
+    log_messages <- character(0)
+
+    local_mocked_bindings(
+      av_media_info = function(file) list(duration = 60),
+      .package = "av"
+    )
+    local_mocked_bindings(
+      status = function(...) list(daemons = 1),
+      daemons = function(...) invisible(NULL),
+      mirai = function(...) {
+        structure(list(value = error_value), class = "fake_mirai")
+      },
+      unresolved = function(x) rep(FALSE, length(x)),
+      is_error_value = function(x) inherits(x, "condition"),
+      .package = "mirai"
+    )
+    local_mocked_bindings(
+      is_audio_file_sane = function(...) TRUE,
+      .package = "minutemaker"
+    )
+    local_mocked_bindings(
+      cli_alert_danger = function(msg, ...) {
+        log_messages <<- c(log_messages, paste(msg, collapse = " "))
+      },
+      .package = "cli"
+    )
+
+    expect_error(
+      split_audio(
+        audio_file = "dummy.wav",
+        segment_duration = 1,
+        output_folder = ".",
+        parallel = TRUE
+      ),
+      "A segment could not be generated correctly"
+    )
+
+    expect_true(condition_called)
+    expect_true(any(grepl("worker boom", log_messages, fixed = TRUE)))
   })
 })
 
