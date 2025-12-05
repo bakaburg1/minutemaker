@@ -645,6 +645,50 @@ test_that("handles files with no valid time cues (empty result)", {
   expect_identical(nrow(result_empty_vtt), 0L)
 })
 
+test_that("skips malformed time cues and keeps valid entries", {
+  temp_dir_for_test <- withr::local_tempdir()
+  vtt_with_bad_cue <- c(
+    "WEBVTT",
+    "not-a-time --> 00:00:02.000",
+    "This line should be skipped",
+    "",
+    "00:00:05.000 --> 00:00:06.000",
+    "Valid line stays"
+  )
+  temp_vtt_file <- helper_create_temp_vtt(vtt_with_bad_cue, dir = temp_dir_for_test)
+
+  expect_warning(
+    result <- import_transcript_from_file(
+      normalizePath(temp_vtt_file, mustWork = TRUE),
+      import_diarization = FALSE
+    ),
+    "Skipping malformed time cue"
+  )
+  expect_identical(nrow(result), 1L)
+  expect_identical(result$start, 5)
+  expect_identical(result$end, 6)
+  expect_identical(result$text, "Valid line stays")
+})
+
+test_that("returns empty data frame when all time cues are malformed", {
+  temp_dir_for_test <- withr::local_tempdir()
+  srt_all_bad_cues <- c(
+    "1",
+    "bad --> also bad",
+    "Text without valid time"
+  )
+  temp_srt_file <- helper_create_temp_srt(srt_all_bad_cues, dir = temp_dir_for_test)
+
+  expect_warning(
+    result <- import_transcript_from_file(
+      normalizePath(temp_srt_file, mustWork = TRUE),
+      import_diarization = FALSE
+    ),
+    "Skipping malformed time cue"
+  )
+  expect_identical(nrow(result), 0L)
+})
+
 test_that("handles time cues but missing subsequent text line correctly", {
   temp_dir_for_test <- withr::local_tempdir()
   srt_missing_text_eof <- c("1", "00:00:01,000 --> 00:00:02,500")
@@ -828,7 +872,7 @@ parse_chat_webex_file_for_test <- function(chat_file_path, meeting_start_time_st
         start = (parse_event_time(time_str) |> as.numeric()) - (parse_event_time(meeting_start_time_str) |> as.numeric()),
         speaker = sub(" from .*", "", speaker_raw) |>
           stringr::str_remove("( to Everyone)?:|( to Me \\\\(Privately\\\\))?:") |>
-          stringr::str_replace_all("(?<=\\\\\\\\s)[a-z]", toupper) |>
+          stringr::str_replace_all("(?<=\\\\s)[a-z]", toupper) |>
           stringr::str_squish() |>
           paste0(" (from chat)"),
         text = stringr::str_squish(text_raw)

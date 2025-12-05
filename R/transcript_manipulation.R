@@ -48,7 +48,14 @@ clean_transcript <- function(
   # hallucinations
   repetitions <- purrr::map_int(
     transcript_data$text,
-    ~ stringr::str_split_1(.x, ", *") |> table() |> max()
+    ~ {
+      counts <- stringr::str_split_1(.x, ", *") |>
+        table()
+      if (length(counts) == 0) {
+        return(0L)
+      }
+      max(counts)
+    }
   )
 
   transcript_data$text[repetitions > 10] <- silent()
@@ -238,6 +245,11 @@ merge_transcripts <- function(
   removed <- 0
 
   while (any(!transcript_x$seen)) {
+    # Exit early if there are no remaining candidates in the second transcript
+    if (nrow(transcript_y) == 0) {
+      break
+    }
+
     i <- which(!transcript_x$seen)[1]
 
     transcript_x$seen[i] <- TRUE
@@ -245,7 +257,16 @@ merge_transcripts <- function(
     # Find the closest segment in the second transcript
     time <- transcript_x$start[i]
     candidate_pos <- which.min(abs(transcript_y$start - time))
-    candidate <- transcript_y[candidate_pos, ]
+
+    # Guard against empty candidate selection
+    if (length(candidate_pos) == 0 || is.na(candidate_pos)) {
+      break
+    }
+
+    candidate <- transcript_y[candidate_pos, , drop = FALSE]
+    if (nrow(candidate) == 0) {
+      break
+    }
 
     # This line allows to speed up the process if there are non-consecutive
     # empty segments in the first transcript
@@ -304,6 +325,10 @@ merge_transcripts <- function(
     transcript_x$speaker <- NA_character_
 
     for (i in seq_len(nrow(transcript_x))) {
+      if (nrow(transcript_y) == 0) {
+        next
+      }
+
       x_text <- transcript_x$text[i]
 
       # Skip silent segments
@@ -338,6 +363,11 @@ merge_transcripts <- function(
           text = paste(.data$text, collapse = " "),
           speaker = .data$speaker[1]
         )
+
+      if (nrow(y_probes) == 0) {
+        transcript_x$speaker[i] <- NA
+        next
+      }
 
       # Calculate the semantic similarity between the segment in the first
       # transcript and the candidate segments in the second transcript

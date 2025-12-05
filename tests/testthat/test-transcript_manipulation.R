@@ -872,22 +872,24 @@ test_that("merge_transcripts handles empty transcript_y", {
     speaker = character(0)
   )
 
+  expected_x_standard <- clean_transcript(transcript_x_standard)
+
   # Scenario 1: import_diarization = FALSE, x has silent segments
-  # This currently errors due to `to_change` being empty.
-  # The error message is "argument is of length zero"
-  expect_error(
-    merge_transcripts(
+  {
+    result_standard <- merge_transcripts(
       transcript_x_standard,
       transcript_y_empty,
       import_diarization = FALSE
-    ),
-    regexp = "argument is of length zero",
-    fixed = TRUE
-  )
+    )
+  } |>
+    expect_message("Added 0 segments.*Removed 0 segments")
+
+  expect_identical(result_standard, expected_x_standard)
 
   # Scenario 2: import_diarization = TRUE, x has silent segments
-  # This also errors with an empty y, as the text-filling logic is hit.
-  expected_diar <- clean_transcript(transcript_x_standard)
+  # When y is empty, speakers are cleared to NA.
+  expected_diar <- expected_x_standard |>
+    dplyr::mutate(speaker = NA_character_)
 
   mock_glove_model <- matrix(1, dimnames = list("a", "v1"))
   testthat::local_mocked_bindings(
@@ -899,16 +901,17 @@ test_that("merge_transcripts handles empty transcript_y", {
     .package = "minutemaker"
   )
 
-  expect_error(
-    merge_transcripts(
+  {
+    result_diar <- merge_transcripts(
       transcript_x_standard,
       transcript_y_empty,
       import_diarization = TRUE
-    ),
-    regexp = "argument is of length zero",
-    fixed = TRUE
-  )
-  # We don't check result_diar or messages here as an error is expected.
+    )
+  } |>
+    expect_message("Merging") |>
+    expect_message("Added 0 segments.*Removed 0 segments") |>
+    expect_message("Importing diarization...")
+  expect_identical(result_diar, expected_diar)
 
   # Scenario 3: import_diarization = FALSE, x has NO silent segments
   transcript_x_no_silent <- dplyr::tibble(

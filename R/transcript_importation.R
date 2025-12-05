@@ -183,7 +183,9 @@ parse_transcript_json <- function(
         doc = i,
         file = if (!is.na(json_files[i])) {
           basename(json_files[i])
-        } else NA_character_,
+        } else {
+          NA_character_
+        },
         .before = 1
       ) |>
       # Add the previous file time to the start and end times
@@ -276,11 +278,26 @@ import_transcript_from_file <- function(
   purrr::map(
     times_pos,
     ~ {
+      cue_line_content <- lines[.x]
+
       # Extract the start and end times
-      times <- stringr::str_split_1(lines[.x], "-->") |>
+      times <- stringr::str_split_1(cue_line_content, "-->") |>
         stringr::str_squish() |>
-        lubridate::hms() |>
+        lubridate::hms(quiet = TRUE) |>
         as.numeric()
+
+      if (length(times) < 2 || any(!is.finite(times))) {
+        warning(
+          sprintf(
+            "Skipping malformed time cue in '%s'. Line %d: \"%s\"",
+            basename(transcript_file),
+            .x,
+            cue_line_content
+          ),
+          call. = FALSE
+        )
+        return(NULL)
+      }
 
       # Safely get the line content for text (line after timestamp)
       text_line_idx <- .x + 1
@@ -320,8 +337,11 @@ import_transcript_from_file <- function(
 
         # Get content of line above timestamp, if it exists
         line_above_idx <- .x - 1
-        line_above_content <- if (line_above_idx >= 1)
-          lines[line_above_idx] else NA_character_
+        line_above_content <- if (line_above_idx >= 1) {
+          lines[line_above_idx]
+        } else {
+          NA_character_
+        }
 
         # Check line above for standard VTT cue ID with quoted speaker
         # Guard against NA input for str_detect. Regex checks for digits then a
@@ -368,6 +388,7 @@ import_transcript_from_file <- function(
       extract
     }
   ) |>
+    purrr::compact() |>
     dplyr::bind_rows()
 }
 
@@ -444,7 +465,8 @@ add_chat_transcript <- function(
           mutate(
             date = NULL,
             start = parse_event_time(.data$start) |>
-              as.numeric() - start_time,
+              as.numeric() -
+              start_time,
             end = .data$start,
             speaker = stringr::str_remove(.data$speaker, "(?i)\\sfrom\\s.*") |>
               stringr::str_squish() |>
@@ -481,9 +503,11 @@ add_chat_transcript <- function(
     }
   } else {
     cli::cli_abort(
-      "Unsupported chat data format.",
-      "x" = "Expected a file path or a data frame,
-      got {.var {chat_transcript}}."
+      c(
+        "Unsupported chat data format.",
+        "x" = "Expected a file path or a data frame,
+      got {.cls {class(chat_transcript)}}."
+      )
     )
   }
 
