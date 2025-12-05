@@ -10,7 +10,9 @@ build_ids_from_agenda <- function(agenda) {
     agenda,
     ~ {
       # If the title is NULL, use an index as title
-      if (is.null(.x$title)) .x$title <- .y
+      if (is.null(.x$title)) {
+        .x$title <- .y
+      }
 
       paste0(
         # If the session is not NULL, prepend it to the title
@@ -51,9 +53,6 @@ convert_agenda_times <- function(
   conversion_format = "%T"
 ) {
   convert_to <- match.arg(convert_to)
-
-  # TODO: remove this line once I'm sure agenda_orig is not used
-  # agenda_orig <- agenda
 
   # Check if agenda is actually an agenda item only
   is_agenda_element <- any(c("from", "to") %in% names(agenda))
