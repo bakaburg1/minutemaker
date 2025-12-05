@@ -527,7 +527,18 @@ speech_to_summary_workflow <- function(
           cli::cli_alert_info(
             "Using existing agenda file: {.file {basename(agenda_file)}}"
           )
-          agenda <- dget(agenda_file)
+          agenda <- tryCatch(
+            dget(agenda_file),
+            error = function(cnd) {
+              cli::cli_abort(
+                c(
+                  "Failed to load agenda from {.path {agenda_file}}.",
+                  "x" = conditionMessage(cnd)
+                ),
+                parent = cnd
+              )
+            }
+          )
         },
         "generate" = {
           agenda <- generate_new_agenda()
@@ -545,7 +556,18 @@ speech_to_summary_workflow <- function(
           "Using existing agenda file: {.file {basename(agenda_file)}}"
         )
 
-        agenda <- dget(agenda_file)
+        agenda <- tryCatch(
+          dget(agenda_file),
+          error = function(cnd) {
+            cli::cli_abort(
+              c(
+                "Failed to load agenda from {.path {agenda_file}}.",
+                "x" = conditionMessage(cnd)
+              ),
+              parent = cnd
+            )
+          }
+        )
       } else {
         agenda <- generate_new_agenda()
       }
