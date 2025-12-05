@@ -25,7 +25,7 @@ speech_to_summary_workflow(
   transcript_to_merge = list.files(target_dir, pattern = "\\\\.(vtt|srt)", full.names =
     TRUE)[1],
   import_diarization_on_merge = TRUE,
-  chat_file = list.files(target_dir, pattern = "Chat", full.names = T)[1],
+  chat_file = list.files(target_dir, pattern = "Chat", full.names = TRUE)[1],
   chat_format = "webex",
   use_agenda = c("ask", "yes", "no"),
   agenda_file = file.path(target_dir, "agenda.R"),
@@ -65,7 +65,7 @@ place into the \code{stt_audio_dir} folder. See \code{split_audio} for more deta
 split into multiple files. Some models, like "Whisper" based ones, can
 process files only up to 25 MB. See \code{split_audio} for more details.}
 
-\item{split_audio_duration}{The duration of each splitted audio file in
+\item{split_audio_duration}{The duration of each split audio file in
 minutes. 20 minutes equate to more or less 7-8 MB. See \code{split_audio} for
 more details.}
 

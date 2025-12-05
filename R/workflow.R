@@ -14,7 +14,7 @@
 #' @param split_audio A boolean indicating whether the audio file should be
 #'   split into multiple files. Some models, like "Whisper" based ones, can
 #'   process files only up to 25 MB. See `split_audio` for more details.
-#' @param split_audio_duration The duration of each splitted audio file in
+#' @param split_audio_duration The duration of each split audio file in
 #'   minutes. 20 minutes equate to more or less 7-8 MB. See `split_audio` for
 #'   more details.
 #' @param stt_audio_dir A string with the path to the folder where the audio
@@ -169,7 +169,7 @@ speech_to_summary_workflow <- function(
   chat_file = list.files(
     target_dir,
     pattern = "Chat",
-    full.names = T
+    full.names = TRUE
   )[1],
   chat_format = "webex",
 
