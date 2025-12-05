@@ -872,7 +872,7 @@ parse_chat_webex_file_for_test <- function(chat_file_path, meeting_start_time_st
         start = (parse_event_time(time_str) |> as.numeric()) - (parse_event_time(meeting_start_time_str) |> as.numeric()),
         speaker = sub(" from .*", "", speaker_raw) |>
           stringr::str_remove("( to Everyone)?:|( to Me \\\\(Privately\\\\))?:") |>
-          stringr::str_replace_all("(?<=\\\\s)[a-z]", toupper) |>
+          stringr::str_replace_all("(?<=\\s)[a-z]", toupper) |>
           stringr::str_squish() |>
           paste0(" (from chat)"),
         text = stringr::str_squish(text_raw)
