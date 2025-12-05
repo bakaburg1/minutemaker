@@ -113,9 +113,9 @@ options(
   # LLM for transcript correction
   minutemaker_correction_llm_model = "your_preferred_correction_llm_label",
   
-  # Whether the correction LLM should include "reasoning" to increase the
-  # quality of the correction on non-reasoning models (e.g., OpenAi o3 or Google
-  # Gemini 2.5 series)
+  # Whether to add explicit chain-of-thought reasoning for non-reasoning LLMs;
+  # set this TRUE to improve corrections on those models, and FALSE for models
+  # that already reason internally (e.g., OpenAI o3 or Google Gemini 2.5)
   minutemaker_include_llm_reasoning = TRUE 
 )
 ```
