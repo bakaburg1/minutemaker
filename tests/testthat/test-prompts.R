@@ -344,6 +344,7 @@ test_that("generate_rolling_aggregation_prompt() includes all optional sections"
     event_description = "Another important meeting.",
     recording_details = "Recorded on Wednesday by AI.",
     summary_structure = "Aggregated custom structure.",
+    vocabulary = c("Term1", "Name Two"),
     audience = "General audience.",
     extra_output_instructions = "Use simple language.",
     output_length = "5"
@@ -384,6 +385,13 @@ test_that("generate_rolling_aggregation_prompt() includes all optional sections"
     fixed = TRUE
   )
   expect_match(prompt, args$summary_structure, fixed = TRUE)
+  expect_match(
+    prompt,
+    get_prompts("vocabulary_template"),
+    fixed = TRUE
+  )
+  expect_match(prompt, "- Term1", fixed = TRUE)
+  expect_match(prompt, "- Name Two", fixed = TRUE)
   expect_match(
     prompt,
     "<audience>",

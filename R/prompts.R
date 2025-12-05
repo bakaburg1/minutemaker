@@ -490,6 +490,7 @@ generate_rolling_aggregation_prompt <- function(
     # Append the summaries
     summaries,
 
+    vocab_block,
     summarisation_block,
     audience_block,
     output_template,
