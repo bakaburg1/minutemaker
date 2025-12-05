@@ -1,5 +1,5 @@
 ---
-description:
+description: 
 globs: tests/testthat/*.R
 alwaysApply: false
 ---
@@ -23,7 +23,7 @@ In general follow the guidelines in the code already used in the tests/testthat 
 
 1. **Indentation:** 2 spaces, never tabs.
 2. **Line length:** hard-wrap at **80 characters**; break after commas in long argument lists.
-3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested package. Always use explicit namespaces (`pkg::fun()`) for external package functions. NEVER namespace functions from the tested package.
+3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested pacakge. Always use explicit namespaces (`pkg::fun()`) for external package functions. NEVER namespace functions from the tested package.
 4. **File header:** keep empty unless you must declare globals; never load external packages.
 5. **Section headers:** start each logical group with a separator comment, followed by one blank line:
 
@@ -116,6 +116,7 @@ Use the **most specific** expectation available:
   })
   ```
 * When testing complex return objects (e.g., data frames, lists), strive to define a complete `expected` object and use a single `expect_equal(result, expected)` comparison. This approach is typically more comprehensive and easier to maintain than asserting individual properties with multiple separate expectations (e.g., `expect_identical(result$colA, ...)`, `expect_length(result$colB, ...)`). Fall back to individual property checks only if a specific property requires a different type of expectation (like `expect_match`) or a more nuanced validation not covered by `expect_equal`.
+
 ---
 
 ## Mocking & temporary state
@@ -163,7 +164,7 @@ If a test keep failing, double check your assumptions by running small reprexes 
 
 **Never edit production source files unless you are *absolutely certain* you are fixing a genuine security or data-validation vulnerability.**
 
-* When a test fails, assume the **test code is wrong**, not the implementation, especially if we are writing a new test file to test existing code.
+* When a test fails, assume the **test code is wrong**, not the implementation, expecially if we are writing a new test file to test existing code.
 * If you believe a change to the implementation is required, **stop and ask the user for approval first**, providing a detailed justification of the suspected issue.
 * Minor refactors, stylistic tweaks, or adding arguments are **forbidden** unless explicitly requested by the user.
 
