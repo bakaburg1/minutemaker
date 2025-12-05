@@ -2,8 +2,7 @@
 % Please edit documentation in R/transcript_correction.R
 \name{apply_llm_correction}
 \alias{apply_llm_correction}
-\title{transcription_correction.R
-Corrects transcription errors in JSON files using a Large Language Model.}
+\title{Corrects transcription errors in JSON files using a Large Language Model.}
 \usage{
 apply_llm_correction(
   input_path,

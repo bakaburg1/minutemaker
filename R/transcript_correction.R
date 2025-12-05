@@ -1,5 +1,3 @@
-#' transcription_correction.R
-
 #' Corrects transcription errors in JSON files using a Large Language Model.
 #'
 #' This function processes a single transcript JSON file or all JSON files in a
@@ -121,7 +119,7 @@ apply_llm_correction <- function(
       return(file_path) # Return the path as it was processed (skipped)
     }
 
-    # --- Start Correction Attempt with Retry Logic ---
+    # Start Correction Attempt with Retry Logic ----
     # Initialize variables for the retry loop
     correction_result <- NULL
     retry_count <- 0
@@ -187,7 +185,7 @@ apply_llm_correction <- function(
         # etc.) or non-retryable error.
         success <- TRUE
       }
-    } # --- End Retry Loop ---
+    }
 
     # Check final status after loop
     if (!success) {
@@ -320,9 +318,7 @@ apply_llm_correction <- function(
       )
       return(file_path) # Processed, but no changes to write.
     }
-
-    # --- End Original tryCatch block replacement ---
-  }) # End purrr::map_chr
+  })
 
   # Filter out NA values which represent processing failures
   successful_files <- processed_files[!is.na(processed_files)]
@@ -596,7 +592,10 @@ Apply these rules to your JSON output if corrections are made:
 
   # Guard against passing temperature to reasoning models.
   if (include_reasoning && "temperature" %in% names(final_llm_params)) {
-    final_llm_params <- final_llm_params[setdiff(names(final_llm_params), "temperature")]
+    final_llm_params <- final_llm_params[setdiff(
+      names(final_llm_params),
+      "temperature"
+    )]
   }
 
   llm_response_str <- NULL
@@ -797,7 +796,9 @@ Apply these rules to your JSON output if corrections are made:
 #'
 apply_single_correction_set <- function(text, corr_map) {
   # Return early if nothing to do
-  if (rlang::is_empty(text) || !any(nzchar(text)) || rlang::is_empty(corr_map)) {
+  if (
+    rlang::is_empty(text) || !any(nzchar(text)) || rlang::is_empty(corr_map)
+  ) {
     return(text)
   }
 
@@ -811,7 +812,7 @@ apply_single_correction_set <- function(text, corr_map) {
 
   # Build regex patterns (names) and safely escaped replacement strings (values)
   build_pattern <- function(key) {
-    # NOTE on the heavy escaping below  ------------------------------------
+    # NOTE on the heavy escaping below
     # * meta_chars is a *character class* listing all the regex metacharacters
     #   we want to escape. In the final regular expression it should read:
     #     [. \ ^ $ | ( ) [ ] { } * + ? \\ ]
