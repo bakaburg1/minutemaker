@@ -591,6 +591,9 @@ can be used to perform all the steps in one go.
 # vocabulary, diarization_instructions, summary_structure_with_agenda
 # are defined in the previous examples
 
+# Set a workspace directory (replace with your own project path if needed)
+work_dir <- "path/to/your/project"
+
 # Perform the whole audio files to formatted summary workflow. Most arguments
 # are omitted since the defaults are fine but some (e.g. the output paths and
 # the overwrite arguments) are shown for clarity.
