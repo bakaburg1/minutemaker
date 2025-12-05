@@ -26,18 +26,19 @@ test_that("infer_agenda_from_transcript falls back when title regeneration fails
   )
 
   llm_call <- 0
+  # Mock LLM replies keyed by prompt content to avoid order dependence
   mock_prompt_llm <- function(prompt_set, ...) {
     llm_call <<- llm_call + 1
 
-    if (llm_call == 1) {
+    if (any(grepl("agenda inference prompt", prompt_set, fixed = TRUE))) {
       return('{"start_times": [0, 180]}')
     }
 
-    if (llm_call %in% c(2, 3)) {
+    if (any(grepl("agenda element prompt", prompt_set, fixed = TRUE))) {
       return('{"title": "Repeated", "session": "Session"}')
     }
 
-    if (llm_call == 4) {
+    if (any(grepl("This agenda item title", prompt_set, fixed = TRUE))) {
       return("not json")
     }
 
