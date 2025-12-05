@@ -344,7 +344,7 @@ speech_to_summary_workflow <- function(
     apply_llm_correction(
       input_path = stt_output_dir,
       # Use the 'vocabulary' from speech_to_summary_workflow args
-      terms = vocabulary,
+      terms = vocabulary
     )
     cli::cli_alert_success("LLM-based correction step completed.")
   }
@@ -504,46 +504,40 @@ speech_to_summary_workflow <- function(
         title = "How do you want to proceed with the agenda?"
       )
 
-      # Track what each choice means - this makes the logic cleaner below
-      # 0 = exit (always)
-      # 1 = use existing (if file exists) or generate new (if no file)
-      # 2 = generate new (if file exists) or no agenda (if no file)
-      # 3 = no agenda (if file exists) or exit (if no file)
-      # 4 = exit (if file exists) - shouldn't happen as menu only has 3 options
-      #     when no file exists
+      # Map the numeric menu selection to an action to reduce nested conditionals
+      action <- switch(
+        as.character(choice),
+        "0" = "exit",
+        "1" = if (agenda_file_exists) "use_existing" else "generate",
+        "2" = if (agenda_file_exists) "generate" else "no_agenda",
+        "3" = if (agenda_file_exists) "no_agenda" else "exit",
+        "4" = "exit",
+        "exit"
+      )
 
-      # Handle the choice
-      if (
-        choice == 0 ||
-          (choice == 3 && !agenda_file_exists) ||
-          (choice == 4 && agenda_file_exists)
-      ) {
-        # Exit
-        cli::cli_alert_warning(
-          "Aborted by user. Returning transcript data only (invisibly)."
-        )
-        return(invisible(transcript_data))
-      } else if ((choice == 1 && agenda_file_exists)) {
-        # Use existing agenda file
-        cli::cli_alert_info(
-          "Using existing agenda file: {.file {basename(agenda_file)}}"
-        )
-        agenda <- dget(agenda_file)
-      } else if (
-        (choice == 1 && !agenda_file_exists) ||
-          (choice == 2 && agenda_file_exists)
-      ) {
-        # Generate new agenda
-        agenda <- generate_new_agenda()
-      } else if (
-        (choice == 2 && !agenda_file_exists) ||
-          (choice == 3 && agenda_file_exists)
-      ) {
-        # No agenda
-        cli::cli_alert_info("Proceeding without an agenda.")
-        agenda <- FALSE
-        multipart_summary <- FALSE
-      }
+      switch(
+        action,
+        "exit" = {
+          cli::cli_alert_warning(
+            "Aborted by user. Returning transcript data only (invisibly)."
+          )
+          return(invisible(transcript_data))
+        },
+        "use_existing" = {
+          cli::cli_alert_info(
+            "Using existing agenda file: {.file {basename(agenda_file)}}"
+          )
+          agenda <- dget(agenda_file)
+        },
+        "generate" = {
+          agenda <- generate_new_agenda()
+        },
+        "no_agenda" = {
+          cli::cli_alert_info("Proceeding without an agenda.")
+          agenda <- FALSE
+          multipart_summary <- FALSE
+        }
+      )
     } else if (use_agenda == "yes") {
       # Handle "yes" mode - use existing file or generate new one
       if (agenda_file_exists) {
