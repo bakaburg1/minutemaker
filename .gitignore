@@ -19,8 +19,7 @@
 /*.Rcheck/
 
 # RStudio files
-# Custom files
-.Rdata/
+.Rproj.user
 
 # produced vignettes
 vignettes/*.html
@@ -50,8 +49,6 @@ po/*~
 rsconnect/
 
 # Custom files
-.Rproj.user
-.Rdata
 .DS_Store
 .quarto
 experiments/
