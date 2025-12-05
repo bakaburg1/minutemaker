@@ -475,7 +475,7 @@ summary_structure <- paste0(
 # the summarisation focus:
 agenda_text <- format_agenda(agenda) # Renamed from agenda to avoid conflict
 summary_structure_with_agenda <- stringr::str_glue("
-  {get_prompts("summary_structure")}
+  {get_prompts('summary_structure')}
   Here is an agenda of the event to keep into account while summarizing:
   {agenda_text}
   Strictly follow the agenda to understand which information is worth summarizing.
