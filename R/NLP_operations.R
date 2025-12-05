@@ -173,7 +173,7 @@ compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
   # Return NA if the source segment embedding is empty (e.g., it was just one
   # non-informative word, like a salutation)
   if (length(x_emb) == 0) {
-    return(rep(NA, length(y_texts)))
+    return(rep(NA_real_, length(y_texts)))
   }
 
   # Compute cosine similarity with each comparative text

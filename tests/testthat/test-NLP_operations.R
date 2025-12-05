@@ -364,7 +364,7 @@ describe("compute_text_sim", {
     )
     expect_identical(
       sim_scores_oov,
-      rep(NA, length(y_texts)),
+      rep(NA_real_, length(y_texts)),
       info = "All scores should be NA if x_text embedding is empty (OOV)."
     )
     expect_equal(length(sim_scores_oov), length(y_texts))
@@ -377,7 +377,7 @@ describe("compute_text_sim", {
     )
     expect_identical(
       sim_scores_empty,
-      rep(NA, length(y_texts)),
+      rep(NA_real_, length(y_texts)),
       info = "All scores should be NA if x_text tokenizes to empty/OOV string like c('')."
     )
   })
