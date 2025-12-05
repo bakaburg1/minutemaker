@@ -26,6 +26,50 @@ test_that("fails gracefully when summary tree file is malformed", {
   })
 })
 
+# Tests for check_agenda_summary_tree_consistency() ---
+
+test_that("aborts with context when agenda path cannot be read", {
+  withr::with_tempdir({
+    bad_agenda_path <- file.path(getwd(), "bad_agenda.txt")
+    writeLines("not valid R code", bad_agenda_path)
+
+    expect_error(
+      check_agenda_summary_tree_consistency(
+        agenda = bad_agenda_path,
+        summary_tree = list(`S1` = list(summary = "A summary"))
+      ),
+      "Failed to read the agenda file",
+      fixed = TRUE
+    )
+  })
+})
+
+test_that("aborts with context when summary tree path cannot be read", {
+  withr::with_tempdir({
+    bad_summary_tree_path <- file.path(
+      getwd(),
+      "bad_summary_tree.txt"
+    )
+    writeLines("still not R code", bad_summary_tree_path)
+
+    expect_error(
+      check_agenda_summary_tree_consistency(
+        agenda = list(
+          list(
+            session = "S1",
+            title = "Talk",
+            from = "09:00",
+            to = "10:00"
+          )
+        ),
+        summary_tree = bad_summary_tree_path
+      ),
+      "Failed to read the summary tree file",
+      fixed = TRUE
+    )
+  })
+})
+
 test_that("validate_agenda_element handles empty agenda element", {
   {
     # from = TRUE to trigger deeper checks if not empty

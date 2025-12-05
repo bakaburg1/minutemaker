@@ -106,8 +106,8 @@ validate_agenda_element <- function(
         }
 
         if (is.character(current_time_val)) {
-          # parse_event_time itself warns if it fails. We want to capture that
-          # this field is uninterpretable for validate_agenda_element's logic.
+          # parse_event_time warns on failure; we silence that here and rely on
+          # the explicit cli warning below when parsing returns NA.
           if (is.na(suppressWarnings(parse_event_time(current_time_val)))) {
             cli::cli_warn(
               c(
@@ -288,7 +288,7 @@ validate_agenda <- function(
           c(
             general_warn,
             "x" = paste0(
-              "Failed to read the agenda file '{agenda}': ",
+              "Failed to read the agenda file {.file {agenda}}: ",
               conditionMessage(cnd),
               "."
             )
@@ -359,6 +359,31 @@ validate_agenda <- function(
   return(TRUE)
 }
 
+# Load a serialized R object from a file path and abort with context on failure.
+load_serialized_object_or_abort <- function(path, label) {
+  tryCatch(
+    dget(path),
+    warning = function(cnd) {
+      cli::cli_abort(
+        c(
+          "Failed to read the {label} file '{path}'.",
+          "x" = conditionMessage(cnd)
+        ),
+        parent = cnd
+      )
+    },
+    error = function(cnd) {
+      cli::cli_abort(
+        c(
+          "Failed to read the {label} file '{path}'.",
+          "x" = conditionMessage(cnd)
+        ),
+        parent = cnd
+      )
+    }
+  )
+}
+
 #' Validate summary tree id consistency
 #'
 #' @param summary_tree A list containing the summary tree or a file path to it.
@@ -366,29 +391,10 @@ validate_agenda <- function(
 #' @return Nothing, will throw an error if the summary tree is not consistent.
 check_summary_tree_consistency <- function(summary_tree) {
   if (is.character(summary_tree)) {
-    summary_tree_from_file <- tryCatch(
-      dget(summary_tree),
-      warning = function(cnd) {
-        cli::cli_abort(
-          c(
-            "Failed to read the summary tree file '{summary_tree}'.",
-            "x" = conditionMessage(cnd)
-          ),
-          parent = cnd
-        )
-      },
-      error = function(cnd) {
-        cli::cli_abort(
-          c(
-            "Failed to read the summary tree file '{summary_tree}'.",
-            "x" = conditionMessage(cnd)
-          ),
-          parent = cnd
-        )
-      }
+    summary_tree <- load_serialized_object_or_abort(
+      summary_tree,
+      "summary tree"
     )
-
-    summary_tree <- summary_tree_from_file
   }
 
   if (length(summary_tree) == 0) {
@@ -458,11 +464,17 @@ check_summary_tree_consistency <- function(summary_tree) {
 #'   consistent.
 check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
   if (is.character(agenda)) {
-    agenda <- dget(agenda)
+    agenda <- load_serialized_object_or_abort(
+      agenda,
+      "agenda"
+    )
   }
 
   if (is.character(summary_tree)) {
-    summary_tree <- dget(summary_tree)
+    summary_tree <- load_serialized_object_or_abort(
+      summary_tree,
+      "summary tree"
+    )
   }
 
   check_summary_tree_consistency(summary_tree)
