@@ -265,9 +265,45 @@ validate_agenda <- function(
 
   # Check if the agenda is a file path
   if (!purrr::is_empty(agenda) && is.character(agenda) && file.exists(agenda)) {
-    # Potential error source if dget fails, wrap in tryCatch?
-    # For now, assuming dget works or failure is acceptable.
-    agenda <- dget(agenda)
+    agenda_from_file <- tryCatch(
+      dget(agenda),
+      warning = function(cnd) {
+        cli::cli_warn(
+          c(
+            general_warn,
+            "x" = paste0(
+              "Failed to read the agenda file '{agenda}': ",
+              conditionMessage(cnd),
+              "."
+            )
+          ),
+          wrap = TRUE
+        )
+
+        return(NULL)
+      },
+      error = function(cnd) {
+        cli::cli_warn(
+          c(
+            general_warn,
+            "x" = paste0(
+              "Failed to read the agenda file '{agenda}': ",
+              conditionMessage(cnd),
+              "."
+            )
+          ),
+          wrap = TRUE
+        )
+
+        return(NULL)
+      }
+    )
+
+    if (is.null(agenda_from_file)) {
+      return(FALSE)
+    }
+
+    agenda <- agenda_from_file
   }
 
   # Check if the agenda is a list
@@ -303,8 +339,29 @@ validate_agenda <- function(
 #' @return Nothing, will throw an error if the summary tree is not consistent.
 check_summary_tree_consistency <- function(summary_tree) {
   if (is.character(summary_tree)) {
-    # Potential error source if dget fails, wrap in tryCatch?
-    summary_tree <- dget(summary_tree)
+    summary_tree_from_file <- tryCatch(
+      dget(summary_tree),
+      warning = function(cnd) {
+        cli::cli_abort(
+          c(
+            "Failed to read the summary tree file '{summary_tree}'.",
+            "x" = conditionMessage(cnd)
+          ),
+          parent = cnd
+        )
+      },
+      error = function(cnd) {
+        cli::cli_abort(
+          c(
+            "Failed to read the summary tree file '{summary_tree}'.",
+            "x" = conditionMessage(cnd)
+          ),
+          parent = cnd
+        )
+      }
+    )
+
+    summary_tree <- summary_tree_from_file
   }
 
   if (length(summary_tree) == 0) {

@@ -12,6 +12,20 @@ test_that("reports mismatching ids for nameless summary tree", {
     fixed = TRUE
   )
 })
+
+test_that("fails gracefully when summary tree file is malformed", {
+  withr::with_tempdir({
+    malformed_path <- file.path(getwd(), "malformed_summary_tree.txt")
+    writeLines("not valid R code", con = malformed_path)
+
+    expect_error(
+      check_summary_tree_consistency(malformed_path),
+      "Failed to read the summary tree file",
+      fixed = TRUE
+    )
+  })
+})
+
 test_that("validate_agenda_element handles empty agenda element", {
   {
     # from = TRUE to trigger deeper checks if not empty
@@ -410,7 +424,24 @@ test_that("validate_agenda handles file path inputs correctly", {
     )
   expect_false(res_no_file)
 
+  malformed_file_path <- file.path(temp_dir, "malformed_agenda.txt")
+  writeLines("not valid R code", con = malformed_file_path)
+
+  {
+    res_malformed_file <- validate_agenda(malformed_file_path)
+  } |>
+    expect_warning(
+      regexp = "Failed to read the agenda file",
+      fixed = TRUE
+    )
+  expect_false(res_malformed_file)
+
   # Clean up temp files (optional, as tempdir() handles it, but good practice
   # for clarity)
-  unlink(c(valid_file_path, invalid_file_path, not_list_file_path))
+  unlink(c(
+    valid_file_path,
+    invalid_file_path,
+    not_list_file_path,
+    malformed_file_path
+  ))
 })
