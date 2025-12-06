@@ -1,0 +1,177 @@
+---
+description: 
+globs: tests/testthat/*.R
+alwaysApply: false
+---
+You are an AI assistant integrated in a code editor. Your job is to **write or edit R unit-test files** for the tested R package. These files live under `tests/testthat/` and start with `test-`.
+**Follow *exactly* the style conventions listed below.**
+In general follow the guidelines in the code already used in the tests/testthat files.
+
+---
+
+# Procedure
+
+1. Start by writing the test_that() skeleton of all the test it make sense to implement for a given code file, without implementing them. In each write a comment with the instruction about what to test.
+2. Implement each test one by one and after each implementation use devtools::test(filter="test_file_name_matching_string") to see if the tests work.
+3. Iterate until all the test succeed (no Failures or Warnings), and then pass at the next test.
+4. Continue until all tests are successfully implemented.
+
+
+---
+
+## Formatting & structure
+
+1. **Indentation:** 2 spaces, never tabs.
+2. **Line length:** hard-wrap at **80 characters**; break after commas in long argument lists.
+3. **Namespace usage:** **Never call `library()`** or `require()` for functions not in the tested pacakge. Always use explicit namespaces (`pkg::fun()`) for external package functions. NEVER namespace functions from the tested package.
+4. **File header:** keep empty unless you must declare globals; never load external packages.
+5. **Section headers:** start each logical group with a separator comment, followed by one blank line:
+
+```
+# Tests for <function>() ------------------------------------------------
+```
+
+6. **Helper code:** place helper functions **above** the tests in a
+```
+# Helper functions ------------------------------------------------
+```
+section. Each function name should start with helper_
+7. **Blank lines:** exactly one blank line between `test_that()` blocks.
+8. **Lists:** when `list(` spans >1 line, put each element on its own line, align keys, close with `)` on its own line.
+9. **Pipes:** use the native `|>`; never magrittr `%>%`.
+10. **Comments:** single `#`, **above** the line(s) they annotate; avoid inline comments so as not to exceed 80 chars.
+11. **Deprecated constructs:** never call `testthat::context()`; it is obsolete and should not appear in new tests. Never use the mockery package since it's deprecated in favor of `testthat::local_mocked_bindings()`.
+
+---
+
+## Naming
+
+* Test file names: `test-<snake_case_topic>.R`.
+* `test_that()` descriptions: imperative, concise, lowercase except proper nouns—e.g. "parses ISO dates correctly".
+* Prefer descriptive variable names (`sample_agenda`, `env_warn`); avoid one-letter vars.
+
+---
+
+## Expectations
+
+Use the **most specific** expectation available:
+
+| scenario                      | expectation function                    |
+| ----------------------------- | --------------------------------------- |
+| identity / type               | `expect_identical()`                    |
+| numeric equality w/ tolerance | `expect_equal()`                        |
+| boolean truthiness            | `expect_true()` / `expect_false()`      |
+| string pattern (literal)      | `expect_match(..., fixed = TRUE)`       |
+| length check                  | `expect_length()`                       |
+| set membership                | `expect_setequal()` / `expect_contains()` / `expect_in()` / `expect_mapequal()` |
+| warnings                      | `expect_warning()`                      |
+| errors                        | `expect_error()`                        |
+
+* Always prefer a **specific expectation** rather than constructing the expected result via code and using `expect_true()` or `expect_equal()`. This practice avoids generic error messages and makes it clear why the test failed.
+* Examples:
+
+  * Instead of `expect_true(grepl("pattern", x))`, use `expect_match(x, "pattern", fixed = TRUE)`.
+  * Instead of `expect_equal(length(x), 3)`, use `expect_length(x, 3)`.
+  * Instead of `expect_true(all(val %in% set))`, use `expect_in(val, set)` or `expect_contains(set, val)`.
+  * Instead of e.g. `expect_true(is.character(x))`, `expect_true(is.list(x))` use `expect_type(x, "character")`, `expect_type(x, "list")`
+  This practice ensures that error messages are more informative and directly reflect the failed expectation.
+* Prefer `expect_identical()` over `expect_equal()` unless tolerance is required.
+* Avoid `expect_snapshot()`; instead generate data **on the fly** or in a temporary folder (`withr::with_tempdir()`).
+* Use `expect_warning()` when expecting only one warning from a function.
+* When expecting **multiple warnings**, or a combination of warnings and an error, from a single function call, chain the `expect_warning()` and `expect_error()` calls. The order of `expect_warning()` calls for the same warning message does not matter, but all expected warnings must be listed even if they are repeated. If an error is also expected, it should typically be the last item in the chain.
+* This chained approach allows `testthat` to react to any unexpected warnings or errors while catching the expected ones.
+* If you need to capture the function's return value while also checking for conditions, enclose the function call and assignment in curly braces `{}` before piping to the expectations.
+
+  Example of chaining expectations:
+  ```r
+  test_that("test with multiple expectations", {
+    foo <- \() {
+      cli::cli_warn("Warning message 1")
+      cli::cli_warn("Warning message 1") # Repeated warning
+      cli::cli_warn("Warning message 2")
+      cli::cli_abort("Error message 1")
+    }
+
+    bar <- \() {
+      cli::cli_warn("Another warning 1")
+      cli::cli_warn("Another warning 2")
+      TRUE # Return value
+    }
+
+    # Expect multiple warnings and then an error
+    foo() |>
+      expect_warning("Warning message 1") |>
+      expect_warning("Warning message 2") |>
+      expect_warning("Warning message 1") |> # Order for same message doesn't matter
+      expect_error("Error message 1")
+
+    # Expect multiple warnings and capture the return value
+    {
+      return_value <- bar()
+    } |>
+      expect_warning("Another warning 1") |>
+      expect_warning("Another warning 2")
+
+    expect_true(return_value)
+  })
+  ```
+* When testing complex return objects (e.g., data frames, lists), strive to define a complete `expected` object and use a single `expect_equal(result, expected)` comparison. This approach is typically more comprehensive and easier to maintain than asserting individual properties with multiple separate expectations (e.g., `expect_identical(result$colA, ...)`, `expect_length(result$colB, ...)`). Fall back to individual property checks only if a specific property requires a different type of expectation (like `expect_match`) or a more nuanced validation not covered by `expect_equal`.
+
+---
+
+## Mocking & temporary state
+
+* Use `withr` helpers (`with_tempdir()`, `with_options()`, `with_envvar()`, etc) for isolation.
+* Use `testthat::local_mocked_bindings()` for mocks (supersedes the `mockery` package).
+
+  ```r
+  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+    testthat::local_mocked_bindings(
+      set_llmr_model = function(...) invisible(NULL),
+      .package = "llmR"
+    )
+
+    expect_error(
+      correct_transcription_errors("text", include_reasoning = "true_string"),
+      "must be a single logical value"
+    )
+  })
+  ```
+- Important: Never mock functions from the base package since you'll probably break something. Do it only strictly necessary and consider it as possible culprit in case of a test failure.
+---
+
+## Edge-case coverage checklist
+
+* `NULL`, `NA`, empty strings, empty lists.
+* Non-existent files / paths.
+* Invalid enum values.
+* Out-of-range times & dates (e.g. "25:00").
+* Vectorised inputs (mix valid & invalid in one call).
+* Locale/time-zone independence (`Sys.setlocale`, `Sys.setenv(TZ = "UTC")`).
+
+---
+
+## Running tests
+
+ALWAYS run tests after creating or editing test files.
+use `Rscript -e 'devtools::test()'` to run all tests and `Rscript -e 'devtools::test(filter = "text")'` with `text` being a string that identify one or more files to be tested, e.g., if we have two files: "test-utils.R" and "test-formatting_utils", using `filter = "formatting_utils"` would test the second while `filter = "utils"` would test both.
+
+If a test keep failing, double check your assumptions by running small reprexes in the terminal. Remember to prepend these reprexes with devtools::load_all() if the tested package functions are involved.
+
+---
+
+## 🔒 Source-code editing policy (CRITICAL)
+
+**Never edit production source files unless you are *absolutely certain* you are fixing a genuine security or data-validation vulnerability.**
+
+* When a test fails, assume the **test code is wrong**, not the implementation, expecially if we are writing a new test file to test existing code.
+* If you believe a change to the implementation is required, **stop and ask the user for approval first**, providing a detailed justification of the suspected issue.
+* Minor refactors, stylistic tweaks, or adding arguments are **forbidden** unless explicitly requested by the user.
+
+## Finishing touches
+
+* End every file with a newline; no trailing whitespace.
+* Prefer `rlang::` helpers; import nothing.
+* Keep tests deterministic—avoid network IO and randomness unless `set.seed()` is used.
+
+---

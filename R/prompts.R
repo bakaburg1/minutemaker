@@ -21,8 +21,8 @@
 #'   instructions and the placeholder for extra custom instructions.
 #' @param audience_template The template for inserting the audience and summary
 #'   focus description.
-#' @param summary_template The template for inserting the summary structure
-#'   instructions.
+#' @param summarisation_template The template for inserting the summary
+#'   structure instructions.
 #' @param summary_structure The default summary structure instructions.
 #' @param output_template The general output instruction template, with
 #'   placeholders for trascript summarisation/summaries' aggregation output
@@ -40,25 +40,24 @@
 #' @export
 #'
 set_prompts <- function(
-    persona = NULL,
-    base_task = NULL,
-    aggregate_task_rolling = NULL,
-    event_description_template = NULL,
-    recording_details_template = NULL,
-    transcript_template = NULL,
-    aggregate_template_rolling = NULL,
-    vocabulary_template = NULL,
-    diarization_template = NULL,
-    audience_template = NULL,
-    summary_template = NULL,
-    summary_structure = NULL,
-    output_template = NULL,
-    output_summarisation = NULL,
-    output_rolling_aggregation = NULL,
+  persona = NULL,
+  base_task = NULL,
+  aggregate_task_rolling = NULL,
+  event_description_template = NULL,
+  recording_details_template = NULL,
+  transcript_template = NULL,
+  aggregate_template_rolling = NULL,
+  vocabulary_template = NULL,
+  diarization_template = NULL,
+  audience_template = NULL,
+  summarisation_template = NULL,
+  summary_structure = NULL,
+  output_template = NULL,
+  output_summarisation = NULL,
+  output_rolling_aggregation = NULL,
 
-    force = TRUE
+  force = TRUE
 ) {
-
   # Get the arguments as a list
   args <- as.list(environment())
 
@@ -96,12 +95,15 @@ set_prompts <- function(
         ]
        }
        ###",
-      "Important: process the whole transcript, do not be lazy: your agenda should cover the entirety of the transcript."),
+      "Important: process the whole transcript, do not be lazy: your agenda should cover the entirety of the transcript."
+    ),
 
     event_description_template = collapse(
       "The following is a description of the event in which the talk/meeting took place, which will provide you with context.",
       "Use this information only to understand the context of the transcript, do not include it in the summary.",
-      "<event_description>", "{event_description}", "</event_description>"
+      "<event_description>",
+      "{event_description}",
+      "</event_description>"
     ),
 
     recording_details_template = collapse(
@@ -113,7 +115,9 @@ set_prompts <- function(
 
     transcript_template = collapse(
       "Here is the transcript segment you need to summarise:",
-      "<transcript>", "{transcript}", "</transcript>"
+      "<transcript>",
+      "{transcript}",
+      "</transcript>"
     ),
 
     aggregate_template_rolling = "Here are the segment summaries to aggregate:",
@@ -202,11 +206,12 @@ set_prompts <- function(
 
     # If the current prompt is NULL or 'force' is TRUE, set the prompt
     if (is.null(current_prompt) || force) {
-
       # Raise a warning if the new prompt is different from the current one
       if (!is.null(current_prompt) && !identical(current_prompt, prompt)) {
-        warning("The prompt for '", prompt_name, "' is being overwritten.",
-                call. = FALSE, immediate. = TRUE)
+        cli::cli_warn(
+          "Overwriting existing prompt for {.val {prompt_name}} because
+            {.code force = TRUE}."
+        )
       }
 
       prompt |>
@@ -229,7 +234,6 @@ set_prompts <- function(
 #'
 #' @export
 get_prompts <- function(which = NULL) {
-
   # Get the names of the valid options
   valid_options <- names(options()) |>
     stringr::str_subset("minutemaker_prompt_") |>
@@ -237,7 +241,14 @@ get_prompts <- function(which = NULL) {
 
   # Check if the requested prompts are valid
   if (!is.null(which) && any(!which %in% valid_options)) {
-    stop("Invalid prompt name: ", which[!which %in% valid_options])
+    invalid_prompts <- which[!which %in% valid_options]
+    cli::cli_abort(
+      c(
+        "Invalid prompt name(s) requested:",
+        "x" = "Unknown prompt name{?s}: {.val {invalid_prompts}}.",
+        "i" = "Valid prompt names are: {.val {valid_options}}."
+      )
+    )
   }
 
   # If no prompts are requested, return all the prompts
@@ -246,9 +257,13 @@ get_prompts <- function(which = NULL) {
   }
 
   # Get the prompts
-  prompts <- purrr::map(which, ~ {
-    getOption(paste0("minutemaker_prompt_", .x))
-  }) |> purrr::set_names(which)
+  prompts <- purrr::map(
+    which,
+    ~ {
+      getOption(paste0("minutemaker_prompt_", .x))
+    }
+  ) |>
+    purrr::set_names(which)
 
   # If only one prompt is requested, return it as an unnamed vector
   if (length(which) == 1) {
@@ -256,7 +271,6 @@ get_prompts <- function(which = NULL) {
   }
 
   prompts
-
 }
 
 
@@ -272,9 +286,50 @@ get_prompts <- function(which = NULL) {
 #' @return A summarisation prompt used by `summarise_transcript()`.
 #'
 generate_summarisation_prompt <- function(
-    transcript,
-    args
+  transcript,
+  args
 ) {
+  maybe <- function(x, value, cond = !is.null(x)) {
+    if (isTRUE(cond)) value else NULL
+  }
+
+  # Expose template placeholders as variables for glue substitution
+  base_task <- get_prompts("base_task")
+  transcript_template <- get_prompts("transcript_template")
+  event_description_prompt <- maybe(
+    args$event_description,
+    get_prompts("event_description_template")
+  )
+  recording_details_prompt <- maybe(
+    args$recording_details,
+    get_prompts("recording_details_template")
+  )
+  vocab_prompt <- maybe(args$vocabulary, get_prompts("vocabulary_template"))
+  audience_prompt <- maybe(args$audience, get_prompts("audience_template"))
+  summarisation_template <- get_prompts("summarisation_template")
+  diarization_template <- get_prompts("diarization_template")
+  output_template <- get_prompts("output_template")
+  args$output_summarisation <- get_prompts("output_summarisation") |>
+    paste(collapse = "\n")
+
+  vocab_block <- NULL
+  if (!is.null(args$vocabulary)) {
+    # Format the vocabulary argument if a vector is provided
+    args$vocabulary <- paste0(
+      "- ",
+      args$vocabulary,
+      collapse = "\n"
+    )
+    vocab_block <- vocab_prompt
+  }
+
+  summarisation_block <- maybe(args$summary_structure, summarisation_template)
+  diarization_block <- maybe(
+    NULL,
+    diarization_template,
+    cond = isTRUE(args$consider_diarization)
+  )
+  audience_block <- maybe(args$audience, audience_prompt)
 
   args$output_instructions <- c(
     get_prompts("output_summarisation"),
@@ -296,67 +351,33 @@ generate_summarisation_prompt <- function(
     args$output_length <- "3"
   }
 
+  args$transcript <- transcript
+
   # Aggregate arguments if length > 1 vectors
   if (length(args$extra_diarization_instructions) > 1) {
     args$extra_diarization_instructions <- paste(
-      args$extra_diarization_instructions, collapse = "\n"
+      args$extra_diarization_instructions,
+      collapse = "\n"
     )
   }
 
   if (length(args$summary_structure) > 1) {
     args$summary_structure <- paste(
-      args$summary_structure, collapse = "\n"
+      args$summary_structure,
+      collapse = "\n"
     )
   }
 
   prompt <- paste(
-
-    get_prompts("base_task"),
-
-    if (!is.null(args$event_description)) {
-      # Uses the {event_description} argument
-      get_prompts("event_description_template")
-    },
-
-    #  Uses the {recording_details} as generated by
-    #  generate_recording_details()
-    if (!is.null(args$recording_details)) {
-      get_prompts("recording_details_template")
-    },
-
-    # Uses the {transcript} argument
-    get_prompts("transcript_template"),
-
-    if (!is.null(args$vocabulary)) {
-      # Format the vocabulary argument if a vector is provided
-      args$vocabulary <- paste0(
-        "- ",
-        args$vocabulary,
-        collapse = "\n"
-      )
-
-      # Uses the {vocabulary} argument
-      get_prompts("vocabulary_template")
-    },
-
-    # Uses the {summary_structure} argument
-    if (!is.null(args$summary_structure)) {
-      get_prompts("summarisation_template")
-    },
-
-    # Uses the {extra_diarization_instructions} argument
-    if (args$consider_diarization) {
-      get_prompts("diarization_template")
-    },
-
-    # Uses the {audience} argument
-    if (!is.null(args$audience)) {
-      get_prompts("audience_template")
-    },
-
-    # Uses the {extra_output_instructions} argument
-    get_prompts("output_template"),
-
+    base_task,
+    event_description_prompt,
+    recording_details_prompt,
+    transcript_template,
+    vocab_block,
+    summarisation_block,
+    diarization_block,
+    audience_block,
+    output_template,
     sep = "\n\n"
   ) |>
     stringr::str_replace_all("\n\n+", "\n\n") # remove multiple newlines
@@ -364,8 +385,10 @@ generate_summarisation_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{.arg {names(args)[long_arguments]}}"
+    )
   }
 
   # leaving .null as default produces character(0) if any of the {vars} is
@@ -385,9 +408,45 @@ generate_summarisation_prompt <- function(
 #' @return A summarisation prompt used by `summarise_transcript()`.
 #'
 generate_rolling_aggregation_prompt <- function(
-    summaries,
-    args
+  summaries,
+  args
 ) {
+  maybe <- function(x, value, cond = !is.null(x)) {
+    if (isTRUE(cond)) value else NULL
+  }
+
+  # Expose template placeholders as variables for glue substitution
+  base_task <- get_prompts("base_task")
+  transcript_template <- get_prompts("transcript_template")
+  event_description_prompt <- maybe(
+    args$event_description,
+    get_prompts("event_description_template")
+  )
+  recording_details_prompt <- maybe(
+    args$recording_details,
+    get_prompts("recording_details_template")
+  )
+  vocab_prompt <- maybe(args$vocabulary, get_prompts("vocabulary_template"))
+  audience_prompt <- maybe(args$audience, get_prompts("audience_template"))
+  aggregate_task_rolling <- get_prompts("aggregate_task_rolling")
+  aggregate_template_rolling <- get_prompts("aggregate_template_rolling")
+  summarisation_template <- get_prompts("summarisation_template")
+  output_template <- get_prompts("output_template")
+  args$output_summarisation <- get_prompts("output_summarisation") |>
+    paste(collapse = "\n")
+
+  vocab_block <- NULL
+  if (!is.null(args$vocabulary)) {
+    args$vocabulary <- paste0(
+      "- ",
+      args$vocabulary,
+      collapse = "\n"
+    )
+    vocab_block <- vocab_prompt
+  }
+
+  summarisation_block <- maybe(args$summary_structure, summarisation_template)
+  audience_block <- maybe(args$audience, audience_prompt)
 
   args$output_instructions <- c(
     get_prompts("output_rolling_aggregation"),
@@ -412,46 +471,31 @@ generate_rolling_aggregation_prompt <- function(
   # Aggregate arguments if length > 1 vectors
   if (length(args$summary_structure) > 1) {
     args$summary_structure <- paste(
-      args$summary_structure, collapse = "\n"
+      args$summary_structure,
+      collapse = "\n"
     )
   }
 
   summary_seq <- seq_along(summaries)
 
   summaries <- stringr::str_glue(
-    "<segment_summary_{summary_seq}>\n{summaries}\n</segment_summary_{summary_seq}>") |>
+    "<segment_summary_{summary_seq}>\n{summaries}\n</segment_summary_{summary_seq}>"
+  ) |>
     paste(collapse = "\n\n")
 
   prompt <- paste(
-    get_prompts("aggregate_task_rolling"),
-
-    if (!is.null(args$event_description)) {
-      get_prompts("event_description_template")
-    },
-
-    #  Uses the {recording_details} as generated by
-    #  generate_recording_details()
-    if (!is.null(args$recording_details)) {
-      get_prompts("recording_details_template")
-    },
-
-    get_prompts("aggregate_template_rolling"),
+    aggregate_task_rolling,
+    event_description_prompt,
+    recording_details_prompt,
+    aggregate_template_rolling,
 
     # Append the summaries
     summaries,
 
-    # Uses the {summary_structure} argument
-    if (!is.null(args$summary_structure)) {
-      get_prompts("summarisation_template")
-    },
-
-    # Uses the {audience} argument
-    if (!is.null(args$audience)) {
-      get_prompts("audience_template")
-    },
-
-    # Uses the {extra_output_instructions} argument
-    get_prompts("output_template"),
+    vocab_block,
+    summarisation_block,
+    audience_block,
+    output_template,
 
     sep = "\n\n"
   )
@@ -459,14 +503,15 @@ generate_rolling_aggregation_prompt <- function(
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{.arg {names(args)[long_arguments]}}"
+    )
   }
 
   # leaving .null as default produces character(0) if any of the {vars} is
   # NULL
   stringr::str_glue_data(prompt, .x = args, .null = NULL)
-
 }
 
 
@@ -484,10 +529,9 @@ generate_rolling_aggregation_prompt <- function(
 #' @return A prompt used by `infer_agenda_from_transcript()`.
 #'
 generate_agenda_inference_prompt <- function(
-    transcript_segment,
-    args
+  transcript_segment,
+  args
 ) {
-
   if (is.data.frame(transcript_segment)) {
     transcript_segment <- readr::format_csv(transcript_segment)
   }
@@ -505,15 +549,18 @@ generate_agenda_inference_prompt <- function(
   # extra_diarization_instructions argument
   if (length(args$diarization_instructions) > 0) {
     args$extra_diarization_instructions <- paste(
-      args$diarization_instructions, collapse = "\n"
+      args$diarization_instructions,
+      collapse = "\n"
     )
   }
 
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{.arg {names(args)[long_arguments]}}"
+    )
   }
 
   prompt <- paste(
@@ -553,7 +600,8 @@ Take speakers, topics, and timings into consideration in your reasoning. The rea
           "The agenda is expected to have the following talks: ###
 {expected_agenda}
 ###
-Try to match the agenda you generated to this structure.")
+Try to match the agenda you generated to this structure."
+        )
       },
 
       'Your output will be a JSON object with two components: your reasoning and the start times of each identified talks. Here\'s an example of the output structure:
@@ -566,7 +614,7 @@ Try to match the agenda you generated to this structure.")
 
 Important: process the whole transcript, do not be lazy: your agenda WILL cover the entirety of the transcript, FROM START TO END WITHOUT TIME HOLES.',
 
-      sep ="\n"
+      sep = "\n"
     )
 }
 
@@ -584,10 +632,9 @@ Important: process the whole transcript, do not be lazy: your agenda WILL cover 
 #' @return A prompt used by `infer_agenda_from_transcript()`.
 #'
 generate_agenda_element_prompt <- function(
-    transcript_segment,
-    args
+  transcript_segment,
+  args
 ) {
-
   if (is.data.frame(transcript_segment)) {
     transcript_segment <- readr::format_csv(transcript_segment)
   }
@@ -605,15 +652,18 @@ generate_agenda_element_prompt <- function(
   # extra_diarization_instructions argument
   if (length(args$diarization_instructions) > 0) {
     args$extra_diarization_instructions <- paste(
-      args$diarization_instructions, collapse = "\n"
+      args$diarization_instructions,
+      collapse = "\n"
     )
   }
 
   long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
 
   if (any(long_arguments)) {
-    stop("All arguments in args should have length 1:\n",
-         stringr::str_flatten_comma(names(args)[long_arguments]))
+    cli::cli_abort(
+      "All arguments in args should have length
+      1:{.arg {names(args)[long_arguments]}}"
+    )
   }
 
   prompt <- paste(
@@ -642,7 +692,7 @@ The transcript is formatted as a csv with the start and end time of each segment
   ) |>
     stringr::str_glue_data(.x = args, .null = NULL) |>
     paste(
-    'Your task is to extract a title and a short description (1-2 sentences max) for this talk, considering that it\'s part of a larger event. Assign also a label, e.g., welcome talk, conference outline, conference talk, meeting discussion, Q&A session, etc... (the start/end times can be helpful for this). Extract also the speakers and the moderators (if any). Format your output as a JSON object with the following structure: ###
+      'Your task is to extract a title and a short description (1-2 sentences max) for this talk, considering that it\'s part of a larger event. Assign also a label, e.g., welcome talk, conference outline, conference talk, meeting discussion, Q&A session, etc... (the start/end times can be helpful for this). Extract also the speakers and the moderators (if any). Format your output as a JSON object with the following structure: ###
         {
             title = "The talk title",
             type = "A label to define the talk",
@@ -652,14 +702,16 @@ The transcript is formatted as a csv with the start and end time of each segment
            }
         ###',
 
-    if (!is.null(args$expected_agenda_element)) {
-      paste("The event expected agenda is the following, so try to match the extracted talk to this structure. But feel free to describe a novel element if you cannot find a logical match, since there could have been unexpected changes in the agenda: ###\n",
-            args$expected_agenda_element,
-            "\n###")
-    },
+      if (!is.null(args$expected_agenda_element)) {
+        paste(
+          "The event expected agenda is the following, so try to match the extracted talk to this structure. But feel free to describe a novel element if you cannot find a logical match, since there could have been unexpected changes in the agenda: ###\n",
+          args$expected_agenda_element,
+          "\n###"
+        )
+      },
 
-    "Provide your output.",
+      "Provide your output.",
 
-    sep = "\n\n"
-  )
+      sep = "\n\n"
+    )
 }

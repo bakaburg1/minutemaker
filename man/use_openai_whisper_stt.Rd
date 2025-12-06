@@ -9,7 +9,9 @@ use_openai_whisper_stt(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  api_key = getOption("minutemaker_openai_api_key")
+  api_key = getOption("minutemaker_openai_api_key"),
+  max_retries = 3,
+  .retry_count = 0
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ segment.}
 
 \item{api_key}{The OpenAI API key. If not provided, it will be retrieved from
 the global options.}
+
+\item{max_retries}{Maximum number of retries for temporary errors.}
+
+\item{.retry_count}{Internal counter for tracking retry attempts.}
 }
 \value{
 A list with the full transcript and the transcription by segments.

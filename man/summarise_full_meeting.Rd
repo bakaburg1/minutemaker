@@ -52,8 +52,8 @@ time is not the start time of the event.}
 \item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}
 
-\item{audience}{The audience of the event See \code{summarise_transcript}
-for more details.}
+\item{audience}{The audience of the event See \code{summarise_transcript} for more
+details.}
 
 \item{vocabulary}{The vocabulary used in the meeting. See
 \code{summarise_transcript} for more details.}

@@ -15,7 +15,7 @@ set_prompts(
   vocabulary_template = NULL,
   diarization_template = NULL,
   audience_template = NULL,
-  summary_template = NULL,
+  summarisation_template = NULL,
   summary_structure = NULL,
   output_template = NULL,
   output_summarisation = NULL,
@@ -50,8 +50,8 @@ instructions and the placeholder for extra custom instructions.}
 \item{audience_template}{The template for inserting the audience and summary
 focus description.}
 
-\item{summary_template}{The template for inserting the summary structure
-instructions.}
+\item{summarisation_template}{The template for inserting the summary
+structure instructions.}
 
 \item{summary_structure}{The default summary structure instructions.}
 

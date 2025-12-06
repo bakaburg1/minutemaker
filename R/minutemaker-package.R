@@ -8,7 +8,7 @@
 #' @import dplyr
 "_PACKAGE"
 
-onLoad <- function(libname, pkgname) {
+# Initialize prompt options when the package loads
+.onLoad <- function(libname, pkgname) {
   set_prompts()
 }
-
