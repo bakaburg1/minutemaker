@@ -385,7 +385,7 @@ use_azure_whisper_stt <- function(
 
     wait_for <- stringr::str_extract(
       httr::content(response, "text", encoding = "UTF-8"),
-      "\\d+(?= seconds)"
+      "\\d+(?= seconds?)"
     ) |>
       as.numeric()
 
