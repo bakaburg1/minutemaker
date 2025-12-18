@@ -26,12 +26,12 @@ format_summary_tree <- function(
   output_file = NULL
 ) {
   # If summary_tree is a file path, load the data from the file
-  if (is.character(summary_tree) && file.exists(summary_tree)) {
+  if (rlang::is_string(summary_tree) && fs::file_exists(summary_tree)) {
     summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
   # Import agenda from file
-  if (is.character(agenda)) {
+  if (rlang::is_string(agenda)) {
     agenda <- load_serialized(agenda, "agenda")
   }
 
@@ -134,7 +134,7 @@ format_agenda <- function(
   event_start_time = getOption("minutemaker_event_start_time")
 ) {
   # Import agenda from file
-  if (is.character(agenda)) {
+  if (rlang::is_string(agenda)) {
     agenda <- load_serialized(agenda, "agenda")
   }
 

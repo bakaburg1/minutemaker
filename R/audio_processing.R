@@ -107,6 +107,17 @@ split_audio <- function(
   output_folder = file.path(dirname(audio_file), "recording_parts"),
   parallel = getOption("minutemaker_split_audio_parallel", FALSE)
 ) {
+  if (!rlang::is_string(audio_file) || audio_file == "") {
+    cli::cli_abort(
+      c(
+        "No valid audio file provided to {.fn split_audio}.",
+        "x" = "Received {.val {audio_file}}.",
+        "i" = "Provide a path to an existing audio file (e.g., .wav, .mp3, .mp4).",
+        "i" = "If you are starting from an existing transcript, bypass audio splitting by supplying {.code external_transcript} to {.fn speech_to_summary_workflow}."
+      )
+    )
+  }
+
   # Check if the av package is installed and ask to install it if not
   rlang::check_installed("av")
 

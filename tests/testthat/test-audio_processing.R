@@ -32,6 +32,17 @@ helper_create_test_audio <- function(path, valid = TRUE) {
 }
 
 # -------------------------------------------------------------------------
+# Unit Tests for split_audio() input validation ----------------------------
+# -------------------------------------------------------------------------
+
+test_that("split_audio errors clearly on NA audio_file", {
+  expect_error(
+    split_audio(NA_character_, segment_duration = 1, parallel = FALSE),
+    regexp = "No valid audio file provided to.*split_audio"
+  )
+})
+
+# -------------------------------------------------------------------------
 # Integration Tests for split_audio() -------------------------------------
 # -------------------------------------------------------------------------
 
