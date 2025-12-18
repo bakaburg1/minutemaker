@@ -579,23 +579,29 @@ Apply these rules to your JSON output if corrections are made:
 
   messages_payload <- c(system = system_prompt, user = full_text_for_llm)
 
-  # Default LLM parameters. Reasoning models do not accept temperature, so use
-  # reasoning_effort there and keep temperature only for non-reasoning calls.
+  # Default LLM parameters.
+  #
+  # `include_reasoning` indicates whether we force the model to produce
+  # explicit reasoning in the *prompt* (useful for non-reasoning models).
+  #
+  # When `include_reasoning` is FALSE, the caller is assumed to be using a
+  # reasoning-capable model and we default to `reasoning_effort`. This keeps
+  # behavior aligned with the intent of `include_reasoning` and avoids sending
+  # `reasoning_effort` to non-reasoning endpoints (e.g. Azure GPT-4.1) when
+  # `include_reasoning` is TRUE.
   base_llm_params <- if (include_reasoning) {
-    list(reasoning_effort = "medium")
-  } else {
     list(temperature = 0)
+  } else {
+    list(reasoning_effort = "medium")
   }
 
   # Allow user-provided parameters to override defaults
   final_llm_params <- purrr::list_modify(base_llm_params, !!!llm_extra_params)
 
-  # Guard against passing temperature to reasoning models.
-  if (include_reasoning && "temperature" %in% names(final_llm_params)) {
-    final_llm_params <- final_llm_params[setdiff(
-      names(final_llm_params),
-      "temperature"
-    )]
+  # Guard against passing temperature alongside `reasoning_effort` (many
+  # reasoning endpoints reject temperature or only accept a constrained value).
+  if ("reasoning_effort" %in% names(final_llm_params)) {
+    final_llm_params$temperature <- NULL
   }
 
   llm_response_str <- NULL

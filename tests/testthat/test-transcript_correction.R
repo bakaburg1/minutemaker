@@ -942,4 +942,84 @@ test_that("apply_llm_correction properly handles corrections_applied field", {
   expect_identical(final_data3$text, "Ths is a tst transcript.")
 })
 
+test_that("correct_transcription_errors uses temperature for non-reasoning models even when include_reasoning=TRUE", {
+  withr::with_options(
+    list(
+      minutemaker_correction_llm_model = "mm_gpt-4.1_azure",
+      llmr_current_model = "mm_gpt-4.1_azure"
+    ),
+    {
+      captured_params <- NULL
+      captured_messages <- NULL
+
+      testthat::local_mocked_bindings(
+        prompt_llm = function(messages, params, force_json, ...) {
+          captured_messages <<- messages
+          captured_params <<- params
+          "<json_corrections_output>NO_CHANGES_NEEDED</json_corrections_output>"
+        },
+        set_llmr_model = function(...) invisible(NULL),
+        .package = "llmR"
+      )
+
+      res <- correct_transcription_errors(
+        text_to_correct = "Some transcript text",
+        terms = NULL,
+        include_reasoning = TRUE
+      )
+
+      expect_identical(res$status, "no_changes_signal")
+      expect_true("temperature" %in% names(captured_params))
+      expect_identical(captured_params$temperature, 0)
+      expect_false("reasoning_effort" %in% names(captured_params))
+      expect_true(
+        stringr::str_detect(
+          captured_messages[["system"]],
+          "REASON STEP BY STEP"
+        )
+      )
+    }
+  )
+})
+
+test_that("correct_transcription_errors uses reasoning_effort when include_reasoning=FALSE and omits temperature", {
+  withr::with_options(
+    list(
+      minutemaker_correction_llm_model = "mm_any_reasoning_model",
+      llmr_current_model = "mm_any_reasoning_model"
+    ),
+    {
+      captured_params <- NULL
+      captured_messages <- NULL
+
+      testthat::local_mocked_bindings(
+        prompt_llm = function(messages, params, force_json, ...) {
+          captured_messages <<- messages
+          captured_params <<- params
+          "<json_corrections_output>NO_CHANGES_NEEDED</json_corrections_output>"
+        },
+        set_llmr_model = function(...) invisible(NULL),
+        .package = "llmR"
+      )
+
+      res <- correct_transcription_errors(
+        text_to_correct = "Some transcript text",
+        terms = NULL,
+        include_reasoning = FALSE
+      )
+
+      expect_identical(res$status, "no_changes_signal")
+      expect_true("reasoning_effort" %in% names(captured_params))
+      expect_identical(captured_params$reasoning_effort, "medium")
+      expect_false("temperature" %in% names(captured_params))
+      expect_false(
+        stringr::str_detect(
+          captured_messages[["system"]],
+          "REASON STEP BY STEP"
+        )
+      )
+    }
+  )
+})
+
 cat("\nAll testthat tests for transcript_correction.R defined.\n")
