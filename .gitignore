@@ -52,3 +52,5 @@ rsconnect/
 .DS_Store
 .quarto
 experiments/
+tests/testthat/material/teams_json_out/
+tests/testthat/material/webex_json_out/
