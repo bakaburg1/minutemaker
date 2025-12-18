@@ -68,7 +68,7 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
             enable_llm_correction = FALSE,
             transcript_file = file.path(target_dir, "transcript.csv"),
             overwrite_transcript = TRUE,
-            transcript_to_merge = NULL,
+            external_transcript = NULL,
             chat_file = NULL,
             use_agenda = "no", # Simplifies flow, avoids agenda generation/use
             llm_provider = "mock_provider_arg",
@@ -89,4 +89,88 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
     expect_identical(result$transcript_data$text, "mocked transcript text")
     expect_identical(result$formatted_summary, "mock summary content")
   })
+})
+
+test_that("workflow errors clearly when neither audio nor transcript are available", {
+  withr::with_tempdir({
+    expect_error(
+      withr::with_options(
+        list(
+          minutemaker_stt_model = "mock_stt_model",
+          llmr_llm_provider = "mock_provider"
+        ),
+        speech_to_summary_workflow(
+          target_dir = ".",
+          external_transcript = NULL,
+          source_audio = NULL,
+          split_audio = FALSE,
+          overwrite_stt_audio = TRUE,
+          stt_audio_dir = file.path(".", "audio_to_transcribe"),
+          stt_output_dir = file.path(".", "transcription_output_data"),
+          stt_model = "mock_stt_model",
+          use_agenda = "no",
+          llm_provider = "mock_provider",
+          formatted_output_file = file.path(".", "event_summary.txt"),
+          enable_llm_correction = FALSE
+        )
+      ),
+      regexp = "No audio found for speech-to-text"
+    )
+  })
+})
+
+test_that("workflow accepts a file path as target_dir when a transcript is present", {
+  withr::with_tempdir({
+    script_path <- file.path(getwd(), "script.R")
+    file.create(script_path)
+
+    vtt_path <- file.path(getwd(), "transcript.vtt")
+    writeLines(
+      c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello from VTT"),
+      vtt_path
+    )
+
+    testthat::local_mocked_bindings(
+      perform_speech_to_text = function(...) {
+        stop("STT should be bypassed when transcript is available")
+      },
+      apply_llm_correction = function(...) {
+        stop("LLM correction should not run in this test")
+      },
+      summarise_transcript = function(...) {
+        "Mock summary from transcript-only path"
+      },
+      get_prompts = function(...) "Mock prompt"
+    )
+
+    result <- withr::with_options(
+      list(
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL
+      ),
+      speech_to_summary_workflow(
+        target_dir = script_path,
+        use_agenda = "no",
+        llm_provider = "mock_provider",
+        formatted_output_file = "summary.txt",
+        enable_llm_correction = FALSE
+      )
+    )
+
+    expect_named(result, c("transcript_data", "formatted_summary"))
+    expect_identical(result$formatted_summary, "Mock summary from transcript-only path")
+    expect_true(file.exists("transcription_output_data/external_transcript.json"))
+  })
+})
+
+test_that("workflow errors clearly on NA target_dir", {
+  expect_error(
+    speech_to_summary_workflow(
+      target_dir = NA_character_,
+      use_agenda = "no",
+      enable_llm_correction = FALSE,
+      llm_provider = NULL
+    ),
+    regexp = "Invalid `target_dir`"
+  )
 })
