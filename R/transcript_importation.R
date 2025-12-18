@@ -28,7 +28,7 @@ parse_transcript_json <- function(
   # Is the input a string?
   transcript_list <- if (is.character(transcript_json)) {
     # Is the string a path to a folder?
-    if (dir.exists(transcript_json)) {
+    if (fs::dir_exists(transcript_json)) {
       # Mark the input as a path
       file_input <- TRUE
 
@@ -56,7 +56,7 @@ parse_transcript_json <- function(
           )
         }
       )
-    } else if (file.exists(transcript_json)) {
+    } else if (fs::file_exists(transcript_json)) {
       # Is the string a path to a file?
 
       # Mark the input as a path
@@ -158,7 +158,7 @@ parse_transcript_json <- function(
     if (
       file_input &&
         (!rlang::is_scalar_character(json_files[i]) ||
-          !file.exists(json_files[i]))
+          !fs::file_exists(json_files[i]))
     ) {
       cli::cli_abort(
         c(
@@ -260,22 +260,139 @@ import_transcript_from_file <- function(
   transcript_file,
   import_diarization = TRUE
 ) {
-  # Read the file content
-  lines <- readLines(transcript_file, warn = FALSE)
-
   # Check the file extension to determine the format
-  file_extension <- tools::file_ext(transcript_file)
+  file_extension <- tolower(tools::file_ext(transcript_file))
+
+  if (file_extension == "docx") {
+    rlang::check_installed("officer")
+
+    doc <- tryCatch(
+      officer::read_docx(transcript_file),
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "Unsupported transcript format for {.file {basename(transcript_file)}}.",
+            "x" = "{e$message}",
+            "i" = "Ensure the DOCX is a valid Word document exported from MS Teams."
+          ),
+          parent = e
+        )
+      }
+    )
+    content <- officer::docx_summary(doc)
+
+    # MS Teams transcripts are typically tables or specific paragraph
+    # structures.
+    if (any(content$content_type == "table cell")) {
+      # Extract table data
+      table_data <- content |>
+        dplyr::filter(.data$content_type == "table cell") |>
+        dplyr::select("text", "row_id", "cell_id") |>
+        tidyr::pivot_wider(
+          names_from = "cell_id",
+          values_from = "text",
+          names_prefix = "col_"
+        )
+
+      # Teams tables usually have 3 columns: Time, Speaker, Message
+      # Plus the row_id column from pivot_wider
+      if (ncol(table_data) >= 4) {
+        # Helper function to parse a time string in "MM:SS" or "HH:MM:SS" format
+        # Returns the total number of seconds as a numeric value.
+        # - t: a character string, e.g., "01:23" for 1 minute 23 seconds, or
+        #   "01:23:45" for 1 hour 23 minutes 45 seconds.
+        # - Returns NA_real_ if the input cannot be parsed.
+        parse_relative_time <- function(t) {
+          parts <- as.numeric(stringr::str_split_1(t, ":"))
+          if (length(parts) == 2) {
+            # MM:SS format
+            return(parts[1] * 60 + parts[2])
+          } else if (length(parts) == 3) {
+            # HH:MM:SS format
+            return(parts[1] * 3600 + parts[2] * 60 + parts[3])
+          }
+          # If not matching expected time formats, return NA
+          NA_real_
+        }
+
+        transcript_data <- table_data |>
+          dplyr::transmute(
+            start = purrr::map_dbl(.data$col_1, parse_relative_time),
+            end = .data$start,
+            speaker = if (import_diarization) .data$col_2 else NA_character_,
+            text = .data$col_3
+          ) |>
+          dplyr::filter(!is.na(.data$start))
+      } else {
+        cli::cli_abort(
+          "The table structure in {.file {basename(transcript_file)}} is not recognized as a standard MS Teams transcript."
+        )
+      }
+    } else {
+      # Handle paragraph-based Teams transcripts
+      # Pattern: Speaker Name [space] Time \n Text
+      # or \n Speaker Name [space] Time \n Text
+      teams_pattern <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*\\n\\s*(.*)$"
+
+      # Define a local helper for relative time parsing
+      parse_relative_time <- function(t) {
+        parts <- as.numeric(stringr::str_split_1(t, ":"))
+        if (length(parts) == 2) {
+          return(parts[1] * 60 + parts[2])
+        } else if (length(parts) == 3) {
+          return(parts[1] * 3600 + parts[2] * 60 + parts[3])
+        }
+        NA_real_
+      }
+
+      transcript_data <- content |>
+        dplyr::filter(.data$content_type == "paragraph") |>
+        dplyr::mutate(
+          matches = stringr::str_match(.data$text, teams_pattern)
+        ) |>
+        dplyr::filter(!is.na(.data$matches[, 1])) |>
+        dplyr::transmute(
+          start = purrr::map_dbl(.data$matches[, 3], parse_relative_time),
+          end = .data$start,
+          speaker = if (import_diarization) {
+            .data$matches[, 2]
+          } else {
+            NA_character_
+          },
+          text = .data$matches[, 4]
+        ) |>
+        dplyr::filter(!is.na(.data$start))
+    }
+
+    if (nrow(transcript_data) == 0) {
+      cli::cli_abort(
+        "The file {.file {basename(transcript_file)}} does not appear to be a valid MS Teams transcript."
+      )
+    }
+
+    return(transcript_data)
+  }
 
   if (!file_extension %in% c("srt", "vtt")) {
     cli::cli_abort(
-      "Unsupported file format. Supported formats are SRT and VTT."
+      "Unsupported transcript format for {.file {basename(transcript_file)}}. Supported formats are SRT and VTT."
     )
   }
 
+  # Read the file content
+  lines <- readLines(transcript_file, warn = FALSE)
+
   times_pos <- which(stringr::str_detect(lines, "-->"))
 
+  # Check if file has any time cues at all - if not, it's not a valid transcript
+  if (length(times_pos) == 0) {
+    cli::cli_abort(
+      "The file {.file {basename(transcript_file)}} does not contain any time cues and is not a valid transcript file."
+    )
+  }
+
   # Iterate over each time position
-  purrr::map(
+  transcript_data <- purrr::map(
     times_pos,
     ~ {
       cue_line_content <- lines[.x]
@@ -418,7 +535,7 @@ add_chat_transcript <- function(
   chat_format <- match.arg(chat_format)
 
   if (rlang::is_scalar_character(chat_transcript)) {
-    if (!file.exists(chat_transcript)) {
+    if (!fs::file_exists(chat_transcript)) {
       cli::cli_abort("Chat file not found.")
     }
 
@@ -460,7 +577,15 @@ add_chat_transcript <- function(
         }
 
         chat_transcript <- do.call("rbind", chat_transcript) |>
-          as.data.frame() |>
+          as.data.frame()
+
+        if (ncol(chat_transcript) < 4) {
+          cli::cli_abort(
+            "The chat file {.file {basename(file_name)}} does not appear to be a valid Webex chat export."
+          )
+        }
+
+        chat_transcript <- chat_transcript |>
           setNames(c("date", "start", "speaker", "text")) |>
           mutate(
             date = NULL,
@@ -515,4 +640,70 @@ add_chat_transcript <- function(
   dplyr::bind_rows(transcript_data, chat_transcript) |>
     dplyr::arrange(.data$start) |>
     dplyr::as_tibble()
+}
+
+#' Standardize and prepare an external transcript for the workflow
+#'
+#' This function takes an external transcript file (VTT, SRT, or DOCX),
+#' standardizes it into the internal format used by the package, and saves it
+#' as a JSON file in the transcription output directory. This allows the rest
+#' of the workflow to proceed as if the transcript was generated by the
+#' package's speech-to-text models.
+#'
+#' @param file Path to the external transcript file.
+#' @param target_dir Path to the target directory where the workflow is running.
+#' @param import_diarization A boolean indicating whether the speaker should be
+#'   imported from the transcript, if present.
+#'
+#' @return Invisibly returns the path to the created JSON file.
+#'
+#' @export
+use_transcript_input <- function(
+  file,
+  target_dir = getwd(),
+  import_diarization = TRUE
+) {
+  cli::cli_alert_info("Preparing external transcript: {.file {basename(file)}}")
+
+  # Import the transcript data
+  transcript_df <- import_transcript_from_file(
+    transcript_file = file,
+    import_diarization = import_diarization
+  )
+
+  if (nrow(transcript_df) == 0) {
+    cli::cli_abort(
+      "The provided transcript file is empty or could not be parsed."
+    )
+  }
+
+  # Create the transcription output directory if it doesn't exist
+  stt_output_dir <- file.path(target_dir, "transcription_output_data")
+  if (!fs::dir_exists(stt_output_dir)) {
+    fs::dir_create(stt_output_dir)
+  }
+
+  # Clean up NA values in text column for proper JSON serialization
+  transcript_df$text <- tidyr::replace_na(transcript_df$text, "")
+
+  # Standardize into the JSON format expected by parse_transcript_json
+  # We create a single JSON file representing the whole transcript.
+  transcript_json <- list(
+    text = paste(transcript_df$text, collapse = " "),
+    segments = purrr::transpose(transcript_df)
+  )
+
+  output_file <- file.path(stt_output_dir, "external_transcript.json")
+  jsonlite::write_json(
+    transcript_json,
+    output_file,
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
+
+  cli::cli_alert_success(
+    "External transcript standardized and saved to {.path {basename(stt_output_dir)}}"
+  )
+
+  return(invisible(output_file))
 }

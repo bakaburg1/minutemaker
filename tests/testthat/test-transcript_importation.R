@@ -612,37 +612,43 @@ test_that("handles unsupported file formats with an error", {
   writeLines("Some text data", temp_txt_file)
   expect_error(
     import_transcript_from_file(normalizePath(temp_txt_file, mustWork = TRUE)),
-    "Unsupported file format. Supported formats are SRT and VTT."
+    "Unsupported transcript format"
   )
   temp_doc_file <- file.path(temp_dir_for_test, "temp.docx")
   writeLines("Word doc", temp_doc_file)
   expect_error(
     import_transcript_from_file(normalizePath(temp_doc_file, mustWork = TRUE)),
-    "Unsupported file format. Supported formats are SRT and VTT."
+    "Unsupported transcript format"
   )
 })
 
-test_that("handles files with no valid time cues (empty result)", {
+test_that("rejects files with no time cues at all", {
   temp_dir_for_test <- withr::local_tempdir()
   srt_no_times <- c("1", "This is not a time cue", "Some text")
   temp_srt_nt <- helper_create_temp_srt(srt_no_times, dir = temp_dir_for_test)
-  result_srt <- import_transcript_from_file(normalizePath(temp_srt_nt, mustWork = TRUE))
-  expect_s3_class(result_srt, "data.frame")
-  expect_identical(nrow(result_srt), 0L)
+  expect_error(
+    import_transcript_from_file(normalizePath(temp_srt_nt, mustWork = TRUE)),
+    "does not contain any time cues"
+  )
 
   vtt_no_times <- c("WEBVTT", "", "Only text, no timestamps")
   temp_vtt_nt <- helper_create_temp_vtt(vtt_no_times, dir = temp_dir_for_test)
-  result_vtt <- import_transcript_from_file(normalizePath(temp_vtt_nt, mustWork = TRUE))
-  expect_s3_class(result_vtt, "data.frame")
-  expect_identical(nrow(result_vtt), 0L)
+  expect_error(
+    import_transcript_from_file(normalizePath(temp_vtt_nt, mustWork = TRUE)),
+    "does not contain any time cues"
+  )
 
   temp_empty_srt <- helper_create_temp_srt(character(0), dir = temp_dir_for_test)
-  result_empty_srt <- import_transcript_from_file(normalizePath(temp_empty_srt, mustWork = TRUE))
-  expect_identical(nrow(result_empty_srt), 0L)
+  expect_error(
+    import_transcript_from_file(normalizePath(temp_empty_srt, mustWork = TRUE)),
+    "does not contain any time cues"
+  )
 
   temp_empty_vtt <- helper_create_temp_vtt(character(0), dir = temp_dir_for_test)
-  result_empty_vtt <- import_transcript_from_file(normalizePath(temp_empty_vtt, mustWork = TRUE))
-  expect_identical(nrow(result_empty_vtt), 0L)
+  expect_error(
+    import_transcript_from_file(normalizePath(temp_empty_vtt, mustWork = TRUE)),
+    "does not contain any time cues"
+  )
 })
 
 test_that("skips malformed time cues and keeps valid entries", {
