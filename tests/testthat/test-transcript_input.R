@@ -1,5 +1,14 @@
 # Helper functions ---
 
+segment_files <- function(dir_path) {
+  files <- list.files(
+    dir_path,
+    pattern = "segment_[0-9]+\\.json$",
+    full.names = TRUE
+  )
+  files[stringr::str_order(basename(files), numeric = TRUE)]
+}
+
 # Tests for use_transcript_input() ---
 
 test_that("use_transcript_input standardizes VTT correctly", {
@@ -8,23 +17,19 @@ test_that("use_transcript_input standardizes VTT correctly", {
 
   target_dir <- withr::local_tempdir()
 
-  imported <- import_transcript_from_file(vtt_path, import_diarization = TRUE)
-  result_files <- use_transcript_input(
-    vtt_path,
-    target_dir = target_dir,
-    lines_per_json = 2
-  )
+  result_files <- use_transcript_input(vtt_path, target_dir = target_dir)
 
   expect_true(all(file.exists(result_files)))
 
-  expected_chunks <- ceiling(nrow(imported) / 2)
-  pad_width <- nchar(as.character(expected_chunks))
-  expected_basenames <- sprintf(
-    paste0("segment_%0", pad_width, "d.json"),
-    seq_len(expected_chunks)
+  expected_dir <- testthat::test_path(
+    "material",
+    "webex_json_out",
+    "transcription_output_data"
   )
-  expect_length(result_files, expected_chunks)
-  expect_identical(basename(result_files), expected_basenames)
+  expected_files <- segment_files(expected_dir)
+
+  expect_length(result_files, length(expected_files))
+  expect_identical(basename(result_files), basename(expected_files))
 
   json_data <- jsonlite::read_json(result_files[[1]])
   expect_named(json_data, c("text", "segments"))
@@ -34,18 +39,12 @@ test_that("use_transcript_input standardizes VTT correctly", {
   first_seg <- json_data$segments[[1]]
   expect_named(first_seg, c("start", "end", "speaker", "text"))
 
-  parsed <- parse_transcript_json(
-    file.path(target_dir, "transcription_output_data"),
-    pretty_times = FALSE,
-    event_start_time = NULL
-  )
-  imported <- imported |>
-    dplyr::arrange(.data$start, .data$end)
-  parsed <- parsed |>
-    dplyr::arrange(.data$start, .data$end)
-
-  expect_equal(parsed$start, imported$start)
-  expect_equal(parsed$end, imported$end)
+  for (i in seq_along(result_files)) {
+    expect_equal(
+      jsonlite::read_json(result_files[[i]]),
+      jsonlite::read_json(expected_files[[i]])
+    )
+  }
 })
 
 test_that("use_transcript_input standardizes DOCX correctly", {
@@ -55,18 +54,27 @@ test_that("use_transcript_input standardizes DOCX correctly", {
 
   target_dir <- withr::local_tempdir()
 
-  imported <- import_transcript_from_file(docx_path, import_diarization = TRUE)
-  result_files <- use_transcript_input(
-    docx_path,
-    target_dir = target_dir,
-    lines_per_json = 2
-  )
+  result_files <- use_transcript_input(docx_path, target_dir = target_dir)
 
   expect_true(all(file.exists(result_files)))
-  expect_length(result_files, ceiling(nrow(imported) / 2))
+  expected_dir <- testthat::test_path(
+    "material",
+    "teams_json_out",
+    "transcription_output_data"
+  )
+  expected_files <- segment_files(expected_dir)
+  expect_length(result_files, length(expected_files))
+  expect_identical(basename(result_files), basename(expected_files))
 
   json_data <- jsonlite::read_json(result_files[[1]])
   expect_named(json_data, c("text", "segments"))
+
+  for (i in seq_along(result_files)) {
+    expect_equal(
+      jsonlite::read_json(result_files[[i]]),
+      jsonlite::read_json(expected_files[[i]])
+    )
+  }
 })
 
 test_that("import_transcript_from_file aborts on invalid DOCX", {
