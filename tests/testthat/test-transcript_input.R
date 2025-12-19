@@ -8,30 +8,64 @@ test_that("use_transcript_input standardizes VTT correctly", {
 
   target_dir <- withr::local_tempdir()
 
-  result_file <- use_transcript_input(vtt_path, target_dir = target_dir)
+  imported <- import_transcript_from_file(vtt_path, import_diarization = TRUE)
+  result_files <- use_transcript_input(
+    vtt_path,
+    target_dir = target_dir,
+    lines_per_json = 2
+  )
 
-  expect_true(file.exists(result_file))
-  expect_match(result_file, "external_transcript.json")
+  expect_true(all(file.exists(result_files)))
 
-  json_data <- jsonlite::read_json(result_file)
+  expected_chunks <- ceiling(nrow(imported) / 2)
+  pad_width <- nchar(as.character(expected_chunks))
+  expected_basenames <- sprintf(
+    paste0("segment_%0", pad_width, "d.json"),
+    seq_len(expected_chunks)
+  )
+  expect_length(result_files, expected_chunks)
+  expect_identical(basename(result_files), expected_basenames)
+
+  json_data <- jsonlite::read_json(result_files[[1]])
   expect_named(json_data, c("text", "segments"))
   expect_true(length(json_data$segments) > 0)
 
   # Check segment structure
   first_seg <- json_data$segments[[1]]
   expect_named(first_seg, c("start", "end", "speaker", "text"))
+
+  parsed <- parse_transcript_json(
+    file.path(target_dir, "transcription_output_data"),
+    pretty_times = FALSE,
+    event_start_time = NULL
+  )
+  imported <- imported |>
+    dplyr::arrange(.data$start, .data$end)
+  parsed <- parsed |>
+    dplyr::arrange(.data$start, .data$end)
+
+  expect_equal(parsed$start, imported$start)
+  expect_equal(parsed$end, imported$end)
 })
 
 test_that("use_transcript_input standardizes DOCX correctly", {
   docx_path <- testthat::test_path("material", "teams.docx")
   skip_if_not(file.exists(docx_path))
+  testthat::skip_if_not_installed("officer")
 
   target_dir <- withr::local_tempdir()
 
-  result_file <- use_transcript_input(docx_path, target_dir = target_dir)
+  imported <- import_transcript_from_file(docx_path, import_diarization = TRUE)
+  result_files <- use_transcript_input(
+    docx_path,
+    target_dir = target_dir,
+    lines_per_json = 2
+  )
 
-  expect_true(file.exists(result_file))
-  json_data <- jsonlite::read_json(result_file)
+  expect_true(all(file.exists(result_files)))
+  expect_length(result_files, ceiling(nrow(imported) / 2))
+
+  json_data <- jsonlite::read_json(result_files[[1]])
   expect_named(json_data, c("text", "segments"))
 })
 
@@ -90,7 +124,7 @@ test_that("workflow bypasses STT when external_transcript is provided", {
     expect_named(result, c("transcript_data", "formatted_summary"))
     expect_identical(result$formatted_summary, "Mock summary")
     expect_true(file.exists(
-      "transcription_output_data/external_transcript.json"
+      "transcription_output_data/segment_1.json"
     ))
   })
 })

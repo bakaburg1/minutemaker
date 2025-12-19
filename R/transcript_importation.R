@@ -332,7 +332,15 @@ import_transcript_from_file <- function(
       # Handle paragraph-based Teams transcripts
       # Pattern: Speaker Name [space] Time \n Text
       # or \n Speaker Name [space] Time \n Text
-      teams_pattern <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*\\n\\s*(.*)$"
+      # Different versions of {officer} and different DOCX exports can change
+      # how MS Teams transcript paragraphs are represented:
+      # - Some include a newline between "Speaker Time" and "Text".
+      # - Others flatten everything into one paragraph (sometimes even without a
+      #   space after the time, e.g. "0:10Hello").
+      # We support both by matching the multiline form first, then falling back
+      # to a single-line capture.
+      teams_pattern_multiline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*\\n\\s*(.*)$"
+      teams_pattern_singleline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*(.*)$"
 
       # Define a local helper for relative time parsing
       parse_relative_time <- function(t) {
@@ -345,22 +353,42 @@ import_transcript_from_file <- function(
         NA_real_
       }
 
-      transcript_data <- content |>
-        dplyr::filter(.data$content_type == "paragraph") |>
-        dplyr::mutate(
-          matches = stringr::str_match(.data$text, teams_pattern)
-        ) |>
-        dplyr::filter(!is.na(.data$matches[, 1])) |>
-        dplyr::transmute(
-          start = purrr::map_dbl(.data$matches[, 3], parse_relative_time),
-          end = .data$start,
-          speaker = if (import_diarization) {
-            .data$matches[, 2]
-          } else {
-            NA_character_
-          },
-          text = .data$matches[, 4]
-        ) |>
+      paragraphs <- content |>
+        dplyr::filter(.data$content_type == "paragraph")
+
+      # First, try to match the standard "Speaker Time \n Text" paragraph form.
+      matches <- stringr::str_match(paragraphs$text, teams_pattern_multiline)
+      # Any paragraph that fails the multiline match might be a flattened
+      # export where the newline is lost (e.g., "Speaker 0:10Text").
+      missing <- is.na(matches[, 1])
+      if (any(missing)) {
+        # Re-run matching only for the non-matching rows using the fallback
+        # single-line regex, and overwrite just those rows in the match matrix.
+        matches[missing, ] <- stringr::str_match(
+          paragraphs$text[missing],
+          teams_pattern_singleline
+        )
+      }
+
+      # Keep only paragraphs that matched either regex.
+      keep <- !is.na(matches[, 1])
+
+      # Build a clean transcript table from the regex capture groups:
+      # [2] speaker, [3] time, [4] text.
+      transcript_data <- dplyr::tibble(
+        start = purrr::map_dbl(matches[keep, 3], parse_relative_time),
+        end = .data$start,
+        speaker = if (import_diarization) {
+          # Some exports embed an extra numeric token (e.g. an internal ID)
+          # before the speaker name; strip it if present.
+          matches[keep, 2] |>
+            stringr::str_remove("^\\d+\\s*") |>
+            stringr::str_squish()
+        } else {
+          NA_character_
+        },
+        text = matches[keep, 4]
+      ) |>
         dplyr::filter(!is.na(.data$start))
     }
 
@@ -654,16 +682,25 @@ add_chat_transcript <- function(
 #' @param target_dir Path to the target directory where the workflow is running.
 #' @param import_diarization A boolean indicating whether the speaker should be
 #'   imported from the transcript, if present.
+#' @param lines_per_json A positive integer indicating how many transcript rows
+#'   should be written to each JSON segment file.
 #'
-#' @return Invisibly returns the path to the created JSON file.
+#' @return Invisibly returns the paths to the created JSON segment files.
 #'
 #' @export
 use_transcript_input <- function(
   file,
   target_dir = getwd(),
-  import_diarization = TRUE
+  import_diarization = TRUE,
+  lines_per_json = 200
 ) {
   cli::cli_alert_info("Preparing external transcript: {.file {basename(file)}}")
+
+  # Accept numeric "whole numbers" like 200 (double) as well as 200L (integer),
+  # but reject non-integers like 200.5.
+  if (!rlang::is_scalar_integerish(lines_per_json) || lines_per_json < 1) {
+    cli::cli_abort("`lines_per_json` must be a positive integer.")
+  }
 
   # Import the transcript data
   transcript_df <- import_transcript_from_file(
@@ -683,27 +720,73 @@ use_transcript_input <- function(
     fs::dir_create(stt_output_dir)
   }
 
+  # Ensure consistent ordering before chunking, so segments are written and
+  # reconstructed in chronological order.
+  transcript_df <- transcript_df |>
+    dplyr::arrange(.data$start, .data$end)
+
+  if (
+    !all(is.finite(transcript_df$start)) || !all(is.finite(transcript_df$end))
+  ) {
+    cli::cli_abort(
+      c(
+        "The provided transcript contains invalid time cues.",
+        "x" = "Found non-finite values in {.var start} or {.var end}.",
+        "i" = "Ensure the transcript has valid timestamp cues and try again."
+      )
+    )
+  }
+
   # Clean up NA values in text column for proper JSON serialization
   transcript_df$text <- tidyr::replace_na(transcript_df$text, "")
 
-  # Standardize into the JSON format expected by parse_transcript_json
-  # We create a single JSON file representing the whole transcript.
-  transcript_json <- list(
-    text = paste(transcript_df$text, collapse = " "),
-    segments = purrr::transpose(transcript_df)
-  )
+  # Split the transcript into multiple JSON files to avoid producing one very
+  # large prompt payload for downstream LLM steps.
+  chunk_id <- ceiling(seq_len(nrow(transcript_df)) / lines_per_json)
+  n_chunks <- max(chunk_id)
+  # Pad the segment index with zeros so alphabetical ordering matches numeric
+  # ordering (and parse_transcript_json() also sorts with numeric = TRUE).
+  pad_width <- nchar(as.character(n_chunks))
 
-  output_file <- file.path(stt_output_dir, "external_transcript.json")
-  jsonlite::write_json(
-    transcript_json,
-    output_file,
-    auto_unbox = TRUE,
-    pretty = TRUE
-  )
+  output_files <- character(n_chunks)
+  # parse_transcript_json() adds an accumulated `last_time` across files.
+  # To preserve absolute timestamps while writing chunked JSON, we write each
+  # chunk with times relative to the end of the previous chunk.
+  offset_time <- 0
+
+  for (chunk_index in seq_len(n_chunks)) {
+    rows <- which(chunk_id == chunk_index)
+    chunk_df <- transcript_df[rows, , drop = FALSE]
+
+    chunk_end_abs <- max(chunk_df$end, na.rm = TRUE)
+
+    chunk_df$start <- chunk_df$start - offset_time
+    chunk_df$end <- chunk_df$end - offset_time
+
+    # Standardize into the JSON format expected by parse_transcript_json().
+    transcript_json <- list(
+      text = paste(chunk_df$text, collapse = " "),
+      segments = purrr::transpose(chunk_df)
+    )
+
+    output_file <- file.path(
+      stt_output_dir,
+      sprintf(paste0("segment_%0", pad_width, "d.json"), chunk_index)
+    )
+    jsonlite::write_json(
+      transcript_json,
+      output_file,
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
+
+    output_files[chunk_index] <- output_file
+    offset_time <- chunk_end_abs
+  }
 
   cli::cli_alert_success(
     "External transcript standardized and saved to {.path {basename(stt_output_dir)}}"
   )
 
-  return(invisible(output_file))
+  return(invisible(output_files))
 }

@@ -159,7 +159,7 @@ test_that("workflow accepts a file path as target_dir when a transcript is prese
 
     expect_named(result, c("transcript_data", "formatted_summary"))
     expect_identical(result$formatted_summary, "Mock summary from transcript-only path")
-    expect_true(file.exists("transcription_output_data/external_transcript.json"))
+    expect_true(file.exists("transcription_output_data/segment_1.json"))
   })
 })
 
