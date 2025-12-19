@@ -205,6 +205,22 @@ test_that("correct_transcription_errors handles valid JSON corrections", {
   })
 })
 
+test_that("correct_transcription_errors warns on unmatched correction keys", {
+  corrections_json <- "{\"NotInText\": \"Fixed\"}"
+  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+    testthat::local_mocked_bindings(
+      prompt_llm = function(...) mock_llm_response_success(corrections_json),
+      set_llmr_model = function(...) invisible(NULL),
+      .package = "llmR"
+    )
+    expect_warning(
+      res <- correct_transcription_errors("Some text", terms = NULL),
+      regexp = "not found in the input text"
+    )
+    expect_identical(res$status, "no_changes_signal")
+  })
+})
+
 test_that("correct_transcription_errors handles empty JSON object {} as no changes", {
   withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
@@ -608,6 +624,81 @@ test_that("apply_llm_correction retries on specified failures", {
   expect_identical(final_data$text, "Ths is a tst transcript. [corrected]")
 })
 
+test_that("apply_llm_correction backs off by splitting segments on failure", {
+  temp_dir <- withr::local_tempdir(pattern = "test_apply_llm")
+  segmented_content <- list(
+    text = "Ths is a tst transcript.",
+    corrected = FALSE,
+    segments = list(
+      list(text = "Ths is"),
+      list(text = "a tst"),
+      list(text = "transcript."),
+      list(text = "extra one"),
+      list(text = "extra two"),
+      list(text = "")
+    )
+  )
+  test_file_path <- create_temp_transcript_file(
+    segmented_content,
+    temp_dir,
+    "temp_segmented.json"
+  )
+
+  cte_calls <- 0
+  cte_backoff_mock <- function(
+    text_to_correct,
+    terms,
+    include_reasoning,
+    llm_extra_params
+  ) {
+    cte_calls <<- cte_calls + 1
+    if (
+      length(text_to_correct) == 1 &&
+        identical(text_to_correct, "Ths is a tst transcript.")
+    ) {
+      return(mock_failed_correction(
+        text_to_correct,
+        terms,
+        include_reasoning,
+        llm_extra_params,
+        fail_status = "llm_call_failed"
+      ))
+    }
+    if (length(text_to_correct) > 5) {
+      return(mock_failed_correction(
+        text_to_correct,
+        terms,
+        include_reasoning,
+        llm_extra_params,
+        fail_status = "parsing_failed"
+      ))
+    }
+    list(
+      corrected_text = text_to_correct,
+      corrections_map = list("tst" = "test"),
+      status = "corrections_applied",
+      made_changes = TRUE
+    )
+  }
+  testthat::local_mocked_bindings(
+    correct_transcription_errors = cte_backoff_mock,
+    .package = "minutemaker"
+  )
+
+  apply_llm_correction(
+    input_path = test_file_path,
+    terms = NULL,
+    overwrite = TRUE,
+    max_retries = 1
+  )
+
+  final_data <- jsonlite::read_json(test_file_path)
+  expect_true(final_data$corrected)
+  expect_identical(final_data$text, "Ths is a test transcript.")
+  expect_identical(final_data$segments[[2]]$text, "a test")
+  expect_true(cte_calls >= 3)
+})
+
 test_that("apply_llm_correction gives up after max_retries", {
   temp_dir <- withr::local_tempdir(pattern = "test_apply_llm")
   test_file_path <- create_temp_transcript_file(
@@ -710,7 +801,10 @@ test_that("correct_transcription_errors handles mixed XML content", {
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
-    res_before <- correct_transcription_errors("Some text", terms = NULL)
+    expect_warning(
+      res_before <- correct_transcription_errors("Some text", terms = NULL),
+      regexp = "not found in the input text"
+    )
     expect_identical(res_before$status, "no_changes_signal")
 
     # Test content after XML tags
@@ -723,7 +817,10 @@ test_that("correct_transcription_errors handles mixed XML content", {
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
-    res_after <- correct_transcription_errors("Some text", terms = NULL)
+    expect_warning(
+      res_after <- correct_transcription_errors("Some text", terms = NULL),
+      regexp = "not found in the input text"
+    )
     expect_identical(res_after$status, "no_changes_signal")
 
     # Test multiple XML tag sets
@@ -736,7 +833,10 @@ test_that("correct_transcription_errors handles mixed XML content", {
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
     )
-    res_multiple <- correct_transcription_errors("Some text", terms = NULL)
+    expect_warning(
+      res_multiple <- correct_transcription_errors("Some text", terms = NULL),
+      regexp = "not found in the input text"
+    )
     expect_identical(res_multiple$status, "no_changes_signal")
   })
 })
