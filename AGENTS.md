@@ -1,5 +1,9 @@
+# Agent Rules
+
 For any requested change or task which is not trivial, you should always assess the situation, make tests and then present a detailed plan of action before ANY change to the code.
 You'll enact your plan of action after the plan has been approved by the user.
+
+**Exception:** The planning and wait for approval process is not needed when asked to add documentation.
 
 ## ⚠️ IMPORTANT: When In Doubt, Ask First
 
