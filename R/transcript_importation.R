@@ -692,10 +692,12 @@ use_transcript_input <- function(
   file,
   target_dir = getwd(),
   import_diarization = TRUE,
-  lines_per_json = 200
+  lines_per_json = 50
 ) {
   cli::cli_alert_info("Preparing external transcript: {.file {basename(file)}}")
 
+  # Smaller default chunks keep correction prompts under token limits and
+  # reduce the chance of oversized LLM outputs.
   # Accept numeric "whole numbers" like 200 (double) as well as 200L (integer),
   # but reject non-integers like 200.5.
   if (!rlang::is_scalar_integerish(lines_per_json) || lines_per_json < 1) {
