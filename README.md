@@ -27,9 +27,9 @@ remotes::install_github("bakaburg1/minutemaker")
 
 This package allows transcribing audio recordings using different
 speech-to-text APIs and then summarizing the transcripts using remote or
-local Large Language Models. **New in v0.15.0**: You can also start
-directly with existing transcripts (VTT, SRT, or DOCX files) to bypass
-speech-to-text entirely.
+local Large Language Models. You can also start directly with existing
+transcripts from the major meeting platforms (WebEx, Zoom, MS Teams,
+etc.) to bypass speech-to-text entirely.
 
 The package supports the Whisper API from OpenAI or Azure, or local
 models via <https://github.com/Softcatala/whisper-ctranslate2> (install
