@@ -32,6 +32,9 @@ Update the list below with the new learning points:
 - name: cli alert level conventions
   description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
   scope: logging/messages
+- name: agenda inference start times validation
+  description: Warn and skip when LLM agenda start_times are empty; abort when non-numeric or coercion introduces NA values.
+  scope: agenda inference
 ```
 
 ### Dependency Management (`renv`)
