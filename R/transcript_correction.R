@@ -57,8 +57,9 @@ apply_llm_correction <- function(
   #
   # When LLM calls fail on large transcript chunks, we implement an adaptive
   # backoff strategy that recursively splits the transcript into smaller
-  # segments until corrections succeed. This prevents complete failure when
-  # large chunks exceed model context limits or cause parsing issues.
+  # segments until corrections succeed.
+  # This prevents complete failure when large chunks exceed model context limits
+  # or cause parsing issues.
   #
   # Key benefits:
   # - Graceful degradation: Large failures become smaller successes
@@ -66,9 +67,10 @@ apply_llm_correction <- function(
   # - Reduces retry consumption: Backoff attempts don't count as full retries
   #
   # Helper function to apply corrections to text (handles both strings and
-  # lists). This function safely applies a corrections map to text, handling
-  # different input types (single strings, lists of strings) that may result
-  # from segment-based processing.
+  # lists)
+  # This function safely applies a corrections map to text, handling different
+  # input types (single strings, lists of strings) that may result from
+  # segment-based processing.
   apply_corrections_to_text <- function(text, corrections_map) {
     # Early return if no corrections to apply
     if (rlang::is_empty(corrections_map)) {
@@ -749,17 +751,9 @@ Apply these rules to your JSON output if corrections are made:
   # -- Perform LLM call --
 
   messages_payload <- c(system = system_prompt, user = full_text_for_llm)
+  # Default LLM parameters. Reasoning models do not accept temperature, so use
+  # reasoning_effort there and keep temperature only for non-reasoning calls.
 
-  # Default LLM parameters.
-  #
-  # `include_reasoning` indicates whether we force the model to produce
-  # explicit reasoning in the *prompt* (useful for non-reasoning models).
-  #
-  # When `include_reasoning` is FALSE, the caller is assumed to be using a
-  # reasoning-capable model and we default to `reasoning_effort`. This keeps
-  # behavior aligned with the intent of `include_reasoning` and avoids sending
-  # `reasoning_effort` to non-reasoning endpoints (e.g. Azure GPT-4.1) when
-  # `include_reasoning` is TRUE.
   base_llm_params <- if (include_reasoning) {
     list(temperature = 0)
   } else {

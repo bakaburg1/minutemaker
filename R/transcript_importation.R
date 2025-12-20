@@ -694,7 +694,7 @@ use_transcript_input <- function(
   import_diarization = TRUE,
   lines_per_json = 50
 ) {
-  cli::cli_alert_info("Preparing external transcript: {.file {basename(file)}}")
+  cli::cli_alert("Preparing external transcript: {.file {basename(file)}}")
 
   # Smaller default chunks keep correction prompts under token limits and
   # reduce the chance of oversized LLM outputs.

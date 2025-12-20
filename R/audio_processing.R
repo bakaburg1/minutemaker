@@ -166,7 +166,7 @@ split_audio <- function(
     started_daemons <- FALSE
 
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
-      cli::cli_alert_info(
+      cli::cli_alert(
         "Starting mirai daemons for parallel audio splitting..."
       )
       n_daemons <- max(1, parallel::detectCores() - 1)
@@ -225,7 +225,7 @@ split_audio <- function(
       )
     })
 
-    cli::cli_alert_info("Started {length(tasks)} parallel splitting tasks.")
+    cli::cli_alert("Started {length(tasks)} parallel splitting tasks.")
 
     # Track processing status of each parallel task, initially all FALSE (not
     # completed)
@@ -264,7 +264,7 @@ split_audio <- function(
           mirai::daemons(0, .compute = "minutemaker")
           started_daemons <- FALSE
         } else {
-          cli::cli_alert_info(
+          cli::cli_warn(
             "Skipping shutdown of pre-existing mirai daemons after timeout."
           )
         }

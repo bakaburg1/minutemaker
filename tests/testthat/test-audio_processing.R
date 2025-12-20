@@ -224,11 +224,14 @@ test_that("parallel timeout does not stop external daemons", {
       .package = "minutemaker"
     )
 
-    split_audio(
-      audio_file = "fake.wav",
-      segment_duration = 1,
-      output_folder = "segments",
-      parallel = TRUE
+    expect_warning(
+      split_audio(
+        audio_file = "fake.wav",
+        segment_duration = 1,
+        output_folder = "segments",
+        parallel = TRUE
+      ),
+      "Skipping shutdown of pre-existing mirai daemons after timeout"
     )
 
     expect_identical(call_log$start, 0L)

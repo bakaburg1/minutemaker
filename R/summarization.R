@@ -760,6 +760,7 @@ infer_agenda_from_transcript <- function(
 
   options("minutemaker_temp_agenda_hash" = arg_hash)
 
+  # Updates the temporary agenda option by appending sorted new agenda elements
   update_agenda <- function(agenda_elements) {
     cur_agenda <- c(
       getOption("minutemaker_temp_agenda", list()),
