@@ -84,3 +84,190 @@ test_that("infer_agenda_from_transcript falls back when title regeneration fails
   expect_identical(agenda[[2]]$title, "Repeated (2)")
   expect_true(any(grepl("Could not regenerate title", warnings)))
 })
+
+# Tests for infer_agenda_from_transcript() -------------------------------
+
+test_that("warns and skips empty agenda start times", {
+  withr::local_options(
+    minutemaker_temp_agenda = NULL,
+    minutemaker_temp_agenda_last_bp = NULL,
+    minutemaker_temp_agenda_hash = NULL,
+    minutemaker_prompts = list()
+  )
+
+  transcript_df <- data.frame(
+    start = c(0, 60, 120, 180, 240, 300),
+    end = c(30, 90, 150, 210, 270, 330),
+    text = paste("Segment", 1:6)
+  )
+
+  inference_calls <- 0
+  mock_prompt_llm <- function(prompt_set, ...) {
+    if (any(grepl("agenda inference prompt", prompt_set, fixed = TRUE))) {
+      inference_calls <<- inference_calls + 1
+
+      if (inference_calls == 1) {
+        return('{"start_times": []}')
+      }
+
+      return('{"start_times": [0]}')
+    }
+
+    if (any(grepl("agenda element prompt", prompt_set, fixed = TRUE))) {
+      return('{"title": "Item", "session": "Session"}')
+    }
+
+    stop("Unexpected LLM call")
+  }
+
+  testthat::local_mocked_bindings(
+    prompt_llm = mock_prompt_llm,
+    .package = "llmR"
+  )
+  testthat::local_mocked_bindings(
+    set_prompts = function(...) invisible(NULL),
+    get_prompts = function(...) "persona prompt",
+    generate_agenda_inference_prompt = function(transcript_segment, args) {
+      "agenda inference prompt"
+    },
+    generate_agenda_element_prompt = function(transcript_segment, args) {
+      "agenda element prompt"
+    },
+    .package = "minutemaker"
+  )
+  testthat::local_mocked_bindings(
+    cli_alert = function(...) invisible(NULL),
+    cli_inform = function(...) invisible(NULL),
+    cli_verbatim = function(...) invisible(NULL),
+    .package = "cli"
+  )
+
+  {
+    agenda <- infer_agenda_from_transcript(
+      transcript = transcript_df,
+      window_size = 150
+    )
+  } |>
+    expect_warning(
+      "Agenda start times are empty",
+      fixed = TRUE
+    )
+
+  expect_length(agenda, 1)
+  expect_identical(agenda[[1]]$title, "Item")
+})
+
+test_that("errors on malformed agenda start times", {
+  withr::local_options(
+    minutemaker_temp_agenda = NULL,
+    minutemaker_temp_agenda_last_bp = NULL,
+    minutemaker_temp_agenda_hash = NULL,
+    minutemaker_prompts = list()
+  )
+
+  transcript_df <- data.frame(
+    start = c(0, 60, 120),
+    end = c(30, 90, 150),
+    text = paste("Segment", 1:3)
+  )
+
+  mock_prompt_llm <- function(prompt_set, ...) {
+    if (any(grepl("agenda inference prompt", prompt_set, fixed = TRUE))) {
+      return('{"start_times": ["foo"]}')
+    }
+
+    stop("Unexpected LLM call")
+  }
+
+  testthat::local_mocked_bindings(
+    prompt_llm = mock_prompt_llm,
+    .package = "llmR"
+  )
+  testthat::local_mocked_bindings(
+    set_prompts = function(...) invisible(NULL),
+    get_prompts = function(...) "persona prompt",
+    generate_agenda_inference_prompt = function(transcript_segment, args) {
+      "agenda inference prompt"
+    },
+    .package = "minutemaker"
+  )
+  testthat::local_mocked_bindings(
+    cli_alert = function(...) invisible(NULL),
+    cli_inform = function(...) invisible(NULL),
+    cli_verbatim = function(...) invisible(NULL),
+    .package = "cli"
+  )
+
+  expect_error(
+    infer_agenda_from_transcript(
+      transcript = transcript_df,
+      window_size = 200
+    ),
+    "Agenda start times must be numeric",
+    fixed = TRUE
+  )
+})
+
+test_that("accepts numeric vector agenda start times", {
+  withr::local_options(
+    minutemaker_temp_agenda = NULL,
+    minutemaker_temp_agenda_last_bp = NULL,
+    minutemaker_temp_agenda_hash = NULL,
+    minutemaker_prompts = list()
+  )
+
+  transcript_df <- data.frame(
+    start = c(0, 60, 120, 180, 240, 300),
+    end = c(30, 90, 150, 210, 270, 330),
+    text = paste("Segment", 1:6)
+  )
+
+  mock_prompt_llm <- function(prompt_set, ...) {
+    if (any(grepl("agenda inference prompt", prompt_set, fixed = TRUE))) {
+      return('{"start_times": [0, 180]}')
+    }
+
+    if (any(grepl("agenda element prompt", prompt_set, fixed = TRUE))) {
+      return('{"title": "Item", "session": "Session"}')
+    }
+
+    stop("Unexpected LLM call")
+  }
+
+  testthat::local_mocked_bindings(
+    prompt_llm = mock_prompt_llm,
+    .package = "llmR"
+  )
+  testthat::local_mocked_bindings(
+    set_prompts = function(...) invisible(NULL),
+    get_prompts = function(...) "persona prompt",
+    generate_agenda_inference_prompt = function(transcript_segment, args) {
+      "agenda inference prompt"
+    },
+    generate_agenda_element_prompt = function(transcript_segment, args) {
+      "agenda element prompt"
+    },
+    .package = "minutemaker"
+  )
+  testthat::local_mocked_bindings(
+    cli_alert = function(...) invisible(NULL),
+    cli_inform = function(...) invisible(NULL),
+    cli_verbatim = function(...) invisible(NULL),
+    .package = "cli"
+  )
+
+  {
+    agenda <- infer_agenda_from_transcript(
+      transcript = transcript_df,
+      window_size = 400
+    )
+  } |>
+    expect_warning(
+      "Could not regenerate title",
+      fixed = TRUE
+    )
+
+  expect_length(agenda, 2)
+  expect_identical(agenda[[1]]$title, "Item")
+  expect_identical(agenda[[2]]$title, "Item (2)")
+})

@@ -760,8 +760,47 @@ infer_agenda_from_transcript <- function(
 
   options("minutemaker_temp_agenda_hash" = arg_hash)
 
+  #' Validate agenda start times for agenda inference
+  #'
+  #' This function checks that the agenda start times are present, of the
+  #' correct type (numeric or convertible to numeric), and returns them as a
+  #' numeric vector. It emits warnings and aborts computation depending on the
+  #' input validity.
+  #'
+  #' @param agenda_elements Vector of agenda start times (numeric, character, or
+  #'   NULL).
+  #'
+  #' @return A numeric vector of agenda start times, or numeric(0) if
+  #'   invalid/empty. Aborts execution on irrecoverable errors (wrong type, NAs
+  #'   after coercion).
+  #'
+  validate_agenda_start_times <- function(agenda_elements) {
+    if (rlang::is_empty(agenda_elements)) {
+      cli::cli_warn("Agenda start times are empty. Skipping this segment.")
+      return(numeric(0))
+    }
+
+    if (!is.atomic(agenda_elements)) {
+      cli::cli_abort("Agenda start times must be numeric.")
+    }
+
+    agenda_times <- suppressWarnings(as.numeric(agenda_elements))
+
+    if (anyNA(agenda_times)) {
+      cli::cli_abort("Agenda start times must be numeric.")
+    }
+
+    agenda_times
+  }
+
   # Updates the temporary agenda option by appending sorted new agenda elements
   update_agenda <- function(agenda_elements) {
+    agenda_elements <- validate_agenda_start_times(agenda_elements)
+
+    if (length(agenda_elements) == 0) {
+      return(invisible(NULL))
+    }
+
     cur_agenda <- c(
       getOption("minutemaker_temp_agenda", list()),
       agenda_elements |> sort()
