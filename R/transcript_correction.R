@@ -56,18 +56,16 @@ apply_llm_correction <- function(
   # === ADAPTIVE BACKOFF CORRECTION SYSTEM ===
   #
   # When LLM calls fail on large transcript chunks, we implement an adaptive
-  # backoff strategy that recursively splits the transcript into smaller
-  # segments until corrections succeed.
-  # This prevents complete failure when large chunks exceed model context limits
-  # or cause parsing issues.
+  # backoff strategy that recursively splits the transcript into smaller segments
+  # until corrections succeed. This prevents complete failure when large chunks
+  # exceed model context limits or cause parsing issues.
   #
   # Key benefits:
   # - Graceful degradation: Large failures become smaller successes
   # - Preserves data integrity: All segments get processed individually
   # - Reduces retry consumption: Backoff attempts don't count as full retries
   #
-  # Helper function to apply corrections to text (handles both strings and
-  # lists)
+  # Helper function to apply corrections to text (handles both strings and lists)
   # This function safely applies a corrections map to text, handling different
   # input types (single strings, lists of strings) that may result from
   # segment-based processing.
@@ -138,8 +136,7 @@ apply_llm_correction <- function(
         left <- split_and_correct(indices[seq_len(mid)])
         right <- split_and_correct(indices[(mid + 1):length(indices)])
 
-        # If either half still failed after backoff, propagate the original
-        # failure
+        # If either half still failed after backoff, propagate the original failure
         # This prevents partial success from masking underlying issues
         if (
           left$status %in%
