@@ -760,23 +760,24 @@ infer_agenda_from_transcript <- function(
 
   options("minutemaker_temp_agenda_hash" = arg_hash)
 
-  #' Validate agenda start times for agenda inference
-  #'
-  #' This function checks that the agenda start times are present, of the
-  #' correct type (numeric or convertible to numeric), and returns them as a
-  #' numeric vector. It emits warnings and aborts computation depending on the
-  #' input validity.
-  #'
-  #' @param agenda_elements Vector of agenda start times (numeric, character, or
-  #'   NULL).
-  #'
-  #' @return A numeric vector of agenda start times, or numeric(0) if
-  #'   invalid/empty. Aborts execution on irrecoverable errors (wrong type, NAs
-  #'   after coercion).
-  #'
-  validate_agenda_start_times <- function(agenda_elements) {
-    if (rlang::is_empty(agenda_elements)) {
-      cli::cli_warn("Agenda start times are empty. Skipping this segment.")
+  # Validate agenda start times for agenda inference:
+  # return numeric(0) with a warning when empty, abort on non-atomic or
+  # non-numeric values after coercion, otherwise return numeric.
+  validate_agenda_start_times <- function(
+    agenda_elements,
+    bp_left = NULL,
+    bp_right = NULL
+  ) {
+    if (is.null(agenda_elements) || length(agenda_elements) == 0) {
+      if (!is.null(bp_left) && !is.null(bp_right)) {
+        cli::cli_alert_warning(
+          "Agenda start times are empty. Skipping segment {bp_left}-{bp_right}."
+        )
+      } else {
+        cli::cli_alert_warning(
+          "Agenda start times are empty. Skipping this segment."
+        )
+      }
       return(numeric(0))
     }
 
@@ -794,8 +795,12 @@ infer_agenda_from_transcript <- function(
   }
 
   # Updates the temporary agenda option by appending sorted new agenda elements
-  update_agenda <- function(agenda_elements) {
-    agenda_elements <- validate_agenda_start_times(agenda_elements)
+  update_agenda <- function(agenda_elements, bp_left = NULL, bp_right = NULL) {
+    agenda_elements <- validate_agenda_start_times(
+      agenda_elements,
+      bp_left = bp_left,
+      bp_right = bp_right
+    )
 
     if (length(agenda_elements) == 0) {
       return(invisible(NULL))
@@ -915,7 +920,7 @@ infer_agenda_from_transcript <- function(
 
     # Attempt to parse the result json
     parsed_result <- try(
-      jsonlite::fromJSON(result_json, simplifyDataFrame = F)$start_times,
+      jsonlite::fromJSON(result_json, simplifyDataFrame = F)[["start_times"]],
       silent = TRUE
     )
 
@@ -949,7 +954,7 @@ infer_agenda_from_transcript <- function(
     }
 
     # If the parsing is successful, update the agenda
-    update_agenda(parsed_result)
+    update_agenda(parsed_result, bp_left = bp_left, bp_right = bp_right)
 
     json_error <- FALSE
 

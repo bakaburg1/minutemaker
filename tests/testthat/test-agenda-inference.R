@@ -148,8 +148,8 @@ test_that("warns and skips empty agenda start times", {
       window_size = 150
     )
   } |>
-    expect_warning(
-      "Agenda start times are empty",
+    expect_message(
+      "Agenda start times are empty. Skipping segment 0-150.",
       fixed = TRUE
     )
 
