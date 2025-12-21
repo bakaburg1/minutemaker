@@ -2,6 +2,7 @@
 
 export(add_chat_transcript)
 export(apply_llm_correction)
+export(clean_agenda)
 export(clean_transcript)
 export(entity_extractor)
 export(extract_text_from_transcript)

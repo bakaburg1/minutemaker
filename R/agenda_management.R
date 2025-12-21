@@ -82,57 +82,65 @@ convert_agenda_times <- function(
     )
   }
 
-  if (!is.null(event_start_time)) {
-    if (inherits(event_start_time, c("POSIXct", "character"))) {
-      # Parse the start time if not null
-      temp <- parse_event_time(event_start_time)
+  # Determine if all agenda "from" times are numeric (e.g., seconds from the
+  # start)
+  agenda_time_is_numeric <- all(
+    purrr::map_lgl(agenda, ~ is.numeric(.x$from))
+  )
+  # Determine if all agenda "from" times are either POSIXct or character (i.e.,
+  # in clock time format)
+  agenda_time_is_clock <- all(
+    purrr::map_lgl(agenda, ~ inherits(.x$from, c("POSIXct", "character")))
+  )
+  # Identify if an origin (event start time) is needed for the conversion based
+  # on the direction of conversion
+  needs_origin <- (convert_to == "seconds" && agenda_time_is_clock) ||
+    (convert_to == "clocktime" && agenda_time_is_numeric)
 
-      if (is.na(temp)) {
+  # If an origin is needed, check if it is provided
+  if (isTRUE(needs_origin)) {
+    if (!is.null(event_start_time)) {
+      if (inherits(event_start_time, c("POSIXct", "character"))) {
+        # Parse the start time if not null
+        temp <- parse_event_time(event_start_time)
+
+        if (is.na(temp)) {
+          cli::cli_abort(
+            "Agenda time conversion failed:
+            {.val {event_start_time}}"
+          )
+        }
+
+        event_start_time <- temp
+      } else {
+        # Only character and POSIXct event start times are supported
+        cli::cli_abort("Invalid event start time format.")
+      }
+    } else if (convert_to == "seconds" && agenda_time_is_clock) {
+      # Use the first agenda time otherwise
+      event_start_time <- agenda[[1]]$from |>
+        parse_event_time()
+
+      # Check if the event start time is valid
+      if (is.na(event_start_time)) {
         cli::cli_abort(
           "Agenda time conversion failed:
-          {.val {event_start_time}}"
+          {.val {agenda[[1]]$from}}"
         )
       }
 
-      event_start_time <- temp
+      # Warning handled by callers to avoid repeated messages.
     } else {
-      # Only character and POSIXct event start times are supported
-      cli::cli_abort("Invalid event start time format.")
+      event_start_time <- lubridate::origin
+      # Warning handled by callers to avoid repeated messages.
     }
-  } else if (
-    length(agenda) > 0 &&
-      agenda[[1]]$from |>
-        inherits(c("POSIXct", "character")) &&
-      convert_to == "seconds"
-  ) {
-    # Use the first agenda time otherwise
-    event_start_time <- agenda[[1]]$from |>
-      parse_event_time()
-
-    cli::cli_warn(
-      c(
-        "No start time provided.\n",
-        "Using the start time of the first agenda element.",
-        "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}."
-      )
-    )
-  } else {
-    event_start_time <- lubridate::origin
-
-    cli::cli_warn(
-      c(
-        "No start time provided.\n",
-        "Using \"00:00:00\" as start time.",
-        "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}."
-      )
-    )
   }
 
+  # Convert the times for each agenda element
   for (i in seq_along(agenda)) {
     # Convert the times
     for (time in c("from", "to")) {
+      # If converting to seconds and the time is not numeric, convert it
       if (convert_to == "seconds" && !is.numeric(agenda[[i]][[time]])) {
         # Convert to seconds
         agenda[[i]][[time]] <- agenda[[i]][[time]] |>
@@ -161,6 +169,125 @@ convert_agenda_times <- function(
 
   if (is_agenda_element) {
     agenda <- agenda[[1]]
+  }
+
+  agenda
+}
+
+#' Clean agenda items using transcript data
+#'
+#' Drops agenda elements whose transcript slice is empty or too small, or aborts
+#' depending on the chosen behavior.
+#'
+#' @param agenda A list containing the agenda items or a file path to one.
+#' @param transcript_data A data frame with transcript segments, containing
+#'   numeric `start` and `end` columns in seconds.
+#' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
+#'   format. Used when agenda times are clock-based and need conversion.
+#' @param min_rows Minimum number of transcript rows required to keep an agenda
+#'   item. Must be a positive integer.
+#' @param on_empty Action when an agenda item has fewer than `min_rows` rows.
+#'   One of "drop" or "abort".
+#'
+#' @return A cleaned agenda list with invalid items removed.
+#'
+#' @export
+#'
+clean_agenda <- function(
+  agenda,
+  transcript_data,
+  event_start_time = getOption("minutemaker_event_start_time"),
+  min_rows = 1,
+  on_empty = c("drop", "abort")
+) {
+  on_empty <- match.arg(on_empty)
+
+  if (!is.data.frame(transcript_data)) {
+    cli::cli_abort("Transcript data must be a data frame.")
+  }
+
+  if (!all(c("start", "end") %in% names(transcript_data))) {
+    cli::cli_abort(
+      "Transcript data must contain {.field start} and {.field end} columns."
+    )
+  }
+
+  if (
+    !is.numeric(transcript_data$start) ||
+      !is.numeric(transcript_data$end)
+  ) {
+    cli::cli_abort(
+      "Transcript {.field start} and {.field end} columns must be numeric."
+    )
+  }
+
+  if (
+    !is.numeric(min_rows) ||
+      length(min_rows) != 1 ||
+      is.na(min_rows) ||
+      min_rows < 1 ||
+      min_rows %% 1 != 0
+  ) {
+    cli::cli_abort(
+      "{.arg min_rows} must be a positive integer."
+    )
+  }
+
+  if (is.character(agenda)) {
+    agenda <- load_serialized(agenda, "agenda")
+  }
+
+  if (!validate_agenda(agenda)) {
+    cli::cli_abort("The agenda is not valid.")
+  }
+
+  agenda_seconds <- convert_agenda_times(
+    agenda,
+    convert_to = "seconds",
+    event_start_time = event_start_time
+  )
+
+  talk_ids <- build_ids_from_agenda(agenda)
+  keep <- logical(length(agenda_seconds))
+
+  for (i in seq_along(agenda_seconds)) {
+    agenda_element <- agenda_seconds[[i]]
+    transcript_rows <- transcript_data$start >= agenda_element$from &
+      transcript_data$start <= agenda_element$to
+    row_count <- sum(transcript_rows, na.rm = TRUE)
+
+    if (row_count < min_rows) {
+      if (on_empty == "abort") {
+        cli::cli_abort(
+          c(
+            "Agenda item has an empty transcript slice.",
+            "x" = "Item {.val {talk_ids[[i]]}} has {row_count} rows.",
+            "i" = "from: {.val {agenda_element$from}}, to:
+              {.val {agenda_element$to}}."
+          )
+        )
+      }
+
+      cli::cli_alert_warning(
+        c(
+          "Agenda item has an empty transcript slice.",
+          "x" = "Dropping {.val {talk_ids[[i]]}} (rows: {row_count}).",
+          "i" = "from: {.val {agenda_element$from}}, to:
+            {.val {agenda_element$to}}."
+        )
+      )
+      keep[[i]] <- FALSE
+    } else {
+      keep[[i]] <- TRUE
+    }
+  }
+
+  agenda <- agenda[keep]
+
+  if (length(agenda) == 0) {
+    cli::cli_abort(
+      "All agenda items were removed during cleaning."
+    )
   }
 
   agenda

@@ -38,6 +38,20 @@ format_summary_tree <- function(
   # Check the consistency of the summary tree and the agenda
   check_agenda_summary_tree_consistency(agenda, summary_tree)
 
+  if (
+    is.null(event_start_time) &&
+      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
+  ) {
+    cli::cli_alert_warning(
+      c(
+        "No start time provided.",
+        "Using \"00:00:00\" as start time.",
+        "i" = "Consider setting the event start time using
+          {.fn set_event_start_time}."
+      )
+    )
+  }
+
   # Initialize the output string
   output <- ""
 
@@ -136,6 +150,20 @@ format_agenda <- function(
   # Import agenda from file
   if (rlang::is_string(agenda)) {
     agenda <- load_serialized(agenda, "agenda")
+  }
+
+  if (
+    is.null(event_start_time) &&
+      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
+  ) {
+    cli::cli_alert_warning(
+      c(
+        "No start time provided.",
+        "Using \"00:00:00\" as start time.",
+        "i" = "Consider setting the event start time using
+          {.fn set_event_start_time}."
+      )
+    )
   }
 
   # Covert times from second to clock time if possible
