@@ -41,6 +41,9 @@ Update the list below with the new learning points:
 - name: cli alert capture
   description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
   scope: testing
+- name: git write confirmation
+  description: Always ask for explicit user confirmation before performing any write operation to the git repository, such as commit, push, or other actions that modify git history.
+  scope: git operations
 ```
 
 ### Dependency Management (`renv`)
