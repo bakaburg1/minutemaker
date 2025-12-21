@@ -77,6 +77,75 @@ test_that("use_transcript_input standardizes DOCX correctly", {
   }
 })
 
+test_that("use_transcript_input skips existing output when overwrite is FALSE", {
+  withr::with_tempdir({
+    target_dir <- "."
+    vtt_path <- "test.vtt"
+    writeLines(
+      c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
+      vtt_path
+    )
+
+    output_dir <- file.path(target_dir, "transcription_output_data")
+    dir.create(output_dir)
+
+    existing_file <- file.path(output_dir, "segment_1.json")
+    existing_json <- list(text = "existing", segments = list())
+    jsonlite::write_json(
+      existing_json,
+      existing_file,
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
+
+    result_files <- use_transcript_input(
+      vtt_path,
+      target_dir = target_dir,
+      overwrite = FALSE
+    )
+
+    expect_identical(result_files, existing_file)
+    expect_identical(
+      jsonlite::read_json(existing_file),
+      existing_json
+    )
+  })
+})
+
+test_that("use_transcript_input overwrites output when overwrite is TRUE", {
+  withr::with_tempdir({
+    target_dir <- "."
+    vtt_path <- "test.vtt"
+    writeLines(
+      c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
+      vtt_path
+    )
+
+    output_dir <- file.path(target_dir, "transcription_output_data")
+    dir.create(output_dir)
+
+    existing_file <- file.path(output_dir, "segment_1.json")
+    existing_json <- list(text = "existing", segments = list())
+    jsonlite::write_json(
+      existing_json,
+      existing_file,
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
+
+    result_files <- use_transcript_input(
+      vtt_path,
+      target_dir = target_dir,
+      overwrite = TRUE
+    )
+
+    expect_identical(result_files, existing_file)
+
+    updated_json <- jsonlite::read_json(existing_file)
+    expect_identical(updated_json$text, "Hello world")
+  })
+})
+
 test_that("import_transcript_from_file aborts on invalid DOCX", {
   withr::with_tempdir({
     rlang::check_installed("officer")

@@ -684,6 +684,8 @@ add_chat_transcript <- function(
 #'   imported from the transcript, if present.
 #' @param lines_per_json A positive integer indicating how many transcript rows
 #'   should be written to each JSON segment file.
+#' @param overwrite A boolean indicating whether existing JSON segment files
+#'   should be overwritten.
 #'
 #' @return Invisibly returns the paths to the created JSON segment files.
 #'
@@ -692,7 +694,8 @@ use_transcript_input <- function(
   file,
   target_dir = getwd(),
   import_diarization = TRUE,
-  lines_per_json = 50
+  lines_per_json = 50,
+  overwrite = FALSE
 ) {
   cli::cli_alert("Preparing external transcript: {.file {basename(file)}}")
 
@@ -720,6 +723,27 @@ use_transcript_input <- function(
   stt_output_dir <- file.path(target_dir, "transcription_output_data")
   if (!fs::dir_exists(stt_output_dir)) {
     fs::dir_create(stt_output_dir)
+  }
+
+  existing_files <- list.files(
+    stt_output_dir,
+    pattern = "\\.json$",
+    full.names = TRUE
+  )
+
+  if (!overwrite && length(existing_files) > 0) {
+    file_order <- stringr::str_order(
+      basename(existing_files),
+      numeric = TRUE
+    )
+    existing_files <- existing_files[file_order]
+
+    cli::cli_alert_info(
+      "Existing transcript JSON files found in {.path {stt_output_dir}}.
+      Skipping overwrite."
+    )
+
+    return(invisible(existing_files))
   }
 
   # Ensure consistent ordering before chunking, so segments are written and

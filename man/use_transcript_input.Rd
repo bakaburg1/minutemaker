@@ -4,7 +4,13 @@
 \alias{use_transcript_input}
 \title{Standardize and prepare an external transcript for the workflow}
 \usage{
-use_transcript_input(file, target_dir = getwd(), import_diarization = TRUE)
+use_transcript_input(
+  file,
+  target_dir = getwd(),
+  import_diarization = TRUE,
+  lines_per_json = 50,
+  overwrite = FALSE
+)
 }
 \arguments{
 \item{file}{Path to the external transcript file.}
@@ -13,9 +19,15 @@ use_transcript_input(file, target_dir = getwd(), import_diarization = TRUE)
 
 \item{import_diarization}{A boolean indicating whether the speaker should be
 imported from the transcript, if present.}
+
+\item{lines_per_json}{A positive integer indicating how many transcript rows
+should be written to each JSON segment file.}
+
+\item{overwrite}{A boolean indicating whether existing JSON segment files
+should be overwritten.}
 }
 \value{
-Invisibly returns the path to the created JSON file.
+Invisibly returns the paths to the created JSON segment files.
 }
 \description{
 This function takes an external transcript file (VTT, SRT, or DOCX),
