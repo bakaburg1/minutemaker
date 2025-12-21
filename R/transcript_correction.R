@@ -199,7 +199,7 @@ apply_llm_correction <- function(
   # Iterate over files, attempting correction for each.
   # NA_character_ is used to mark failures for later filtering.
   processed_files <- purrr::map_chr(files_to_process, \(file_path) {
-    cli::cli_alert_info(
+    cli::cli_alert(
       "Processing transcript file for correction: {.file {basename(file_path)}}"
     )
 
