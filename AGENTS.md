@@ -41,6 +41,12 @@ Update the list below with the new learning points:
 - name: cli alert capture
   description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
   scope: testing
+- name: agenda cleaning for empty slices
+  description: clean_agenda() drops or aborts agenda items with empty transcript slices to keep agenda and summary tree aligned.
+  scope: agenda/workflow
+- name: roxygen generation only
+  description: Never write .Rd or NAMESPACE manually; always run devtools::document() to update documentation and exports.
+  scope: documentation
 - name: git write confirmation
   description: Always ask for explicit user confirmation before performing any write operation to the git repository, such as commit, push, or other actions that modify git history.
   scope: git operations
