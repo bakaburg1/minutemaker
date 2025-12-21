@@ -591,6 +591,15 @@ speech_to_summary_workflow <- function(
     multipart_summary <- FALSE
   }
 
+  if (!isFALSE(agenda) && !is.null(agenda)) {
+    agenda <- clean_agenda(
+      agenda = agenda,
+      transcript_data = transcript_data,
+      event_start_time = event_start_time,
+      on_empty = "drop"
+    )
+  }
+
   cli::cli_h1("Summarization")
   cli::cli_alert("Summarizing transcript...")
 
