@@ -35,6 +35,12 @@ Update the list below with the new learning points:
 - name: agenda inference start times validation
   description: Warn and skip when LLM agenda start_times are empty; abort when non-numeric or coercion introduces NA values.
   scope: agenda inference
+- name: external transcript overwrite control
+  description: use_transcript_input skips writing when existing JSON segments are present unless overwrite is TRUE, and workflow passes overwrite_transcription_files through.
+  scope: transcript import/workflow
+- name: cli alert capture
+  description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
+  scope: testing
 ```
 
 ### Dependency Management (`renv`)
