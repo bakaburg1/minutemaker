@@ -73,3 +73,18 @@ test_that("clean_agenda drops or aborts on empty transcript slices", {
     fixed = TRUE
   )
 })
+
+test_that("extract_text_from_transcript skips empty transcript data", {
+  empty_df <- data.frame(start = numeric(0), end = numeric(0), text = character(0))
+
+  out <- NULL
+  expect_message(
+    {
+      out <- extract_text_from_transcript(empty_df)
+    },
+    "Transcript segment is empty. Skipping.",
+    fixed = TRUE
+  )
+
+  expect_true(is.na(out))
+})

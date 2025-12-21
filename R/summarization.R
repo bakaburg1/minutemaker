@@ -284,6 +284,11 @@ summarise_transcript <- function(
       )
     }
 
+    # Return NA if the transcript is NA or empty
+    if (is.na(transcript) || transcript == "") {
+      return(NA_character_)
+    }
+
     args <- args[
       c(
         "event_description",
@@ -307,6 +312,12 @@ summarise_transcript <- function(
 
   if (prompt_only) {
     return(prompts)
+  }
+
+  # Remove any NA or empty prompts, error if none remain
+  prompts <- purrr::discard(prompts, ~ is.na(.x) || .x == "")
+  if (length(prompts) == 0) {
+    cli::cli_abort("No transcript segments available for summarisation.")
   }
 
   # Generate the summaries

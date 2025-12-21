@@ -110,6 +110,31 @@ extract_text_from_transcript <- function(
   end_time = NULL,
   import_diarization = TRUE
 ) {
+  if (!is.data.frame(transcript_data) || nrow(transcript_data) == 0) {
+    cli::cli_alert_warning(
+      "Transcript segment is empty. Skipping."
+    )
+    return(NA_character_)
+  }
+
+  if (!all(c("start", "end") %in% names(transcript_data))) {
+    cli::cli_abort(
+      "Transcript data must contain {.field start} and {.field end} columns."
+    )
+  }
+
+  if (!is.numeric(transcript_data$start) || !is.numeric(transcript_data$end)) {
+    cli::cli_abort(
+      "Transcript {.field start} and {.field end} columns must be numeric."
+    )
+  }
+
+  if (all(is.na(transcript_data$start)) || all(is.na(transcript_data$end))) {
+    cli::cli_alert_warning(
+      "Transcript segment has missing start/end times. Skipping."
+    )
+    return(NA_character_)
+  }
   # If no parameters are provided, the whole transcript is used and a warning is
   # issued
   if (is.null(agenda_element) && is.null(start_time) && is.null(end_time)) {
