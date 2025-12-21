@@ -644,7 +644,7 @@ speech_to_summary_workflow(
   stt_model = getOption("minutemaker_stt_model"),
   stt_initial_prompt = initial_prompt,
   stt_language = "en",
-  stt_overwrite_output_files = FALSE,
+  overwrite_transcription_files = FALSE,
 
   # Arguments for LLM-based transcript correction (runs after STT)
   enable_llm_correction = TRUE, # Defaults to TRUE
