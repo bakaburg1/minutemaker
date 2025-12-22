@@ -50,6 +50,9 @@ Update the list below with the new learning points:
 - name: git write confirmation
   description: Always ask for explicit user confirmation before performing any write operation to the git repository, such as commit, push, or other actions that modify git history.
   scope: git operations
+- name: dependency additions via usethis
+  description: Always add packages with usethis::use_package using min_version = TRUE when updating dependencies.
+  scope: dependencies
 ```
 
 ### Dependency Management (`renv`)
