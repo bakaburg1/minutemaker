@@ -30,6 +30,8 @@ is_audio_file_sane <- function(audio_file) {
 #' @param start_time The start time in seconds for the segment.
 #' @param duration The duration of the segment in seconds.
 #' @param verbose A logical value indicating whether to print messages.
+#' @param on_error Whether to abort with an error or return `FALSE` with an
+#'   attached error attribute when extraction fails.
 #'
 #' @return The path to the created segment file if successful.
 #'
@@ -39,46 +41,65 @@ extract_audio_segment <- function(
   output_file,
   start_time,
   duration,
-  verbose = TRUE
+  verbose = TRUE,
+  on_error = c("abort", "return")
 ) {
+  on_error <- match.arg(on_error)
+
   if (verbose) {
     cli::cli_alert("Outputting audio segment: {.file {basename(output_file)}}")
   }
 
   max_attempts <- 2
-  for (attempt in 1:max_attempts) {
-    # Ensure the directory exists before writing
-    if (!dir.exists(dirname(output_file))) {
-      dir.create(dirname(output_file), recursive = TRUE)
-    }
 
-    av::av_audio_convert(
-      audio_file,
-      output_file,
-      start_time = start_time,
-      total_time = duration
-    )
+  tryCatch(
+    {
+      for (attempt in 1:max_attempts) {
+        # Ensure the directory exists before writing
+        if (!dir.exists(dirname(output_file))) {
+          dir.create(dirname(output_file), recursive = TRUE)
+        }
 
-    if (is_audio_file_sane(output_file)) {
-      return(output_file) # Success
-    }
-
-    if (verbose) {
-      if (attempt < max_attempts) {
-        cli::cli_warn(
-          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
+        av::av_audio_convert(
+          audio_file,
+          output_file,
+          start_time = start_time,
+          total_time = duration
         )
-      } else {
-        cli::cli_warn(
-          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed."
-        )
+
+        if (is_audio_file_sane(output_file)) {
+          return(output_file) # Success
+        }
+
+        if (verbose) {
+          if (attempt < max_attempts) {
+            cli::cli_warn(
+              "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
+            )
+          } else {
+            cli::cli_warn(
+              "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed."
+            )
+          }
+        }
       }
-    }
-  }
 
-  # If the loop finishes, all attempts have failed.
-  cli::cli_abort(
-    "Failed to create a valid segment for {.file {basename(output_file)}} after {max_attempts} attempts."
+      # If the loop finishes, all attempts have failed.
+      cli::cli_abort(
+        "Failed to create a valid segment for {.file {basename(output_file)}} after {max_attempts} attempts."
+      )
+    },
+    error = function(cnd) {
+      if (on_error == "abort") {
+        rlang::abort(message = conditionMessage(cnd), parent = cnd)
+      }
+
+      structure(
+        FALSE,
+        error = conditionMessage(cnd),
+        class = "minutemaker_audio_error"
+      )
+    }
   )
 }
 
@@ -233,6 +254,7 @@ split_audio <- function(
     # Flag to indicate if a failure has occurred, which should halt task
     # processing
     fail_fast_triggered <- FALSE
+    failure_message <- NULL
     fallback_used <- FALSE
 
     # Continue loop until all tasks are processed or a failure occurs
@@ -280,12 +302,21 @@ split_audio <- function(
         for (i in pending_idxs) {
           start_time <- (i - 1) * segment_length_sec
           output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-          extract_audio_segment(
+          result <- extract_audio_segment(
             audio_file = audio_file,
             output_file = output_file,
             start_time = start_time,
-            duration = segment_length_sec
+            duration = segment_length_sec,
+            on_error = "return"
           )
+          if (isFALSE(result)) {
+            failure_message <<- paste0(
+              "A worker failed: ",
+              attr(result, "error")
+            )
+            fail_fast_triggered <- TRUE
+            break
+          }
           processed_flags[i] <- TRUE
         }
 
@@ -338,7 +369,6 @@ split_audio <- function(
             }
           )
           failure_message <- paste0("A worker failed: ", err_message)
-          cli::cli_alert_danger(failure_message)
           fail_fast_triggered <- TRUE
           break
         }
@@ -352,6 +382,9 @@ split_audio <- function(
     }
 
     if (fail_fast_triggered) {
+      if (!is.null(failure_message)) {
+        cli::cli_alert_danger(failure_message)
+      }
       cli::cli_alert_danger(
         "Halting due to worker error. Checking source file integrity..."
       )

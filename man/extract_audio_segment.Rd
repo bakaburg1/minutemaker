@@ -9,7 +9,8 @@ extract_audio_segment(
   output_file,
   start_time,
   duration,
-  verbose = TRUE
+  verbose = TRUE,
+  on_error = c("abort", "return")
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ extract_audio_segment(
 \item{duration}{The duration of the segment in seconds.}
 
 \item{verbose}{A logical value indicating whether to print messages.}
+
+\item{on_error}{Whether to abort with an error or return \code{FALSE} with an
+attached error attribute when extraction fails.}
 }
 \value{
 The path to the created segment file if successful.

@@ -918,6 +918,7 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
+    withr::local_options(minutemaker_split_audio_parallel_timeout = 120)
     cli::cli_alert_info(
       "Expect worker failure messages below; this test simulates a crash with corrupted source."
     )
