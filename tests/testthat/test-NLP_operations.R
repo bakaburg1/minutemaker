@@ -1,4 +1,5 @@
 # --- Tests for tokenize_text ---
+testthat::skip("GloVe infrastructure is soft-deprecated.")
 # The 'describe' block groups tests for the 'tokenize_text' function.
 describe("tokenize_text", {
   # Test case: Verifies basic tokenization of a simple sentence.

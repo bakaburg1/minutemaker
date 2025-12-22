@@ -27,6 +27,12 @@ A matrix of word embeddings.
 This function takes a text input and uses the \code{text2vec} package's GloVe
 model to generate word embeddings.
 }
+\section{Lifecycle}{
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
+GloVe infrastructure is soft-deprecated.
+}
+
 \examples{
 \dontrun{
 text <- "Sample text for GloVe model generation."

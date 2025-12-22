@@ -20,7 +20,8 @@ Imports:
     styler (>= 1.10.2),
     tools (>= 4.3.2),
     cli (>= 3.6.5),
-    fs (>= 1.6.0)
+    fs (>= 1.6.0),
+    lifecycle (>= 1.0.4)
 Remotes:
     github::bakaburg1/llmR
 Config/testthat/edition: 3

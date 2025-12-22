@@ -6,10 +6,19 @@
 #'
 #' @param text A character vector containing the text to be tokenized.
 #'
+#' @section Lifecycle:
+#' `r lifecycle::badge("deprecated")`
+#' GloVe infrastructure is soft-deprecated.
+#'
 #' @return A list of tokens extracted from the text.
 #'
 #'
 tokenize_text <- function(text) {
+  lifecycle::deprecate_warn(
+    "0.15.0",
+    "tokenize_text()",
+    details = "GloVe infrastructure is soft-deprecated."
+  )
   rlang::check_installed("text2vec")
 
   # Convert text to lowercase, remove special characters and extra spaces, and
@@ -34,6 +43,10 @@ tokenize_text <- function(text) {
 #' @param iterations The number of iterations to run the GloVe model.
 #' @param overwrite Whether to overwrite a previously generated model.
 #'
+#' @section Lifecycle:
+#' `r lifecycle::badge("deprecated")`
+#' GloVe infrastructure is soft-deprecated.
+#'
 #' @return A matrix of word embeddings.
 #'
 #' @examples
@@ -48,6 +61,11 @@ generate_glove_model <- function(
   iterations = 50,
   overwrite = FALSE
 ) {
+  lifecycle::deprecate_warn(
+    "0.15.0",
+    "generate_glove_model()",
+    details = "GloVe infrastructure is soft-deprecated."
+  )
   rlang::check_installed("parallel")
 
   # Create a hash of the data and the model parameters
@@ -120,6 +138,10 @@ generate_glove_model <- function(
 #' @param y_texts A character vector of texts to compare against x_text.
 #' @param embedding_matrix A matrix of word embeddings.
 #'
+#' @section Lifecycle:
+#' `r lifecycle::badge("deprecated")`
+#' GloVe infrastructure is soft-deprecated.
+#'
 #' @return A numeric vector of similarity scores.
 #'
 #' @examples
@@ -131,6 +153,11 @@ generate_glove_model <- function(
 #' }
 #'
 compute_text_sim <- function(x_text, y_texts, embedding_matrix) {
+  lifecycle::deprecate_warn(
+    "0.15.0",
+    "compute_text_sim()",
+    details = "GloVe infrastructure is soft-deprecated."
+  )
   # Function to convert a text to a normalized embedding vector
   get_text_embedding <- function(text, embedding_matrix) {
     # Tokenize and normalize the text

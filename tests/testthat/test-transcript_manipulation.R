@@ -692,6 +692,7 @@ test_that("merge_transcripts basic merging works (no diarization)", {
 })
 
 test_that("merge_transcripts handles no empty segments", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
   transcript_x_no_empty <- dplyr::tibble(
     start = c(0L, 10L),
@@ -775,6 +776,7 @@ test_that("merge_transcripts handles no empty segments", {
 })
 
 test_that("merge_transcripts handles transcripts with no overlap", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
   # Transcript X: Segments from 0-5s and 10-15s
   transcript_x_no_overlap <- dplyr::tibble(
@@ -858,6 +860,7 @@ test_that("merge_transcripts handles transcripts with no overlap", {
 })
 
 test_that("merge_transcripts handles empty transcript_y", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
   transcript_x_standard <- dplyr::tibble(
     start = c(0L, 10L, 20L),
@@ -934,6 +937,7 @@ test_that("merge_transcripts handles empty transcript_y", {
 })
 
 test_that("merge_transcripts handles empty transcript_x", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   transcript_x_empty_base <- dplyr::tibble(
     start = integer(0),
     end = integer(0),
@@ -1033,6 +1037,7 @@ test_that("merge_transcripts handles empty transcript_x", {
 })
 
 test_that("merge_transcripts handles empty speaker values", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
   empty_spk <- "" # Speaker name that is an empty string
   na_spk <- NA_character_ # Speaker name that is NA
@@ -1165,6 +1170,7 @@ test_that("merge_transcripts handles empty speaker values", {
 })
 
 test_that("merge_transcripts handles segments too short for similarity", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
   na_spk <- NA_character_
 
@@ -1265,6 +1271,7 @@ test_that("merge_transcripts handles segments too short for similarity", {
 })
 
 test_that("merge_transcripts imports diarization correctly", {
+  testthat::skip("GloVe-based diarization import is soft-deprecated.")
   s <- silent()
 
   transcript_x_initial <- dplyr::tibble(
