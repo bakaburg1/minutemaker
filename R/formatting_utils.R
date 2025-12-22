@@ -39,7 +39,8 @@ format_summary_tree <- function(
   check_agenda_summary_tree_consistency(agenda, summary_tree)
 
   if (
-    is.null(event_start_time) &&
+    length(agenda) > 0 &&
+      is.null(event_start_time) &&
       all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
   ) {
     cli::cli_alert_warning(
@@ -153,7 +154,8 @@ format_agenda <- function(
   }
 
   if (
-    is.null(event_start_time) &&
+    length(agenda) > 0 &&
+      is.null(event_start_time) &&
       all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
   ) {
     cli::cli_alert_warning(

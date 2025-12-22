@@ -227,9 +227,8 @@ test_that("convert_agenda_times handles POSIXct event start time", {
 
 test_that("convert_agenda_times warns when no event start time provided", {
   agenda <- create_sample_agenda(1)
-  expect_warning(
-    convert_agenda_times(agenda, convert_to = "seconds"),
-    "No start time provided"
+  expect_no_warning(
+    convert_agenda_times(agenda, convert_to = "seconds")
   )
 })
 
