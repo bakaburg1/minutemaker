@@ -40,10 +40,10 @@ test_that("use_transcript_input standardizes VTT correctly", {
   expect_named(first_seg, c("start", "end", "speaker", "text"))
 
   for (i in seq_along(result_files)) {
-    expect_equal(
-      jsonlite::read_json(result_files[[i]]),
-      jsonlite::read_json(expected_files[[i]])
-    )
+    actual <- jsonlite::read_json(result_files[[i]])
+    expected <- jsonlite::read_json(expected_files[[i]])
+
+    expect_equal(actual, expected)
   }
 })
 

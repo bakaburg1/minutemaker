@@ -1,5 +1,5 @@
 {
-  "text": "Can everyone hear me? Yes. Loud and clear. Yeah. Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 kilohertz, and the navigation solver remapped coordinates during the same 2.3 seconds. We confirmed it's in the raw stream, not the UI. [laughter] [inaudible] The console shows &quot;SAFE MODE&quot; but the log includes &amp; flags a checksum mismatch. I will share my screen now. Can you see the slide deck? No, not yet. I see it now, it just appeared. Yes, same here. It's visible in presenter mode.  So, the star-map kind of rewrote itself and. we saw drift then it snapped back, NO error bars around it, but these are large numbers, so it's likely quite accurate.",
+  "text": "Can everyone hear me? Yes. Loud and clear. Yeah. Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 kilohertz, and the navigation solver remapped coordinates during the same 2.3 seconds. We confirmed it's in the raw stream, not the UI. [laughter] [inaudible] The console shows \"SAFE MODE\" but the log includes & flags a checksum mismatch. I will share my screen now. Can you see the slide deck? No, not yet. I see it now, it just appeared. Yes, same here. It's visible in presenter mode.  So, the star-map kind of rewrote itself and. we saw drift then it snapped back, NO error bars around it, but these are large numbers, so it's likely quite accurate.",
   "segments": [
     {
       "start": 0.649,
@@ -41,7 +41,7 @@
       "start": 40.2,
       "end": 50.9,
       "speaker": "VOICE-C99",
-      "text": "The console shows &quot;SAFE MODE&quot; but the log includes &amp; flags a checksum mismatch."
+      "text": "The console shows \"SAFE MODE\" but the log includes & flags a checksum mismatch."
     },
     {
       "start": 50.9,

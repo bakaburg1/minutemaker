@@ -27,7 +27,7 @@ Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 k
 
 7 "VOICE-C99" (9099000007)
 00:00:40.200 -->; 00:00:50.900
-The console shows &quot;SAFE MODE&quot; but the log includes &amp; flags a checksum mismatch.
+The console shows "SAFE MODE" but the log includes & flags a checksum mismatch.
 
 8 "VOICE-D12" (9012000008)
 00:00:50.900 -->; 00:01:01.300
