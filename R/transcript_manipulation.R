@@ -110,6 +110,7 @@ extract_text_from_transcript <- function(
   end_time = NULL,
   import_diarization = TRUE
 ) {
+  # Check that 'transcript_data' is a non-empty data frame
   if (!is.data.frame(transcript_data) || nrow(transcript_data) == 0) {
     cli::cli_alert_warning(
       "Transcript segment is empty. Skipping."
@@ -117,18 +118,21 @@ extract_text_from_transcript <- function(
     return(NA_character_)
   }
 
+  # Ensure required columns 'start' and 'end' are present
   if (!all(c("start", "end") %in% names(transcript_data))) {
     cli::cli_abort(
       "Transcript data must contain {.field start} and {.field end} columns."
     )
   }
 
+  # Verify 'start' and 'end' columns are numeric
   if (!is.numeric(transcript_data$start) || !is.numeric(transcript_data$end)) {
     cli::cli_abort(
       "Transcript {.field start} and {.field end} columns must be numeric."
     )
   }
 
+  # Warn and skip if all start or end times are NA
   if (all(is.na(transcript_data$start)) || all(is.na(transcript_data$end))) {
     cli::cli_alert_warning(
       "Transcript segment has missing start/end times. Skipping."
