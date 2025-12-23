@@ -1,6 +1,6 @@
 ## General instructions
 
-For any requested change or task which is not trivial, you should always assess the situation, make tests and then present a detailed plan of action before ANY change to the code.
+For any requested change or task which is not trivial, you should always assess the situation, test your assumptions in the console (e.g., small repros or focused checks) and then present a detailed plan of action before ANY change to the code. Run relevant unit tests after the edit (not before), unless explicitly requested otherwise.
 You'll enact your plan of action after the plan has been approved by the user.
 
 **Exception:** The planning and wait for approval process is not needed when asked to add documentation.
@@ -24,7 +24,7 @@ https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/unit-testing.md
 
 ### Track learning points
 
-Update progessively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, corrections and remarks from the user,etc.
+Update progressively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, corrections and remarks from the user, etc.
 
 Update the list below with the new learning points:
 
@@ -53,6 +53,9 @@ Update the list below with the new learning points:
 - name: dependency additions via usethis
   description: Always add packages with usethis::use_package using min_version = TRUE when updating dependencies.
   scope: dependencies
+- name: cli alert bullet handling
+  description: cli_alert* functions do not support named bullet vectors; emit one cli_alert* call per bullet message instead of passing a named vector.
+  scope: logging/messages
 ```
 
 ### Dependency Management (`renv`)
