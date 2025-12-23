@@ -548,8 +548,7 @@ use_whisper_local_stt <- function(
 
   # Check if Miniconda is installed
   if (length(list.files(reticulate::miniconda_path())) == 0) {
-    cli::cli_warn("Miniconda not found.")
-    cli::cli_alert("Installing Miniconda now...")
+    cli::cli_alert("Miniconda not found. Installing it now...")
     reticulate::install_miniconda()
   }
 
@@ -557,10 +556,9 @@ use_whisper_local_stt <- function(
 
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
-    cli::cli_warn(
-      "Conda environment {.str {conda_env}} does not exist."
+    cli::cli_alert(
+      "Creating conda environment {.str {conda_env}}..."
     )
-    cli::cli_alert("Creating conda environment now...")
 
     reticulate::conda_create(conda_env, python_version = "3.9")
   }
@@ -570,8 +568,7 @@ use_whisper_local_stt <- function(
 
   # Check if Whisper is already installed
   if (!reticulate::py_module_available("whisper")) {
-    cli::cli_warn("Whisper not found.")
-    cli::cli_alert("Installing dependencies now...")
+    cli::cli_alert("Whisper not found. Installing it now...")
 
     # Install the required packages
     reticulate::conda_install(
@@ -655,8 +652,7 @@ use_mlx_whisper_local_stt <- function(
 
   # Check if Miniconda is installed
   if (length(list.files(reticulate::miniconda_path())) == 0) {
-    cli::cli_warn("Miniconda not found.")
-    cli::cli_alert("Installing Miniconda now...")
+    cli::cli_alert("Miniconda not found. Installing it now...")
     reticulate::install_miniconda()
   }
 
@@ -664,10 +660,9 @@ use_mlx_whisper_local_stt <- function(
 
   # Check if the conda environment exists
   if (!reticulate::condaenv_exists(conda_env)) {
-    cli::cli_warn(
-      "Conda environment {.str {conda_env}} does not exist."
+    cli::cli_alert(
+      "Conda environment {.str {conda_env}} does not exist. Creating it now..."
     )
-    cli::cli_alert("Creating conda environment now...")
 
     reticulate::conda_create(conda_env, python_version = "3.9")
   }
@@ -677,8 +672,7 @@ use_mlx_whisper_local_stt <- function(
 
   # Check if Whisper is already installed
   if (!reticulate::py_module_available(whisper_package)) {
-    cli::cli_warn("Whisper not found.")
-    cli::cli_alert("Installing dependencies now...")
+    cli::cli_alert("Whisper not found. Installing it now...")
 
     # Install the required packages reticulate::conda_install(conda_env,
     # c("numpy==1.23.5", "numba==0.56.4", "llvmlite==0.39.1", whisper_package),
@@ -779,8 +773,7 @@ use_parakeet_mlx_stt <- function(
     }
 
     # Try to install parakeet-mlx using uv
-    cli::cli_warn("parakeet-mlx CLI tool not found.")
-    cli::cli_alert("Installing parakeet-mlx CLI tool now...")
+    cli::cli_alert("parakeet-mlx CLI tool not found. Installing it now...")
     install_status <- system2(
       command = uv_path,
       args = c("tool", "install", "parakeet-mlx", "-U"),
