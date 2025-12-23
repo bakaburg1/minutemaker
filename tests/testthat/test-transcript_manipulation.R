@@ -395,6 +395,19 @@ test_that("clean_transcript removes low confidence segments", {
 
 # Tests for extract_text_from_transcript() ---
 
+test_that("extract_text_from_transcript errors when text column is missing", {
+  transcript_missing_text <- dplyr::tibble(
+    start = c(0L, 10L),
+    end = c(5L, 15L),
+    speaker = c("s1", "s2")
+  )
+
+  expect_error(
+    extract_text_from_transcript(transcript_missing_text),
+    "Transcript data must contain.*start.*end.*text"
+  )
+})
+
 test_that("extract_text_from_transcript extracts full transcript if no times given", {
   s <- silent() # "[...]"
 

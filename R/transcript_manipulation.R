@@ -118,10 +118,11 @@ extract_text_from_transcript <- function(
     return(NA_character_)
   }
 
-  # Ensure required columns 'start' and 'end' are present
-  if (!all(c("start", "end") %in% names(transcript_data))) {
+  # Ensure required columns are present
+  if (!all(c("start", "end", "text") %in% names(transcript_data))) {
     cli::cli_abort(
-      "Transcript data must contain {.field start} and {.field end} columns."
+      "Transcript data must contain {.field start}, {.field end}, and
+      {.field text} columns."
     )
   }
 
