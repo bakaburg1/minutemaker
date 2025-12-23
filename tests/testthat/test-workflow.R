@@ -21,7 +21,7 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
         invisible(NULL)
       },
       apply_llm_correction = function(...) invisible(NULL),
-      parse_transcript_json = function(stt_output_dir, ...) {
+      parse_transcript_json = function(transcription_output_dir, ...) {
         # Return a minimal valid transcript tibble
         dplyr::tibble(
           text = "mocked transcript text",
@@ -61,7 +61,7 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
             # If FALSE, it uses existing audio in stt_audio_dir.
             overwrite_stt_audio = FALSE,
             stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-            stt_output_dir = file.path(target_dir, "transcription_output_data"),
+            transcription_output_dir = file.path(target_dir, "transcription_output_data"),
             stt_model = "mock_stt_model_arg",
             # To ensure perform_speech_to_text mock is called
             overwrite_transcription_files = TRUE,
@@ -106,7 +106,7 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
           split_audio = FALSE,
           overwrite_stt_audio = TRUE,
           stt_audio_dir = file.path(".", "audio_to_transcribe"),
-          stt_output_dir = file.path(".", "transcription_output_data"),
+          transcription_output_dir = file.path(".", "transcription_output_data"),
           stt_model = "mock_stt_model",
           use_agenda = "no",
           llm_provider = "mock_provider",
@@ -195,7 +195,7 @@ test_that("workflow forwards overwrite to LLM correction", {
         overwrite_seen <<- overwrite
         invisible(NULL)
       },
-      parse_transcript_json = function(stt_output_dir, ...) {
+      parse_transcript_json = function(transcription_output_dir, ...) {
         dplyr::tibble(
           text = "mocked transcript text",
           start_time = 0,
@@ -223,7 +223,7 @@ test_that("workflow forwards overwrite to LLM correction", {
           split_audio = FALSE,
           overwrite_stt_audio = FALSE,
           stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-          stt_output_dir = file.path(target_dir, "transcription_output_data"),
+          transcription_output_dir = file.path(target_dir, "transcription_output_data"),
           stt_model = "mock_stt_model_arg",
           overwrite_transcription_files = TRUE,
           enable_llm_correction = TRUE,
@@ -241,5 +241,70 @@ test_that("workflow forwards overwrite to LLM correction", {
     )
 
     expect_identical(overwrite_seen, TRUE)
+  })
+})
+
+test_that("workflow warns when using deprecated stt_output_dir", {
+  withr::with_tempdir({
+    target_dir <- "."
+
+    dir.create(file.path(target_dir, "audio_to_transcribe"))
+    dir.create(file.path(target_dir, "transcription_output_data"))
+
+    file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+
+    testthat::local_mocked_bindings(
+      perform_speech_to_text = function(audio_path, output_dir, model, ...) {
+        file.create(file.path(output_dir, "dummy_stt_output.json"))
+        invisible(NULL)
+      },
+      apply_llm_correction = function(...) invisible(NULL),
+      parse_transcript_json = function(transcription_output_dir, ...) {
+        dplyr::tibble(
+          text = "mocked transcript text",
+          start_time = 0,
+          end_time = 1000,
+          speaker = "SPEAKER_00"
+        )
+      },
+      summarise_transcript = function(transcript_data, ...) {
+        "mock summary content"
+      },
+      get_prompts = function(...) "mock prompt"
+    )
+
+    withr::with_options(
+      list(
+        minutemaker_stt_model = "mock_stt_model",
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL,
+        minutemaker_include_llm_reasoning = FALSE
+      ),
+      {
+        expect_warning(
+          speech_to_summary_workflow(
+            target_dir = target_dir,
+            source_audio = NULL,
+            split_audio = FALSE,
+            overwrite_stt_audio = FALSE,
+            stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
+            stt_output_dir = file.path(target_dir, "transcription_output_data"),
+            stt_model = "mock_stt_model_arg",
+            overwrite_transcription_files = TRUE,
+            enable_llm_correction = FALSE,
+            transcript_file = file.path(target_dir, "transcript.csv"),
+            overwrite_transcript = TRUE,
+            external_transcript = NULL,
+            chat_file = NULL,
+            use_agenda = "no",
+            llm_provider = "mock_provider_arg",
+            formatted_output_file = file.path(target_dir, "event_summary.txt"),
+            overwrite_formatted_output = TRUE,
+            overwrite_summary_tree = TRUE
+          ),
+          regexp = "stt_output_dir"
+        )
+      }
+    )
   })
 })
