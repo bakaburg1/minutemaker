@@ -1,57 +1,57 @@
 WEBVTT
 
 1 "VOICE-A17" (9017000001)
-00:00:00.649 -->; 00:00:03.210
+00:00:00.649 --> 00:00:03.210
 Can everyone hear me?
 
 2 "NODE-03" (9003000002)
-00:00:03.210 -->; 00:00:10.600
+00:00:03.210 --> 00:00:10.600
 Yes. Loud and clear.
 The display is still loading on my side.
 
 3 "CALLER-X" (9000000123)
-00:00:10.600 -->; 00:00:10.950
+00:00:10.600 --> 00:00:10.950
 Yeah.
 
 4 "VOICE-B04" (9004000004)
-00:00:10.950 -->; 00:00:33.800
+00:00:10.950 --> 00:00:33.800
 Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 kilohertz, and the navigation solver remapped coordinates during the same 2.3 seconds. We confirmed it's in the raw stream, not the UI.
 
 5 "VOICE-A17" (9017000001)
-00:00:33.800 -->; 00:00:36.500
+00:00:33.800 --> 00:00:36.500
 [laughter]
 
 6 "NODE-03" (9003000002)
-00:00:36.500 -->; 00:00:40.200
+00:00:36.500 --> 00:00:40.200
 [inaudible]
 
 7 "VOICE-C99" (9099000007)
-00:00:40.200 -->; 00:00:50.900
+00:00:40.200 --> 00:00:50.900
 The console shows "SAFE MODE" but the log includes & flags a checksum mismatch.
 
 8 "VOICE-D12" (9012000008)
-00:00:50.900 -->; 00:01:01.300
+00:00:50.900 --> 00:01:01.300
 I will share my screen now.
 
 9 "VOICE-D12-RENAMED" (9012000008)
-00:01:01.300 -->; 00:01:06.700
+00:01:01.300 --> 00:01:06.700
 Can you see the slide deck?
 
 10 "UNKNOWN-PORT" (9077000010)
-00:01:06.700 -->; 00:01:10.900
+00:01:06.700 --> 00:01:10.900
 No, not yet.
 
 11 "VOICE-E21" (9021000011)
-00:01:10.900 -->; 00:01:16.500
+00:01:10.900 --> 00:01:16.500
 I see it now, it just appeared.
 
 12 "VOICE-F08" (9008000012)
-00:01:15.900 -->; 00:01:22.000
+00:01:15.900 --> 00:01:22.000
 Yes, same here. It's visible in presenter mode.
 
 13 "NODE-07" (9007000013)
-00:01:22.000 -->; 00:01:24.300
+00:01:22.000 --> 00:01:24.300
 
 14 "VOICE-G33" (9033000014)
-00:01:24.300 -->; 00:01:44.900
+00:01:24.300 --> 00:01:44.900
 So, the star-map kind of rewrote itself and. we saw drift then it snapped back, NO error bars around it, but these are large numbers, so it's likely quite accurate.
