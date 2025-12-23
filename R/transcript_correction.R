@@ -951,7 +951,7 @@ Apply these rules to your JSON output if corrections are made:
             length(unmatched_keys),
             " correction key(s) were not found in the input text and will not be applied."
           ),
-          "i" = paste0("Examples: ", paste(example_keys, collapse = "; "))
+          "i" = "Examples: {.value {example_keys}}"
         )
       )
       # TODO: If this issue persists, consider implementing
