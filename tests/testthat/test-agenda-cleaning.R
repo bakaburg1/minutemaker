@@ -1,4 +1,5 @@
-test_that("convert_agenda_times only warns when conversion needs an origin", {
+ # convert_agenda_times
+test_that("convert_agenda_times is silent when event_start_time is NULL", {
   numeric_agenda <- list(
     list(from = 0, to = 60),
     list(from = 60, to = 120)
@@ -34,6 +35,7 @@ test_that("convert_agenda_times only warns when conversion needs an origin", {
   )
 })
 
+# clean_agenda
 test_that("clean_agenda drops or aborts on empty transcript slices", {
   agenda <- list(
     list(session = "S1", title = "Talk 1", from = 0, to = 60),
@@ -74,6 +76,7 @@ test_that("clean_agenda drops or aborts on empty transcript slices", {
   )
 })
 
+# extract_text_from_transcript
 test_that("extract_text_from_transcript skips empty transcript data", {
   empty_df <- data.frame(start = numeric(0), end = numeric(0), text = character(0))
 

@@ -193,6 +193,19 @@ validate_agenda_element <- function(
   is_valid
 }
 
+warn_missing_event_start_time <- function(agenda, event_start_time) {
+  if (
+    length(agenda) > 0 &&
+      is.null(event_start_time) &&
+      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
+  ) {
+    cli::cli_alert_warning(
+      "No start time provided. Using \"00:00:00\" as start time. Consider
+      setting the event start time using {.fn set_event_start_time}."
+    )
+  }
+}
+
 
 #' Validates an agenda
 #'

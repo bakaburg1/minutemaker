@@ -38,20 +38,7 @@ format_summary_tree <- function(
   # Check the consistency of the summary tree and the agenda
   check_agenda_summary_tree_consistency(agenda, summary_tree)
 
-  if (
-    length(agenda) > 0 &&
-      is.null(event_start_time) &&
-      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
-  ) {
-    cli::cli_alert_warning(
-      c(
-        "No start time provided.",
-        "Using \"00:00:00\" as start time.",
-        "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}."
-      )
-    )
-  }
+  warn_missing_event_start_time(agenda, event_start_time)
 
   # Initialize the output string
   output <- ""
@@ -153,20 +140,7 @@ format_agenda <- function(
     agenda <- load_serialized(agenda, "agenda")
   }
 
-  if (
-    length(agenda) > 0 &&
-      is.null(event_start_time) &&
-      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
-  ) {
-    cli::cli_alert_warning(
-      c(
-        "No start time provided.",
-        "Using \"00:00:00\" as start time.",
-        "i" = "Consider setting the event start time using
-          {.fn set_event_start_time}."
-      )
-    )
-  }
+  warn_missing_event_start_time(agenda, event_start_time)
 
   # Covert times from second to clock time if possible
   agenda <- convert_agenda_times(

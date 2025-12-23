@@ -98,7 +98,7 @@ convert_agenda_times <- function(
     (convert_to == "clocktime" && agenda_time_is_numeric)
 
   # If an origin is needed, check if it is provided
-  if (isTRUE(needs_origin)) {
+  if (needs_origin) {
     if (!is.null(event_start_time)) {
       if (inherits(event_start_time, c("POSIXct", "character"))) {
         # Parse the start time if not null
@@ -252,8 +252,11 @@ clean_agenda <- function(
 
   for (i in seq_along(agenda_seconds)) {
     agenda_element <- agenda_seconds[[i]]
-    transcript_rows <- transcript_data$start >= agenda_element$from &
-      transcript_data$start <= agenda_element$to
+    transcript_rows <- dplyr::between(
+      transcript_data$start,
+      agenda_element$from,
+      agenda_element$to
+    )
     row_count <- sum(transcript_rows, na.rm = TRUE)
 
     if (row_count < min_rows) {
@@ -268,13 +271,10 @@ clean_agenda <- function(
         )
       }
 
-      cli::cli_alert_warning(
-        c(
-          "Agenda item has an empty transcript slice.",
-          "x" = "Dropping {.val {talk_ids[[i]]}} (rows: {row_count}).",
-          "i" = "from: {.val {agenda_element$from}}, to:
-            {.val {agenda_element$to}}."
-        )
+      cli::cli_alert_warning("Agenda item has an empty transcript slice.")
+      cli::cli_alert_info(
+        "Dropping {.val {talk_ids[[i]]}} (rows: {row_count}). from:
+        {.val {agenda_element$from}}, to: {.val {agenda_element$to}}."
       )
       keep[[i]] <- FALSE
     } else {
