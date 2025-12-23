@@ -12,7 +12,8 @@
 #'   seconds.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
 #'   format. Will be used to add the actual clock time to the transcript
-#'   segments. If NULL, the clock time will not be added.
+#'   segments. If NULL, the clock time will not be added. If NA, metadata from
+#'   transcript JSON files will be ignored.
 #'
 #' @return A data frame with the text and start and end time of each segment.
 #'
@@ -103,6 +104,14 @@ parse_transcript_json <- function(
       {.fn parse_transcript_json}.
       Expecting a JSON string, file path, directory path, or list."
     )
+  }
+
+  if (length(event_start_time) == 1 && is.na(event_start_time)) {
+    event_start_time <- NULL
+  } else if (is.null(event_start_time)) {
+    json_start_time <- transcript_list[[1]]$transcript_start_time %||% NULL
+    event_start_time <- json_start_time %||%
+      getOption("minutemaker_event_start_time")
   }
 
   # Initialize full_transcript with the expected schema.
@@ -281,6 +290,24 @@ import_transcript_from_file <- function(
     )
     content <- officer::docx_summary(doc)
 
+    # Helper function to parse a time string in "MM:SS" or "HH:MM:SS" format
+    # Returns the total number of seconds as a numeric value.
+    # - t: a character string, e.g., "01:23" for 1 minute 23 seconds, or
+    #   "01:23:45" for 1 hour 23 minutes 45 seconds.
+    # - Returns NA_real_ if the input cannot be parsed.
+    parse_relative_time <- function(t) {
+      parts <- as.numeric(stringr::str_split_1(t, ":"))
+      if (length(parts) == 2) {
+        # MM:SS format
+        return(parts[1] * 60 + parts[2])
+      } else if (length(parts) == 3) {
+        # HH:MM:SS format
+        return(parts[1] * 3600 + parts[2] * 60 + parts[3])
+      }
+      # If not matching expected time formats, return NA
+      NA_real_
+    }
+
     # MS Teams transcripts are typically tables or specific paragraph
     # structures.
     if (any(content$content_type == "table cell")) {
@@ -297,24 +324,6 @@ import_transcript_from_file <- function(
       # Teams tables usually have 3 columns: Time, Speaker, Message
       # Plus the row_id column from pivot_wider
       if (ncol(table_data) >= 4) {
-        # Helper function to parse a time string in "MM:SS" or "HH:MM:SS" format
-        # Returns the total number of seconds as a numeric value.
-        # - t: a character string, e.g., "01:23" for 1 minute 23 seconds, or
-        #   "01:23:45" for 1 hour 23 minutes 45 seconds.
-        # - Returns NA_real_ if the input cannot be parsed.
-        parse_relative_time <- function(t) {
-          parts <- as.numeric(stringr::str_split_1(t, ":"))
-          if (length(parts) == 2) {
-            # MM:SS format
-            return(parts[1] * 60 + parts[2])
-          } else if (length(parts) == 3) {
-            # HH:MM:SS format
-            return(parts[1] * 3600 + parts[2] * 60 + parts[3])
-          }
-          # If not matching expected time formats, return NA
-          NA_real_
-        }
-
         transcript_data <- table_data |>
           dplyr::transmute(
             start = purrr::map_dbl(.data$col_1, parse_relative_time),
@@ -342,19 +351,20 @@ import_transcript_from_file <- function(
       teams_pattern_multiline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*\\n\\s*(.*)$"
       teams_pattern_singleline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*(.*)$"
 
-      # Define a local helper for relative time parsing
-      parse_relative_time <- function(t) {
-        parts <- as.numeric(stringr::str_split_1(t, ":"))
-        if (length(parts) == 2) {
-          return(parts[1] * 60 + parts[2])
-        } else if (length(parts) == 3) {
-          return(parts[1] * 3600 + parts[2] * 60 + parts[3])
-        }
-        NA_real_
-      }
-
       paragraphs <- content |>
         dplyr::filter(.data$content_type == "paragraph")
+
+      date_header_pattern <- "^\\s*.+\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(am|pm)\\b\\s*$"
+      date_header_rows <- stringr::str_detect(
+        paragraphs$text,
+        stringr::regex(date_header_pattern, ignore_case = TRUE)
+      )
+      transcript_start_time <- NULL
+      if (any(date_header_rows)) {
+        transcript_start_time <- stringr::str_squish(
+          paragraphs$text[date_header_rows][1]
+        )
+      }
 
       # First, try to match the standard "Speaker Time \n Text" paragraph form.
       matches <- stringr::str_match(paragraphs$text, teams_pattern_multiline)
@@ -371,7 +381,7 @@ import_transcript_from_file <- function(
       }
 
       # Keep only paragraphs that matched either regex.
-      keep <- !is.na(matches[, 1])
+      keep <- !is.na(matches[, 1]) & !date_header_rows
 
       # Build a clean transcript table from the regex capture groups:
       # [2] speaker, [3] time, [4] text.
@@ -390,6 +400,10 @@ import_transcript_from_file <- function(
         text = matches[keep, 4]
       ) |>
         dplyr::filter(!is.na(.data$start))
+
+      if (!is.null(transcript_start_time)) {
+        attr(transcript_data, "transcript_start_time") <- transcript_start_time
+      }
     }
 
     if (nrow(transcript_data) == 0) {
@@ -673,10 +687,11 @@ add_chat_transcript <- function(
 #' Standardize and prepare an external transcript for the workflow
 #'
 #' This function takes an external transcript file (VTT, SRT, or DOCX),
-#' standardizes it into the internal format used by the package, and saves it
-#' as a JSON file in the transcription output directory. This allows the rest
-#' of the workflow to proceed as if the transcript was generated by the
-#' package's speech-to-text models.
+#' standardizes it into the internal format used by the package, and saves the
+#' result as JSON segment files in the transcription output directory, split
+#' according to `lines_per_json`. This allows the rest of the workflow to
+#' proceed as if the transcript was generated by the package's speech-to-text
+#' models.
 #'
 #' @param file Path to the external transcript file.
 #' @param target_dir Path to the target directory where the workflow is running.
@@ -720,13 +735,13 @@ use_transcript_input <- function(
   }
 
   # Create the transcription output directory if it doesn't exist
-  stt_output_dir <- file.path(target_dir, "transcription_output_data")
-  if (!fs::dir_exists(stt_output_dir)) {
-    fs::dir_create(stt_output_dir)
+  transcription_output_dir <- file.path(target_dir, "transcription_output_data")
+  if (!fs::dir_exists(transcription_output_dir)) {
+    fs::dir_create(transcription_output_dir)
   }
 
   existing_files <- list.files(
-    stt_output_dir,
+    transcription_output_dir,
     pattern = "\\.json$",
     full.names = TRUE
   )
@@ -739,7 +754,7 @@ use_transcript_input <- function(
     existing_files <- existing_files[file_order]
 
     cli::cli_alert_info(
-      "Existing transcript JSON files found in {.path {stt_output_dir}}.
+      "Existing transcript JSON files found in {.path {transcription_output_dir}}.
       Skipping overwrite."
     )
 
@@ -770,6 +785,7 @@ use_transcript_input <- function(
   # large prompt payload for downstream LLM steps.
   chunk_id <- ceiling(seq_len(nrow(transcript_df)) / lines_per_json)
   n_chunks <- max(chunk_id)
+  transcript_start_time <- attr(transcript_df, "transcript_start_time")
   # Pad the segment index with zeros so alphabetical ordering matches numeric
   # ordering (and parse_transcript_json() also sorts with numeric = TRUE).
   pad_width <- nchar(as.character(n_chunks))
@@ -794,9 +810,14 @@ use_transcript_input <- function(
       text = paste(chunk_df$text, collapse = " "),
       segments = purrr::transpose(chunk_df)
     )
+    if (chunk_index == 1 &&
+      !is.null(transcript_start_time) &&
+      !is.na(transcript_start_time)) {
+      transcript_json$transcript_start_time <- transcript_start_time
+    }
 
     output_file <- file.path(
-      stt_output_dir,
+      transcription_output_dir,
       sprintf(paste0("segment_%0", pad_width, "d.json"), chunk_index)
     )
     jsonlite::write_json(
@@ -811,7 +832,7 @@ use_transcript_input <- function(
   }
 
   cli::cli_alert_success(
-    "External transcript standardized and saved to {.path {basename(stt_output_dir)}}"
+    "External transcript standardized and saved to {.path {basename(transcription_output_dir)}}"
   )
 
   return(invisible(output_files))

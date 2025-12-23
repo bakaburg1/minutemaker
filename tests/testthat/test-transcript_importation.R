@@ -302,6 +302,37 @@ test_that("handles invalid event_start_time gracefully", {
   )
 })
 
+test_that("parse_transcript_json uses metadata unless event_start_time is NA", {
+  temp_dir <- withr::local_tempdir()
+  json_path <- file.path(temp_dir, "segment_1.json")
+  jsonlite::write_json(
+    list(
+      text = "sample",
+      segments = list(
+        list(start = 0, end = 5, text = "Hello", speaker = "A")
+      ),
+      transcript_start_time = "09:30 AM"
+    ),
+    json_path,
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
+
+  withr::with_options(
+    list(minutemaker_event_start_time = NULL),
+    {
+      parsed_with_metadata <- parse_transcript_json(temp_dir)
+      expect_true("start_clock" %in% names(parsed_with_metadata))
+
+      parsed_ignore_metadata <- parse_transcript_json(
+        temp_dir,
+        event_start_time = NA
+      )
+      expect_false("start_clock" %in% names(parsed_ignore_metadata))
+    }
+  )
+})
+
 test_that("handles JSON file missing 'segments' field", {
   temp_dir_for_test_single_file <- withr::local_tempdir()
   json_content_no_segments <- list(some_other_field = "data")
@@ -593,15 +624,33 @@ test_that("handles import_diarization = FALSE correctly for all types", {
   expect_false("speaker" %in% names(result_srt))
   expect_identical(result_srt$text, "Text that might say Speaker: Foo")
 
-  vtt_content_teams <- c("WEBVTT", "00:00:01.000 --> 00:00:02.500", "<v Speaker One>Text content")
+  vtt_content_teams <- c(
+    "WEBVTT",
+    "",
+    "00:00:01.000 --> 00:00:02.500",
+    "<v Speaker One>Text content"
+  )
   temp_vtt_teams <- helper_create_temp_vtt(vtt_content_teams, dir = temp_dir_for_test, file_name = "vtt_teams.vtt")
   result_vtt_teams <- import_transcript_from_file(normalizePath(temp_vtt_teams, mustWork = TRUE), import_diarization = FALSE)
   expect_false("speaker" %in% names(result_vtt_teams))
   expect_identical(result_vtt_teams$text, "Text content")
 
-  vtt_content_cue <- c("WEBVTT", "1 \"SpeakerX\"", "00:00:01.000 --> 00:00:02.500", "Cue text")
-  temp_vtt_cue <- helper_create_temp_vtt(vtt_content_cue, dir = temp_dir_for_test, file_name = "vtt_cue.vtt")
-  result_vtt_cue <- import_transcript_from_file(normalizePath(temp_vtt_cue, mustWork = TRUE), import_diarization = FALSE)
+  vtt_content_cue <- c(
+    "WEBVTT",
+    "",
+    "1 \"SpeakerX\"",
+    "00:00:01.000 --> 00:00:02.500",
+    "Cue text"
+  )
+  temp_vtt_cue <- helper_create_temp_vtt(
+    vtt_content_cue,
+    dir = temp_dir_for_test,
+    file_name = "vtt_cue.vtt"
+  )
+  result_vtt_cue <- import_transcript_from_file(
+    normalizePath(temp_vtt_cue, mustWork = TRUE),
+    import_diarization = FALSE
+    )
   expect_false("speaker" %in% names(result_vtt_cue))
   expect_identical(result_vtt_cue$text, "Cue text")
 })

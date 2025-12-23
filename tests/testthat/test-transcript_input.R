@@ -67,7 +67,10 @@ test_that("use_transcript_input standardizes DOCX correctly", {
   expect_identical(basename(result_files), basename(expected_files))
 
   json_data <- jsonlite::read_json(result_files[[1]])
-  expect_named(json_data, c("text", "segments"))
+  expect_named(
+    json_data,
+    c("text", "segments", "transcript_start_time")
+  )
 
   for (i in seq_along(result_files)) {
     expect_equal(
