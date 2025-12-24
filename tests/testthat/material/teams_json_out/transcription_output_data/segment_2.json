@@ -2,110 +2,110 @@
   "text": "Ion navigation navigation nebula synthetic navigation calibration eclipse signal calibration singularity. ANOMALY. Nebula. Anomaly. Graviton cybernetic spectrum asteroid anomaly lattice drift. Protocol synthetic calibration starlight protocol consensus nebula vector navigation specimen eclipse diagnostic starlight. Diagnostic. Telemetry module payload dock ion consensus asteroid singularity handoff telemetry terraform telemetry uplink specimen cipher terraform navigation navigation graviton lattice spectrum pulsar specimen holo orbit corridor. Eclipse biosphere cybernetic singularity eclipse calibration asteroid. Ion terraform? Diagnostic. Trajectory. Calibration spectrum reactor plasma. Holo vector starlight terraform dock holo spectrum orbit protocol. Asteroid. Graviton calibration drift diagnostic terraform lattice handoff specimen module? Handoff payload reactor orbit. Synthetic.",
   "segments": [
     {
-      "start": 14,
-      "end": 14,
+      "start": 0,
+      "end": 16,
       "speaker": "Dr. Mira Turing",
       "text": "Ion navigation navigation nebula synthetic navigation calibration eclipse signal calibration singularity."
     },
     {
-      "start": 30,
-      "end": 30,
+      "start": 16,
+      "end": 18,
       "speaker": "Dr. Mira Turing",
       "text": "ANOMALY."
     },
     {
-      "start": 32,
-      "end": 32,
+      "start": 18,
+      "end": 18,
       "speaker": "Engineer Nyx Ardent",
       "text": "Nebula."
     },
     {
-      "start": 32,
-      "end": 32,
+      "start": 18,
+      "end": 22,
       "speaker": "Dr. Mira Turing",
       "text": "Anomaly."
     },
     {
-      "start": 36,
-      "end": 36,
+      "start": 22,
+      "end": 26,
       "speaker": "Archivist Kato Drift - Outer Rim Observatory",
       "text": "Graviton cybernetic spectrum asteroid anomaly lattice drift."
     },
     {
-      "start": 40,
-      "end": 40,
+      "start": 26,
+      "end": 33,
       "speaker": "Dr. Mira Turing",
       "text": "Protocol synthetic calibration starlight protocol consensus nebula vector navigation specimen eclipse diagnostic starlight."
     },
     {
-      "start": 47,
-      "end": 47,
+      "start": 33,
+      "end": 36,
       "speaker": "Pilot Lyra Quill",
       "text": "Diagnostic."
     },
     {
-      "start": 50,
+      "start": 36,
       "end": 50,
       "speaker": "Archivist Sable Zenith",
       "text": "Telemetry module payload dock ion consensus asteroid singularity handoff telemetry terraform telemetry uplink specimen cipher terraform navigation navigation graviton lattice spectrum pulsar specimen holo orbit corridor."
     },
     {
-      "start": 64,
-      "end": 64,
+      "start": 50,
+      "end": 50,
       "speaker": "Engineer Vega Quill",
       "text": "Eclipse biosphere cybernetic singularity eclipse calibration asteroid."
     },
     {
-      "start": 64,
-      "end": 64,
+      "start": 50,
+      "end": 54,
       "speaker": "Pilot Vega Helix",
       "text": "Ion terraform?"
     },
     {
-      "start": 68,
-      "end": 68,
+      "start": 54,
+      "end": 55,
       "speaker": "Dr. Mira Turing",
       "text": "Diagnostic."
     },
     {
-      "start": 69,
-      "end": 69,
+      "start": 55,
+      "end": 56,
       "speaker": "Archivist Sable Zenith",
       "text": "Trajectory."
     },
     {
-      "start": 70,
-      "end": 70,
+      "start": 56,
+      "end": 64,
       "speaker": "Dr. Mira Turing",
       "text": "Calibration spectrum reactor plasma."
     },
     {
-      "start": 78,
-      "end": 78,
+      "start": 64,
+      "end": 68,
       "speaker": "Pilot Vega Helix",
       "text": "Holo vector starlight terraform dock holo spectrum orbit protocol."
     },
     {
-      "start": 82,
-      "end": 82,
+      "start": 68,
+      "end": 72,
       "speaker": "Engineer Nyx Ardent",
       "text": "Asteroid."
     },
     {
-      "start": 86,
-      "end": 86,
+      "start": 72,
+      "end": 79,
       "speaker": "Dr. Mira Turing",
       "text": "Graviton calibration drift diagnostic terraform lattice handoff specimen module?"
     },
     {
-      "start": 93,
-      "end": 93,
+      "start": 79,
+      "end": 103,
       "speaker": "Archivist Kato Zenith",
       "text": "Handoff payload reactor orbit."
     },
     {
-      "start": 117,
-      "end": 117,
+      "start": 103,
+      "end": 113,
       "speaker": "Archivist Kato Zenith",
       "text": "Synthetic."
     }
