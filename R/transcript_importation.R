@@ -412,6 +412,21 @@ import_transcript_from_file <- function(
       )
     }
 
+    # Sort the transcript data by start time and end time
+    transcript_data <- transcript_data |>
+      dplyr::arrange(.data$start, .data$end)
+
+    # Set the end time to the next start time if it exists, otherwise set it to
+    # 10 seconds after the start time
+    if (nrow(transcript_data) > 0) {
+      next_start <- dplyr::lead(transcript_data$start)
+      transcript_data$end <- dplyr::if_else(
+        !is.na(next_start),
+        next_start,
+        transcript_data$start + 10
+      )
+    }
+
     return(transcript_data)
   }
 
@@ -810,9 +825,11 @@ use_transcript_input <- function(
       text = paste(chunk_df$text, collapse = " "),
       segments = purrr::transpose(chunk_df)
     )
-    if (chunk_index == 1 &&
-      !is.null(transcript_start_time) &&
-      !is.na(transcript_start_time)) {
+    if (
+      chunk_index == 1 &&
+        !is.null(transcript_start_time) &&
+        !is.na(transcript_start_time)
+    ) {
       transcript_json$transcript_start_time <- transcript_start_time
     }
 
