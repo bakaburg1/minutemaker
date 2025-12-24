@@ -11,6 +11,8 @@ test_that("pause pruning is robust to removals while iterating", {
   expect_identical(cleaned, c(0, 2000, 5100, 8000, 10000, 12000))
 })
 
+# Tests for infer_agenda_from_transcript() -------------------------------
+
 test_that("infer_agenda_from_transcript falls back when title regeneration fails", {
   withr::local_options(
     minutemaker_temp_agenda = NULL,
@@ -84,8 +86,6 @@ test_that("infer_agenda_from_transcript falls back when title regeneration fails
   expect_identical(agenda[[2]]$title, "Repeated (2)")
   expect_true(any(grepl("Could not regenerate title", warnings)))
 })
-
-# Tests for infer_agenda_from_transcript() -------------------------------
 
 test_that("warns and skips empty agenda start times", {
   withr::local_options(
