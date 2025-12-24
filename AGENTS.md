@@ -1,6 +1,6 @@
 ## General instructions
 
-For any requested change or task which is not trivial, you should always assess the situation, test your assumptions in the console (e.g., small repros or focused checks) and then present a detailed plan of action before ANY change to the code. Run relevant unit tests after the edit (not before), unless explicitly requested otherwise.
+For any requested change or task which is not trivial, you should always assess the situation, test your assumptions in the console (e.g., small repros or focused checks), make tests, and then present a detailed plan of action before ANY change to the code. Run relevant unit tests after the edit (not before), unless explicitly requested otherwise.
 You'll enact your plan of action after the plan has been approved by the user.
 
 **Exception:** The planning and wait for approval process is not needed when asked to add documentation.
@@ -56,6 +56,9 @@ Update the list below with the new learning points:
 - name: cli alert bullet handling
   description: cli_alert* functions do not support named bullet vectors; emit one cli_alert* call per bullet message instead of passing a named vector.
   scope: logging/messages
+- name: devtools test filter usage
+  description: Run tests with Rscript -e 'devtools::test(filter = \"...\")' (no testthat::test_file); use devtools::load_all() only for small console repros, not test runs.
+  scope: testing
 ```
 
 ### Dependency Management (`renv`)
