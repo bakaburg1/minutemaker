@@ -664,7 +664,7 @@ speech_to_summary_workflow(
   import_diarization = TRUE, # Include speaker info from transcript
 
   # Arguments for `add_chat_transcript`
-  chat_file = list.files(work_dir, pattern = "(?i)Chat.*\\.txt$", full.names = TRUE)[1],
+  chat_file = list.files(work_dir, pattern = "Chat.*\\.txt$", full.names = TRUE, ignore.case = TRUE)[1],
   chat_format = "webex",
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
