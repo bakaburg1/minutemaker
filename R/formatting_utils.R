@@ -26,7 +26,7 @@ format_summary_tree <- function(
   output_file = NULL
 ) {
   # If summary_tree is a file path, load the data from the file
-  if (rlang::is_string(summary_tree) && fs::file_exists(summary_tree)) {
+  if (rlang::is_string(summary_tree)) {
     summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
