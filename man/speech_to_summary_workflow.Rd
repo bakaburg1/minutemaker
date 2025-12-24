@@ -121,8 +121,8 @@ output file should be overwritten if it already exists.}
 \item{external_transcript}{A string with the path to the transcript file to
 be used instead of performing speech-to-text. It will be picked up
 automatically if a .vtt, .srt or .docx file is available in the target
-directory. Pass NULL to disable the automatic importation of transcript
-files. See \code{import_transcript_from_file} for more details.}
+directory. Pass NULL or NA to disable the automatic importation of
+transcript files. See \code{import_transcript_from_file} for more details.}
 
 \item{import_diarization}{A boolean indicating whether the
 speaker should be imported from the external transcript, if present. See
@@ -130,9 +130,9 @@ speaker should be imported from the external transcript, if present. See
 
 \item{chat_file}{A string with the path to a file containing the chat data.
 It will be picked up automatically if a file with "Chat" in its name is
-available in the target directory. Pass NULL to disable the automatic chat
-file importation. See \code{add_chat_transcript} for more details. Note that
-\code{event_start_time} must be set if \code{chat_file} is not NULL.}
+available in the target directory. Pass NULL or NA to disable the automatic
+chat file importation. See \code{add_chat_transcript} for more details. Note
+that \code{event_start_time} must be set if \code{chat_file} is not NULL.}
 
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}
