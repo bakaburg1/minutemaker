@@ -871,7 +871,7 @@ parse_chat_webex_file_for_test <- function(chat_file_path, meeting_start_time_st
 
   chat_transcript_list <- lines_cleaned |>
     purrr::discard(is_silent_local) |>
-    purrr::map(~ stringr::str_split_1(.x, "[\t]\\s*") |> t())
+    purrr::map(\(x) stringr::str_split_1(x, "[\t]\\s*") |> t())
 
   if (length(chat_transcript_list) > 0) {
     for (i in rev(seq_along(chat_transcript_list))) {

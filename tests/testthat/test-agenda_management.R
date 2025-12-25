@@ -19,20 +19,22 @@ create_agenda_item <- function(
 create_sample_agenda <- function(n_items = 3) {
   purrr::map(
     seq_len(n_items),
-    ~ create_agenda_item(
-      session = paste0("Session", .x),
-      title = paste0("Talk", .x),
-      from = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
-          lubridate::hours(.x - 1),
-        "%H:%M"
-      ),
-      to = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
-          lubridate::hours(.x),
-        "%H:%M"
+    \(x) {
+      create_agenda_item(
+        session = paste0("Session", x),
+        title = paste0("Talk", x),
+        from = format(
+          lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+            lubridate::hours(x - 1),
+          "%H:%M"
+        ),
+        to = format(
+          lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+            lubridate::hours(x),
+          "%H:%M"
+        )
       )
-    )
+    }
   )
 }
 
@@ -282,7 +284,7 @@ test_that("convert_agenda_times respects custom conversion format", {
 
 test_that("convert_agenda_times requires exact convert_to value", {
   agenda <- list(list(from = 0, to = 3600))
-  
+
   # Exact value "clocktime" should work
   expect_no_error(
     convert_agenda_times(
@@ -291,7 +293,7 @@ test_that("convert_agenda_times requires exact convert_to value", {
       event_start_time = "09:00"
     )
   )
-  
+
   # Partial match "clock" should work due to match.arg partial matching,
   # but exact value is preferred for clarity
   expect_no_error(
@@ -301,7 +303,7 @@ test_that("convert_agenda_times requires exact convert_to value", {
       event_start_time = "09:00"
     )
   )
-  
+
   # Invalid value should fail
   expect_error(
     convert_agenda_times(
