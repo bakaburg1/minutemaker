@@ -61,7 +61,10 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
             # If FALSE, it uses existing audio in stt_audio_dir.
             overwrite_stt_audio = FALSE,
             stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-            transcription_output_dir = file.path(target_dir, "transcription_output_data"),
+            transcription_output_dir = file.path(
+              target_dir,
+              "transcription_output_data"
+            ),
             stt_model = "mock_stt_model_arg",
             # To ensure perform_speech_to_text mock is called
             overwrite_transcription_files = TRUE,
@@ -106,7 +109,10 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
           split_audio = FALSE,
           overwrite_stt_audio = TRUE,
           stt_audio_dir = file.path(".", "audio_to_transcribe"),
-          transcription_output_dir = file.path(".", "transcription_output_data"),
+          transcription_output_dir = file.path(
+            ".",
+            "transcription_output_data"
+          ),
           stt_model = "mock_stt_model",
           use_agenda = "no",
           llm_provider = "mock_provider",
@@ -158,7 +164,10 @@ test_that("workflow accepts a file path as target_dir when a transcript is prese
     )
 
     expect_named(result, c("transcript_data", "formatted_summary"))
-    expect_identical(result$formatted_summary, "Mock summary from transcript-only path")
+    expect_identical(
+      result$formatted_summary,
+      "Mock summary from transcript-only path"
+    )
     expect_true(file.exists("transcription_output_data/segment_1.json"))
   })
 })
@@ -223,7 +232,10 @@ test_that("workflow forwards overwrite to LLM correction", {
           split_audio = FALSE,
           overwrite_stt_audio = FALSE,
           stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-          transcription_output_dir = file.path(target_dir, "transcription_output_data"),
+          transcription_output_dir = file.path(
+            target_dir,
+            "transcription_output_data"
+          ),
           stt_model = "mock_stt_model_arg",
           overwrite_transcription_files = TRUE,
           enable_llm_correction = TRUE,

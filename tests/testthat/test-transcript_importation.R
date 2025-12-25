@@ -880,7 +880,7 @@ parse_chat_webex_file_for_test <- function(chat_file_path, meeting_start_time_st
       if (is.null(curr)) next
 
       if (ncol(curr) == 1) { # Current line is a continuation line
-        if (i > 1) {         # Ensure it's not the first line, so prev (i-1) exists
+        if (i > 1) { # Ensure it's not the first line, so prev (i-1) exists
           # Robust check for the previous element before accessing it
           if (!is.null(chat_transcript_list[[i-1]])) {
             prev <- chat_transcript_list[[i - 1]]
