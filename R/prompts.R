@@ -259,8 +259,8 @@ get_prompts <- function(which = NULL) {
   # Get the prompts
   prompts <- purrr::map(
     which,
-    ~ {
-      getOption(paste0("minutemaker_prompt_", .x))
+    \(prompt_name) {
+      getOption(paste0("minutemaker_prompt_", prompt_name))
     }
   ) |>
     purrr::set_names(which)
@@ -382,7 +382,7 @@ generate_summarisation_prompt <- function(
   ) |>
     stringr::str_replace_all("\n\n+", "\n\n") # remove multiple newlines
 
-  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+  long_arguments <- purrr::map_lgl(args, \(x) length(x) > 1)
 
   if (any(long_arguments)) {
     cli::cli_abort(
@@ -500,7 +500,7 @@ generate_rolling_aggregation_prompt <- function(
     sep = "\n\n"
   )
 
-  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+  long_arguments <- purrr::map_lgl(args, \(x) length(x) > 1)
 
   if (any(long_arguments)) {
     cli::cli_abort(
@@ -554,7 +554,7 @@ generate_agenda_inference_prompt <- function(
     )
   }
 
-  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+  long_arguments <- purrr::map_lgl(args, \(x) length(x) > 1)
 
   if (any(long_arguments)) {
     cli::cli_abort(
@@ -657,7 +657,7 @@ generate_agenda_element_prompt <- function(
     )
   }
 
-  long_arguments <- purrr::map_lgl(args, ~ length(.x) > 1)
+  long_arguments <- purrr::map_lgl(args, \(x) length(x) > 1)
 
   if (any(long_arguments)) {
     cli::cli_abort(

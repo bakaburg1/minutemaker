@@ -50,8 +50,8 @@ validate_agenda_element <- function(
   # Check if the required items are present in the agenda element
   el_checks <- purrr::imap_lgl(
     args,
-    ~ {
-      !is.null(agenda_element[[.y]]) || isFALSE(.x)
+    \(required, field_name) {
+      !is.null(agenda_element[[field_name]]) || isFALSE(required)
     }
   )
 
@@ -197,7 +197,7 @@ warn_missing_event_start_time <- function(agenda, event_start_time) {
   if (
     length(agenda) > 0 &&
       is.null(event_start_time) &&
-      all(purrr::map_lgl(agenda, ~ is.numeric(.x$from)))
+      all(purrr::map_lgl(agenda, \(x) is.numeric(x$from)))
   ) {
     cli::cli_alert_warning(
       "No start time provided. Using \"00:00:00\" as start time. Consider
@@ -401,7 +401,7 @@ check_summary_tree_consistency <- function(summary_tree) {
       ""
     }
   }) |>
-    purrr::discard(~ !nzchar(.x))
+    purrr::discard(\(detail) !nzchar(detail))
 
   cli::cli_abort(
     c(
@@ -473,7 +473,7 @@ check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
       ""
     }
   }) |>
-    purrr::discard(~ !nzchar(.x))
+    purrr::discard(\(detail) !nzchar(detail))
 
   cli::cli_abort(
     c(

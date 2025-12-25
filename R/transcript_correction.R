@@ -81,7 +81,7 @@ apply_llm_correction <- function(
     if (is.list(text)) {
       return(purrr::map(
         text,
-        ~ apply_single_correction_set(.x, corrections_map)
+        \(text_entry) apply_single_correction_set(text_entry, corrections_map)
       ))
     }
     # Apply corrections to single text input

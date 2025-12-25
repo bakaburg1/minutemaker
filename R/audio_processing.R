@@ -343,7 +343,7 @@ split_audio <- function(
         } else if (is.list(still_running)) {
           task_unresolved <- any(purrr::map_lgl(
             still_running,
-            ~ identical(.x, tasks[[i]])
+            \(task) identical(task, tasks[[i]])
           ))
         }
 

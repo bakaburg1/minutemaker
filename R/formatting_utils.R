@@ -154,15 +154,29 @@ format_agenda <- function(
   # moderators and summary, if not NULL/empty
   output <- purrr::map_chr(
     agenda,
-    ~ {
-      .x$speakers <- stringr::str_flatten_comma(.x$speakers)
-      .x$moderators <- stringr::str_flatten_comma(.x$moderators)
-      .x$session <- ifelse(is.null(.x$session), "", .x$session)
-      .x$title <- ifelse(is.null(.x$title), "", .x$title)
-      .x$description <- ifelse(is.null(.x$description), "", .x$description)
+    \(agenda_item) {
+      agenda_item$speakers <- stringr::str_flatten_comma(agenda_item$speakers)
+      agenda_item$moderators <- stringr::str_flatten_comma(
+        agenda_item$moderators
+      )
+      agenda_item$session <- ifelse(
+        is.null(agenda_item$session),
+        "",
+        agenda_item$session
+      )
+      agenda_item$title <- ifelse(
+        is.null(agenda_item$title),
+        "",
+        agenda_item$title
+      )
+      agenda_item$description <- ifelse(
+        is.null(agenda_item$description),
+        "",
+        agenda_item$description
+      )
 
       stringr::str_glue_data(
-        .x,
+        agenda_item,
         "Session: {session};
     Title: {title};
     Description: {description};

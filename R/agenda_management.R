@@ -8,16 +8,18 @@ build_ids_from_agenda <- function(agenda) {
   # Build the id of each talk using the session and title
   purrr::imap_chr(
     agenda,
-    ~ {
+    \(agenda_item, agenda_index) {
       # If the title is NULL, use an index as title
-      if (is.null(.x$title)) {
-        .x$title <- .y
+      if (is.null(agenda_item$title)) {
+        agenda_item$title <- agenda_index
       }
 
       paste0(
         # If the session is not NULL, prepend it to the title
-        if (!is.null(.x$session)) paste0(.x$session, "_"),
-        .x$title
+        if (!is.null(agenda_item$session)) {
+          paste0(agenda_item$session, "_")
+        },
+        agenda_item$title
       )
     }
   )
@@ -69,11 +71,11 @@ convert_agenda_times <- function(
 
   # Check if agenda times are all of the same class
   if (
-    !all(purrr::map_lgl(agenda, ~ is.numeric(.x$from))) &&
+    !all(purrr::map_lgl(agenda, \(x) is.numeric(x$from))) &&
       !all(purrr::map_lgl(
         agenda,
-        ~ {
-          inherits(.x$from, c("POSIXct", "character"))
+        \(agenda_item) {
+          inherits(agenda_item$from, c("POSIXct", "character"))
         }
       ))
   ) {
@@ -85,12 +87,12 @@ convert_agenda_times <- function(
   # Determine if all agenda "from" times are numeric (e.g., seconds from the
   # start)
   agenda_time_is_numeric <- all(
-    purrr::map_lgl(agenda, ~ is.numeric(.x$from))
+    purrr::map_lgl(agenda, \(x) is.numeric(x$from))
   )
   # Determine if all agenda "from" times are either POSIXct or character (i.e.,
   # in clock time format)
   agenda_time_is_clock <- all(
-    purrr::map_lgl(agenda, ~ inherits(.x$from, c("POSIXct", "character")))
+    purrr::map_lgl(agenda, \(x) inherits(x$from, c("POSIXct", "character")))
   )
   # Identify if an origin (event start time) is needed for the conversion based
   # on the direction of conversion

@@ -315,7 +315,7 @@ summarise_transcript <- function(
   }
 
   # Remove any NA or empty prompts, error if none remain
-  prompts <- purrr::discard(prompts, ~ is.na(.x) || .x == "")
+  prompts <- purrr::discard(prompts, \(prompt) is.na(prompt) || prompt == "")
   if (length(prompts) == 0) {
     cli::cli_abort("No transcript segments available for summarisation.")
   }

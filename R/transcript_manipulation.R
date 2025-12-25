@@ -48,8 +48,8 @@ clean_transcript <- function(
   # hallucinations
   repetitions <- purrr::map_int(
     transcript_data$text,
-    ~ {
-      counts <- stringr::str_split_1(.x, ", *") |>
+    \(text_entry) {
+      counts <- stringr::str_split_1(text_entry, ", *") |>
         table()
       if (length(counts) == 0) {
         return(0L)

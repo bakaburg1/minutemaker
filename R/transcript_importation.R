@@ -451,8 +451,8 @@ import_transcript_from_file <- function(
   # Iterate over each time position
   transcript_data <- purrr::map(
     times_pos,
-    ~ {
-      cue_line_content <- lines[.x]
+    \(time_pos) {
+      cue_line_content <- lines[time_pos]
 
       # Extract the start and end times
       times <- stringr::str_split_1(cue_line_content, "-->") |>
@@ -465,7 +465,7 @@ import_transcript_from_file <- function(
           sprintf(
             "Skipping malformed time cue in '%s'. Line %d: \"%s\"",
             basename(transcript_file),
-            .x,
+            time_pos,
             cue_line_content
           ),
           call. = FALSE
@@ -474,7 +474,7 @@ import_transcript_from_file <- function(
       }
 
       # Safely get the line content for text (line after timestamp)
-      text_line_idx <- .x + 1
+      text_line_idx <- time_pos + 1
       raw_text_content <- if (text_line_idx <= length(lines)) {
         lines[text_line_idx]
       } else {
@@ -510,7 +510,7 @@ import_transcript_from_file <- function(
         speaker_to_assign <- NA_character_ # Initialize speaker
 
         # Get content of line above timestamp, if it exists
-        line_above_idx <- .x - 1
+        line_above_idx <- time_pos - 1
         line_above_content <- if (line_above_idx >= 1) {
           lines[line_above_idx]
         } else {
@@ -610,7 +610,7 @@ add_chat_transcript <- function(
           # Remove encoding characters
           stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
           purrr::discard(is_silent) |>
-          purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t())
+          purrr::map(\(line) stringr::str_split_1(line, "\\t\\s*") |> t())
 
         # Loop over the chat messages and concatenate the ones that are split
         # across multiple lines
