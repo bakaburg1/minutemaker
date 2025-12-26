@@ -184,6 +184,37 @@ test_that("workflow errors clearly on NA target_dir", {
   )
 })
 
+test_that("workflow errors when stt_audio_dir is a file", {
+  withr::with_tempdir({
+    target_dir <- "."
+    source_audio <- file.path(target_dir, "source.wav")
+    stt_audio_dir <- file.path(target_dir, "audio_to_transcribe")
+    dir.create(file.path(target_dir, "transcription_output_data"))
+    file.create(source_audio)
+    writeLines("not a directory", stt_audio_dir)
+
+    expect_error(
+      speech_to_summary_workflow(
+        target_dir = target_dir,
+        source_audio = source_audio,
+        split_audio = FALSE,
+        overwrite_stt_audio = TRUE,
+        stt_audio_dir = stt_audio_dir,
+        transcription_output_dir = file.path(
+          target_dir,
+          "transcription_output_data"
+        ),
+        stt_model = "mock_stt_model",
+        use_agenda = "no",
+        llm_provider = "mock_provider",
+        formatted_output_file = file.path(target_dir, "event_summary.txt"),
+        enable_llm_correction = FALSE
+      ),
+      regexp = "Destination path for speech-to-text is not a directory"
+    )
+  })
+})
+
 test_that("workflow forwards overwrite to LLM correction", {
   withr::with_tempdir({
     target_dir <- "."

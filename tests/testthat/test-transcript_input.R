@@ -1,4 +1,4 @@
-# Helper functions ---
+# Helper functions ----
 
 segment_files <- function(dir_path) {
   files <- list.files(
@@ -9,7 +9,7 @@ segment_files <- function(dir_path) {
   files[stringr::str_order(basename(files), numeric = TRUE)]
 }
 
-# Tests for use_transcript_input() ---
+# Tests for use_transcript_input() ----
 
 test_that("use_transcript_input standardizes VTT correctly", {
   vtt_path <- testthat::test_path("material", "webex.vtt")
@@ -164,7 +164,7 @@ test_that("import_transcript_from_file aborts on invalid DOCX", {
   })
 })
 
-# Tests for speech_to_summary_workflow() with external transcript ---
+# Tests for speech_to_summary_workflow() with external transcript ----
 
 test_that("workflow bypasses STT when external_transcript is provided", {
   withr::with_tempdir({
