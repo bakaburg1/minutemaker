@@ -297,8 +297,24 @@ speech_to_summary_workflow <- function(
         # If `split_audio` is FALSE, the audio file will be just copied to the
         # `stt_audio_dir` folder
 
+        if (fs::file_exists(stt_audio_dir) && !fs::dir_exists(stt_audio_dir)) {
+          cli::cli_abort(
+            c(
+              "Destination path for speech-to-text is not a directory.",
+              "x" = "Destination path is a file: {.path {stt_audio_dir}}"
+            )
+          )
+        }
         if (!fs::dir_exists(stt_audio_dir)) {
           fs::dir_create(stt_audio_dir)
+        }
+        if (!fs::dir_exists(stt_audio_dir)) {
+          cli::cli_abort(
+            c(
+              "Failed to create destination directory for speech-to-text.",
+              "x" = "Destination path is not a directory: {.path {stt_audio_dir}}"
+            )
+          )
         }
 
         cli::cli_alert_info(
@@ -306,7 +322,17 @@ speech_to_summary_workflow <- function(
           without modification..."
         )
 
-        file.copy(source_audio, stt_audio_dir)
+        copy_ok <- file.copy(source_audio, stt_audio_dir)
+        if (!all(isTRUE(copy_ok))) {
+          cli::cli_abort(
+            c(
+              "Failed to copy source audio for speech-to-text.",
+              "x" = "Source: {.path {source_audio}}",
+              "x" = "Destination: {.path {stt_audio_dir}}",
+              "i" = "Check file permissions, available disk space, and that the destination is writable."
+            )
+          )
+        }
       } else {
         cli::cli_alert("Splitting audio file...")
 
@@ -485,12 +511,10 @@ speech_to_summary_workflow <- function(
 
     # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
     if (use_agenda == "ask" && !interactive()) {
-      cli::cli_inform(
-        c(
-          "i" = "Non-interactive session with {.code use_agenda = 'ask'}",
-          "i" = "Treating as {.code use_agenda = 'yes'}."
-        )
+      cli::cli_alert_info(
+        "Non-interactive session with {.code use_agenda = 'ask'}"
       )
+      cli::cli_alert_info("Treating as {.code use_agenda = 'yes'}.")
       use_agenda <- "yes"
     }
 

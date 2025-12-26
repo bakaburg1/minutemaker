@@ -931,7 +931,9 @@ infer_agenda_from_transcript <- function(
 
     # Attempt to parse the result json
     parsed_result <- try(
-      jsonlite::fromJSON(result_json, simplifyDataFrame = F)[["start_times"]],
+      jsonlite::fromJSON(result_json, simplifyDataFrame = FALSE)[[
+        "start_times"
+      ]],
       silent = TRUE
     )
 

@@ -77,18 +77,10 @@ format_summary_tree <- function(
     agenda_element$moderators <- stringr::str_flatten_comma(
       agenda_element$moderators
     )
-    agenda_element$session <- ifelse(
-      is.null(agenda_element$session),
-      "",
-      agenda_element$session
-    )
-    agenda_element$title <- ifelse(
-      is.null(
-        agenda_element$title
-      ),
-      "",
-      agenda_element$title
-    )
+    for (field in c("session", "title")) {
+      value <- agenda_element[[field]]
+      agenda_element[[field]] <- if (rlang::is_empty(value)) "" else value
+    }
 
     output_piece <- stringr::str_glue_data(
       agenda_element,
@@ -159,21 +151,10 @@ format_agenda <- function(
       agenda_item$moderators <- stringr::str_flatten_comma(
         agenda_item$moderators
       )
-      agenda_item$session <- ifelse(
-        is.null(agenda_item$session),
-        "",
-        agenda_item$session
-      )
-      agenda_item$title <- ifelse(
-        is.null(agenda_item$title),
-        "",
-        agenda_item$title
-      )
-      agenda_item$description <- ifelse(
-        is.null(agenda_item$description),
-        "",
-        agenda_item$description
-      )
+      for (field in c("session", "title", "description")) {
+        value <- agenda_item[[field]]
+        agenda_item[[field]] <- if (rlang::is_empty(value)) "" else value
+      }
 
       stringr::str_glue_data(
         agenda_item,
