@@ -1,3 +1,33 @@
+# minutemaker 0.15.0
+
+# Transcript-first workflow and DOCX transcript support
+
+## Enhancements
+- External transcript-first workflow with DOCX and VTT transcripts support and transcript standardization via `use_transcript_input`, plus automatic STT bypass and term correction pipeline processing for external transcripts. (Commits: 113cbdf, 92c13d4)
+- External transcript segmentation with adjustable chunk sizes and overwrite controls to keep LLM prompts safe. (Commits: b52c8af, dd2ad7a, 782ac73)
+- Agenda quality improvements with start-time validation and `clean_agenda()` integration to drop empty slices before summarization. (Commits: bc4efd6, a177de3, 50013e0, 83f8248)
+- Audio processing hardening with stronger input validation and structured failure handling for extraction/splitting. (Commits: 30e8dbd, 9bf0ea3)
+- Standardized CLI alert levels across the package for clearer user messaging. (Commit: d727e19)
+
+## Fixes
+- Corrected reasoning parameter selection for transcript correction to avoid invalid API combinations. (Commit: 9491670)
+- Improved transcript import robustness and timing normalization for Webex/Teams segments. (Commits: f6aa022, 8390a5e)
+- Tightened agenda and summarization validation paths to avoid empty/invalid segment handling failures. (Commits: 7c13a4f, cd44f94)
+
+## Documentation
+- README and workflow docs updated for transcript-first usage, platform support, and chat file patterns. (Commits: 1eecd7f, 31272a, 0e7b023)
+- New and updated Rd docs for external transcript helpers and agenda-time warnings. (Commits: 113cbdf, b7037aa)
+
+## Summary
+This pull request expands minutemaker with transcript-first workflows (including DOCX support), safer external transcript chunking, and stronger agenda/audio validation, while refining correction logic and documentation in preparation for v0.15.0. (Commit: 72f5a3f)
+
+Docs marched in, the agenda trimmed,
+Chunks behaved, prompts all primed.
+DOCX danced, the logs now chirped,
+Errors fled and warnings burped.
+Minutes brewed with extra grace,
+The bot now wins the meeting race.
+
 # minutemaker 0.14.0
 
 ## Enhancements
