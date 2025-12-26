@@ -59,6 +59,9 @@ Update the list below with the new learning points:
 - name: devtools test filter usage
   description: Run tests with Rscript -e 'devtools::test(filter = \"...\")' (no testthat::test_file); use devtools::load_all() only for small console repros, not test runs.
   scope: testing
+- name: base r null coalesce operator
+  description: `%||%` is available in base R in this project environment; prefer base `%||%` where appropriate instead of importing from rlang.
+  scope: language/base
 ```
 
 ### Dependency Management (`renv`)
