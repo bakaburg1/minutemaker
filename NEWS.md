@@ -1,6 +1,6 @@
 # minutemaker 0.15.0
 
-# Transcript-first workflow and DOCX transcript support
+# Transcript-first workflow and external transcript support
 
 ## Enhancements
 - External transcript-first workflow with DOCX and VTT transcripts support and transcript standardization via `use_transcript_input`, plus automatic STT bypass and term correction pipeline processing for external transcripts. (Commits: 113cbdf, 92c13d4)
