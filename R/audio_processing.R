@@ -302,8 +302,13 @@ split_audio <- function(
 
         pending_idxs <- which(!processed_flags)
         for (i in pending_idxs) {
+          # Compute the segment bounds for this index.
           start_time <- (i - 1) * segment_length_sec
+          # Build the expected output path for the segment file.
           output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
+          # Run the same extraction logic sequentially after timeout, but
+          # capture failures as structured FALSE values instead of aborting
+          # the whole function immediately.
           result <- extract_audio_segment(
             audio_file = audio_file,
             output_file = output_file,
@@ -311,14 +316,19 @@ split_audio <- function(
             duration = segment_length_sec,
             on_error = "return"
           )
+          # When a segment extraction fails, keep the error detail locally so
+          # it can be surfaced in the fail-fast handling below.
           if (isFALSE(result)) {
-            failure_message <<- paste0(
+            failure_message <- paste0(
               "A worker failed: ",
               attr(result, "error")
             )
+            # Trigger the shared error path used by both parallel and fallback
+            # execution so we can exit cleanly and report diagnostics once.
             fail_fast_triggered <- TRUE
             break
           }
+          # Mark the segment as completed to avoid reprocessing.
           processed_flags[i] <- TRUE
         }
 
