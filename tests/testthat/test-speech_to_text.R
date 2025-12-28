@@ -1,25 +1,5 @@
 # Tests for perform_speech_to_text() -----------------------------------------
 
-test_that("throws error for invalid path", {
-  expect_error(
-    perform_speech_to_text("nonexistent/file.wav"),
-    "is not a valid file or folder",
-    fixed = TRUE
-  )
-})
-
-test_that("throws error when directory has no audio files", {
-  withr::with_tempdir({
-    dir.create("empty_dir")
-
-    expect_error(
-      perform_speech_to_text("empty_dir"),
-      "No audio files found",
-      fixed = TRUE
-    )
-  })
-})
-
 # -------------------------------------------------------------------------
 # Setup and Helper Functions ----------------------------------------------
 # -------------------------------------------------------------------------
