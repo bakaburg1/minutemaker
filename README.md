@@ -657,9 +657,12 @@ speech_to_summary_workflow(
   overwrite_transcript = FALSE,
 
   # Arguments for external transcript input (transcript-first workflow)
+  # Set to NULL to skip external transcripts, or provide a path
+  # Auto-detection example (returns NA if no match, which is treated as NULL):
   external_transcript = list.files(
     work_dir,
     pattern = "\\.(vtt|srt|docx)$",
+    ignore.case = TRUE,
     full.names = TRUE
   )[1], # Auto-detects external transcripts in working directory
   import_diarization = TRUE, # Include speaker info from transcript
