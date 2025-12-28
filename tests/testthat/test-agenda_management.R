@@ -1,5 +1,6 @@
 library(lubridate)
 
+# Helpers ----
 # Helper function to create a sample agenda item
 create_agenda_item <- function(
   session = NULL,
@@ -38,6 +39,7 @@ create_sample_agenda <- function(n_items = 3) {
   )
 }
 
+# build_ids_from_agenda ----
 test_that("build_ids_from_agenda handles empty agenda", {
   build_ids_from_agenda(list()) |> testthat::expect_length(0)
 })
@@ -75,6 +77,7 @@ test_that("build_ids_from_agenda handles NULL sessions", {
   expect_identical(ids[2], "Talk2")
 })
 
+# convert_agenda_times ----
 test_that("convert_agenda_times validates input times with specific warnings and error", {
   # Invalid 'from' time
   # to = "10:00" by default
@@ -315,4 +318,5 @@ test_that("convert_agenda_times requires exact convert_to value", {
   )
 })
 
+# Footer ----
 cat("\nAll testthat tests for agenda_management.R defined.\n")
