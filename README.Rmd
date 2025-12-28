@@ -430,7 +430,8 @@ method <- "rolling" # or "simple"
 agenda <- dget("path-to-agenda.R")
 
 transcript_text <- extract_text_from_transcript(
-  transcript_data, agenda = agenda[[1]] # First talk in the agenda
+  transcript_data,
+  agenda_element = agenda[[1]] # First talk in the agenda
 )
 
 # You may want to define some other contextual information about the meeting
