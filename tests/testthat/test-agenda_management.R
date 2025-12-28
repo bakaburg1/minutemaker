@@ -1,5 +1,3 @@
-library(lubridate)
-
 # Helpers ----
 # Helper function to create a sample agenda item
 create_agenda_item <- function(
