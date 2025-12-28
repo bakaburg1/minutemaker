@@ -323,7 +323,7 @@ speech_to_summary_workflow <- function(
         )
 
         copy_ok <- file.copy(source_audio, stt_audio_dir)
-        if (!all(isTRUE(copy_ok))) {
+        if (!isTRUE(copy_ok)) {
           cli::cli_abort(
             c(
               "Failed to copy source audio for speech-to-text.",
