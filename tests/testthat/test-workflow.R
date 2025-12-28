@@ -290,14 +290,18 @@ test_that("workflow forwards overwrite to LLM correction", {
 test_that("workflow warns when using deprecated stt_output_dir", {
   withr::with_tempdir({
     target_dir <- "."
+    deprecated_output_dir <- "deprecated_transcription_output_data"
+    output_dir_seen <- NULL
 
     dir.create(file.path(target_dir, "audio_to_transcribe"))
     dir.create(file.path(target_dir, "transcription_output_data"))
+    dir.create(deprecated_output_dir)
 
     file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
 
     testthat::local_mocked_bindings(
       perform_speech_to_text = function(audio_path, output_dir, model, ...) {
+        output_dir_seen <<- output_dir
         file.create(file.path(output_dir, "dummy_stt_output.json"))
         invisible(NULL)
       },
@@ -331,7 +335,7 @@ test_that("workflow warns when using deprecated stt_output_dir", {
             split_audio = FALSE,
             overwrite_stt_audio = FALSE,
             stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-            stt_output_dir = file.path(target_dir, "transcription_output_data"),
+            stt_output_dir = "deprecated_transcription_output_data",
             stt_model = "mock_stt_model_arg",
             overwrite_transcription_files = TRUE,
             enable_llm_correction = FALSE,
@@ -349,5 +353,7 @@ test_that("workflow warns when using deprecated stt_output_dir", {
         )
       }
     )
+
+    expect_identical(output_dir_seen, deprecated_output_dir)
   })
 })

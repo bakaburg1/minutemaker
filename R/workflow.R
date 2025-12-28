@@ -225,7 +225,7 @@ speech_to_summary_workflow <- function(
       "transcription_output_dir()",
       details = "The output directory can come from speech-to-text or external transcripts."
     )
-    if (rlang::is_missing(transcription_output_dir)) {
+    if (missing(transcription_output_dir)) {
       transcription_output_dir <- stt_output_dir
     }
   }
