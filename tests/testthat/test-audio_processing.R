@@ -2,9 +2,7 @@
 # unit tests and integration tests for split_audio(), is_audio_file_sane(),
 # create_and_validate_segment(), and their dependencies like av and mirai.
 
-# -------------------------------------------------------------------------
-# Setup and Helper Functions ----------------------------------------------
-# -------------------------------------------------------------------------
+# Setup and Helper Functions ----
 
 # These tests spin up and tear down mirai daemons in temp directories; you may
 # see shell-init/getcwd warnings like "error retrieving current directory".
@@ -31,9 +29,7 @@ helper_create_test_audio <- function(path, valid = TRUE) {
   invisible(path)
 }
 
-# -------------------------------------------------------------------------
-# Unit Tests for split_audio() input validation ----------------------------
-# -------------------------------------------------------------------------
+# Unit Tests for split_audio() input validation ----
 
 test_that("split_audio errors clearly on NA audio_file", {
   expect_error(
@@ -42,9 +38,7 @@ test_that("split_audio errors clearly on NA audio_file", {
   )
 })
 
-# -------------------------------------------------------------------------
-# Integration Tests for split_audio() -------------------------------------
-# -------------------------------------------------------------------------
+# Integration Tests for split_audio() ----
 
 test_that("split_audio works sequentially with real audio", {
   skip_if_not_installed("av")
@@ -336,9 +330,7 @@ test_that("parallel workers receive helper bindings", {
   })
 })
 
-# -------------------------------------------------------------------------
-# Individual Function Tests -----------------------------------------------
-# -------------------------------------------------------------------------
+# Individual Function Tests ----
 
 test_that("is_audio_file_sane detects valid audio files", {
   skip_on_cran()
@@ -609,9 +601,7 @@ test_that("split_audio parallel mode detects corrupted source when workers fail"
   })
 })
 
-# -------------------------------------------------------------------------
-# Unit Tests (Mocked Dependencies) ----------------------------------------
-# -------------------------------------------------------------------------
+# Unit Tests (Mocked Dependencies) ----
 
 # Helper to create a dummy WAV file for tests that need a file to exist
 write_dummy_wav <- function(path) {

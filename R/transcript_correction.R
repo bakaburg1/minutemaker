@@ -234,7 +234,7 @@ apply_llm_correction <- function(
       return(file_path) # Return the path as it was processed (skipped)
     }
 
-    # Start Correction Attempt with Retry Logic ----
+    ## Start Correction Attempt with Retry Logic ----
     # Initialize variables for the retry loop
     correction_result <- NULL
     retry_count <- 0
@@ -616,7 +616,7 @@ correct_transcription_errors <- function(
   # climbing further up the parent chain.
   flag_env <- environment()
 
-  # -- Prepare the LLM prompts --
+  ## Prepare the LLM prompts ----
 
   terms_instructions <- "Understand the transcript content and context and use
   your domain knowledge to identify the corrections that would make sense to
@@ -747,7 +747,7 @@ Apply these rules to your JSON output if corrections are made:
   clear and correct."
   )
 
-  # -- Perform LLM call --
+  ## Perform LLM call ----
 
   messages_payload <- c(system = system_prompt, user = full_text_for_llm)
   # Default LLM parameters. Reasoning models do not accept temperature, so use
@@ -808,7 +808,7 @@ Apply these rules to your JSON output if corrections are made:
   cli::cli_verbatim(llm_response_str) # Use verbatim for raw output
   cli::cli_h2("End of LLM correction response")
 
-  # -- Parse and validate the LLM response --
+  ## Parse and validate the LLM response ----
 
   # Always expect content within XML tags.
   xml_pattern <- stringr::str_glue(
@@ -960,7 +960,7 @@ Apply these rules to your JSON output if corrections are made:
     }
   }
 
-  # -- Apply corrections --
+  ## Apply corrections ----
   corrected_text_vector <- apply_single_correction_set(
     text_to_correct,
     corrections_map

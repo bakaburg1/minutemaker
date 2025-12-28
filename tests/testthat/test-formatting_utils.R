@@ -1,4 +1,4 @@
-# Helper functions ---
+# Helper functions ----
 normalize_for_comparison <- function(text) {
   # Be robust to NULL, character(0), or multi-line vectors.
   if (is.null(text) || length(text) == 0L) {
@@ -17,7 +17,7 @@ normalize_for_comparison <- function(text) {
   paste(non_empty_lines, collapse = "\n")
 }
 
-# Tests for format_agenda() ----------------------------------------------------
+# Tests for format_agenda() ----
 
 test_that("format_agenda correctly formats a basic agenda", {
   sample_agenda <- list(
@@ -270,7 +270,7 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   )
 })
 
-# Tests for format_summary_tree() -----------
+# Tests for format_summary_tree() ----
 
 test_that("format_summary_tree correctly formats a basic summary tree and agenda", {
   sample_agenda_for_summary <- list(

@@ -11,7 +11,7 @@ test_that("pause pruning is robust to removals while iterating", {
   expect_identical(cleaned, c(0, 2000, 5100, 8000, 10000, 12000))
 })
 
-# Tests for infer_agenda_from_transcript() -------------------------------
+# Tests for infer_agenda_from_transcript() ----
 
 test_that("infer_agenda_from_transcript falls back when title regeneration fails", {
   withr::local_options(

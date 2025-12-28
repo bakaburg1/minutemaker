@@ -393,7 +393,7 @@ test_that("clean_transcript removes low confidence segments", {
   )
 })
 
-# Tests for extract_text_from_transcript() ---
+# Tests for extract_text_from_transcript() ----
 
 test_that("extract_text_from_transcript errors when text column is missing", {
   transcript_missing_text <- dplyr::tibble(
@@ -665,7 +665,7 @@ test_that("extract_text_from_transcript errors for invalid agenda times", {
   )
 })
 
-# Tests for merge_transcripts() ---
+# Tests for merge_transcripts() ----
 
 test_that("merge_transcripts basic merging works (no diarization)", {
   s <- silent() # "[...]"
@@ -1069,7 +1069,7 @@ test_that("merge_transcripts handles empty speaker values", {
     speaker = c(na_spk, empty_spk, "spk_y3")
   )
 
-  # --- Scenario 1: import_diarization = FALSE ---
+  ## Scenario 1: import_diarization = FALSE ----
   # Expected: "" speaker in x becomes NA in output.
   # Message: Added/Removed combined into one string by capture_messages here.
   expected_s1 <- dplyr::tibble(
@@ -1097,7 +1097,7 @@ test_that("merge_transcripts handles empty speaker values", {
 
   expect_identical(result_s1, expected_s1)
 
-  # --- Scenario 2: import_diarization = TRUE ---
+  ## Scenario 2: import_diarization = TRUE ----
   # Expected: "" speaker from y_probes becomes NA in output.
   # Mock adjusted to reflect observed behavior where some spk_y3 also became NA.
   expected_spk_s2 <- c(na_spk, na_spk, na_spk, na_spk, "spk_y3", "spk_y3")
@@ -1143,7 +1143,7 @@ test_that("merge_transcripts handles empty speaker values", {
 
   expect_identical(result_s2, expected_s2)
 
-  # --- Scenario 3: import_diarization = TRUE, x has no speaker column ---
+  ## Scenario 3: import_diarization = TRUE, x has no speaker column ----
   transcript_x_no_spk_col <- dplyr::select(transcript_x_base, -speaker)
   expected_s3 <- expected_s2 # Same expectations as S2 for data and messages
   testthat::local_mocked_bindings(
@@ -1163,7 +1163,7 @@ test_that("merge_transcripts handles empty speaker values", {
     expect_message("Importing diarization")
   expect_identical(result_s3, expected_s3)
 
-  # --- Scenario 4: import_diarization = TRUE, y has no speaker column ---
+  ## Scenario 4: import_diarization = TRUE, y has no speaker column ----
   transcript_y_no_spk_col <- dplyr::select(transcript_y_varied_spk, -speaker)
   mock_glove_model_s4 <- matrix(1, dimnames = list("a", "v1"))
   testthat::local_mocked_bindings(
@@ -1203,7 +1203,7 @@ test_that("merge_transcripts handles segments too short for similarity", {
     speaker = c("spk_Y_norm", "spk_Y_short", "spk_Y_veryshort")
   )
 
-  # --- Scenario 1: import_diarization = TRUE ---
+  ## Scenario 1: import_diarization = TRUE ----
   expected_text_s1 <- c(
     "Normal X1",
     "Normal Y_fill1",
@@ -1263,7 +1263,7 @@ test_that("merge_transcripts handles segments too short for similarity", {
 
   expect_identical(result_s1, expected_data_s1)
 
-  # --- Scenario 2: import_diarization = FALSE (Control) ---
+  ## Scenario 2: import_diarization = FALSE (Control) ----
   expected_data_s2 <- dplyr::tibble(
     start = c(0L, 10L, 20L, 30L, 40L, 50L),
     end = c(5L, 15L, 25L, 35L, 45L, 55L),

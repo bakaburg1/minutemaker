@@ -11,7 +11,7 @@
   }
 }
 
-# Tests for set_prompts() and get_prompts() ---
+# Tests for set_prompts() and get_prompts() ----
 
 test_that("set_prompts() sets default prompts and get_prompts() retrieves them", {
   .clear_minutemaker_prompts()
@@ -126,7 +126,7 @@ test_that("get_prompts() handles requests for invalid prompt names", {
   )
 })
 
-# Tests for generate_summarisation_prompt() ---
+# Tests for generate_summarisation_prompt() ----
 
 test_that("generate_summarisation_prompt() works with minimal arguments", {
   .clear_minutemaker_prompts()
@@ -316,7 +316,7 @@ test_that("generate_summarisation_prompt() aborts if args elements have length >
   )
 })
 
-# Tests for generate_rolling_aggregation_prompt() ---
+# Tests for generate_rolling_aggregation_prompt() ----
 
 test_that("generate_rolling_aggregation_prompt() works with minimal arguments", {
   set_prompts(force = TRUE)
@@ -476,7 +476,7 @@ test_that("generate_rolling_aggregation_prompt() aborts if args elements have le
   )
 })
 
-# Tests for generate_agenda_inference_prompt() ---
+# Tests for generate_agenda_inference_prompt() ----
 
 test_that("generate_agenda_inference_prompt() works with minimal args (character transcript)", {
   set_prompts(force = TRUE)
@@ -577,7 +577,7 @@ test_that("generate_agenda_inference_prompt() aborts if args elements have lengt
 })
 
 
-# Tests for generate_agenda_element_prompt() ---
+# Tests for generate_agenda_element_prompt() ----
 
 test_that("generate_agenda_element_prompt() works with minimal args (character transcript)", {
   set_prompts(force = TRUE)

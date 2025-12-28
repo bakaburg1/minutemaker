@@ -1,6 +1,6 @@
-# Helper functions ---
+# Helper functions ----
 
-# Tests for speech_to_summary_workflow() ---
+# Tests for speech_to_summary_workflow() ----
 
 test_that("workflow runs end-to-end with extensive mocking and minimal options", {
   withr::with_tempdir({

@@ -174,7 +174,7 @@ split_audio <- function(
   output_folder <- normalizePath(output_folder, mustWork = TRUE)
 
   if (parallel) {
-    # --- PARALLEL EXECUTION ---
+    ## PARALLEL EXECUTION ----
     rlang::check_installed("mirai", reason = "for parallel processing.")
 
     max_parallel_wait <- getOption(
@@ -409,7 +409,7 @@ split_audio <- function(
 
     cli::cli_alert_success("All segments processed successfully.")
   } else {
-    # --- SEQUENTIAL EXECUTION ---
+    ## SEQUENTIAL EXECUTION ----
     purrr::walk(seq_len(num_segments), \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
