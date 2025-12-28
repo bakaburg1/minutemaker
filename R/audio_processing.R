@@ -291,11 +291,13 @@ split_audio <- function(
           )
         }
         cli::cli_alert_warning(
-          c(
-            "Parallel splitting exceeded timeout of {max_parallel_wait} seconds.",
-            i = "Processed {sum(processed_flags)}/{length(tasks)} segments before timing out.",
-            i = "Falling back to sequential processing for remaining segments."
-          )
+          "Parallel splitting exceeded timeout of {max_parallel_wait} seconds."
+        )
+        cli::cli_alert_info(
+          "Processed {sum(processed_flags)}/{length(tasks)} segments before timing out."
+        )
+        cli::cli_alert_info(
+          "Falling back to sequential processing for remaining segments."
         )
 
         pending_idxs <- which(!processed_flags)
