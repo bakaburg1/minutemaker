@@ -23,10 +23,10 @@ tokenize_text <- function(text) {
 
   # Convert text to lowercase, remove special characters and extra spaces, and
   # tokenize
-  tokens <- text %>%
-    tolower() %>%
-    stringr::str_replace_all("[^[:alnum:]]|\\s+", " ") %>%
-    stringr::str_squish() %>%
+  tokens <- text |>
+    tolower() |>
+    stringr::str_replace_all("[^[:alnum:]]|\\s+", " ") |>
+    stringr::str_squish() |>
     text2vec::space_tokenizer()
 
   return(tokens)

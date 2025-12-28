@@ -194,7 +194,7 @@ extract_text_from_transcript <- function(
     transcript_data$speaker <- "Unknown"
   }
 
-  transcript <- transcript_data %>%
+  transcript <- transcript_data |>
 
     # filtered based on the start and end times
     filter(.data$start >= start_time, .data$end <= end_time) |>
