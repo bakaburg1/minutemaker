@@ -62,6 +62,9 @@ Update the list below with the new learning points:
 - name: base r null coalesce operator
   description: `%||%` is available in base R in this project environment; prefer base `%||%` where appropriate instead of importing from rlang.
   scope: language/base
+- name: missing argument detection with defaults
+  description: `rlang::is_missing()` returns FALSE for arguments that were not supplied but have defaults; use base `missing()` when you need to detect that case.
+  scope: language/base
 ```
 
 ### Dependency Management (`renv`)
