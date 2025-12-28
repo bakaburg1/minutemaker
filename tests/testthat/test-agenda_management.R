@@ -315,6 +315,3 @@ test_that("convert_agenda_times requires exact convert_to value", {
     "should be one of"
   )
 })
-
-# Footer ----
-cat("\nAll testthat tests for agenda_management.R defined.\n")
