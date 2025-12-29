@@ -1,4 +1,5 @@
-# --- Tests for tokenize_text ---
+# Tests for tokenize_text ----
+testthat::skip("GloVe infrastructure is soft-deprecated.")
 # The 'describe' block groups tests for the 'tokenize_text' function.
 describe("tokenize_text", {
   # Test case: Verifies basic tokenization of a simple sentence.
@@ -87,7 +88,7 @@ describe("tokenize_text", {
 })
 
 
-# --- Tests for generate_glove_model ---
+# Tests for generate_glove_model ----
 # The 'describe' block groups tests for the 'generate_glove_model' function.
 describe("generate_glove_model", {
   # Define a small, predictable text sample for model generation tests.
@@ -259,7 +260,7 @@ describe("generate_glove_model", {
 })
 
 
-# --- Tests for compute_text_sim ---
+# Tests for compute_text_sim ----
 # The 'describe' block groups tests for the 'compute_text_sim' function.
 describe("compute_text_sim", {
   # Generate a shared embedding matrix for these tests to ensure consistency

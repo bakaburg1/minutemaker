@@ -1,28 +1,6 @@
-# Tests for perform_speech_to_text() -----------------------------------------
+# Tests for perform_speech_to_text() ----
 
-test_that("throws error for invalid path", {
-  expect_error(
-    perform_speech_to_text("nonexistent/file.wav"),
-    "is not a valid file or folder",
-    fixed = TRUE
-  )
-})
-
-test_that("throws error when directory has no audio files", {
-  withr::with_tempdir({
-    dir.create("empty_dir")
-
-    expect_error(
-      perform_speech_to_text("empty_dir"),
-      "No audio files found",
-      fixed = TRUE
-    )
-  })
-})
-
-# -------------------------------------------------------------------------
-# Setup and Helper Functions ----------------------------------------------
-# -------------------------------------------------------------------------
+# Setup and Helper Functions ----
 
 # Helper to create a dummy WAV file for tests that need a file to exist
 write_dummy_wav <- function(path) {
@@ -31,9 +9,7 @@ write_dummy_wav <- function(path) {
   invisible(path)
 }
 
-# -------------------------------------------------------------------------
-# Tests for perform_speech_to_text() --------------------------------------
-# -------------------------------------------------------------------------
+# Tests for perform_speech_to_text() ----
 
 test_that("perform_speech_to_text handles invalid paths and empty dirs", {
   expect_error(
@@ -155,7 +131,7 @@ test_that("use_parakeet_mlx_stt accepts NULL text when sentences are present", {
   expect_equal(result$segments[[1]]$text, "Segment text")
 })
 
-# Tests for use_openai_whisper_stt() --------------------------------------
+# Tests for use_openai_whisper_stt() ----
 
 test_that("use_openai_whisper_stt stops after max retries", {
   withr::with_tempdir({

@@ -21,6 +21,12 @@ This function calculates the cosine similarity scores between one text
 (x_text) and a set of other texts (y_texts) using word embeddings generated
 by a GloVe model.
 }
+\section{Lifecycle}{
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
+GloVe infrastructure is soft-deprecated.
+}
+
 \examples{
 \dontrun{
 x_text <- "Sample source text."

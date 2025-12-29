@@ -30,6 +30,8 @@ is_audio_file_sane <- function(audio_file) {
 #' @param start_time The start time in seconds for the segment.
 #' @param duration The duration of the segment in seconds.
 #' @param verbose A logical value indicating whether to print messages.
+#' @param on_error Whether to abort with an error or return `FALSE` with an
+#'   attached error attribute when extraction fails.
 #'
 #' @return The path to the created segment file if successful.
 #'
@@ -39,46 +41,65 @@ extract_audio_segment <- function(
   output_file,
   start_time,
   duration,
-  verbose = TRUE
+  verbose = TRUE,
+  on_error = c("abort", "return")
 ) {
+  on_error <- match.arg(on_error)
+
   if (verbose) {
     cli::cli_alert("Outputting audio segment: {.file {basename(output_file)}}")
   }
 
   max_attempts <- 2
-  for (attempt in 1:max_attempts) {
-    # Ensure the directory exists before writing
-    if (!dir.exists(dirname(output_file))) {
-      dir.create(dirname(output_file), recursive = TRUE)
-    }
 
-    av::av_audio_convert(
-      audio_file,
-      output_file,
-      start_time = start_time,
-      total_time = duration
-    )
+  tryCatch(
+    {
+      for (attempt in 1:max_attempts) {
+        # Ensure the directory exists before writing
+        if (!dir.exists(dirname(output_file))) {
+          dir.create(dirname(output_file), recursive = TRUE)
+        }
 
-    if (is_audio_file_sane(output_file)) {
-      return(output_file) # Success
-    }
-
-    if (verbose) {
-      if (attempt < max_attempts) {
-        cli::cli_warn(
-          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
+        av::av_audio_convert(
+          audio_file,
+          output_file,
+          start_time = start_time,
+          total_time = duration
         )
-      } else {
-        cli::cli_warn(
-          "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed."
-        )
+
+        if (is_audio_file_sane(output_file)) {
+          return(output_file) # Success
+        }
+
+        if (verbose) {
+          if (attempt < max_attempts) {
+            cli::cli_warn(
+              "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed, retrying..."
+            )
+          } else {
+            cli::cli_warn(
+              "Generated segment {.file {basename(output_file)}} is corrupted. Attempt {attempt} of {max_attempts} failed."
+            )
+          }
+        }
       }
-    }
-  }
 
-  # If the loop finishes, all attempts have failed.
-  cli::cli_abort(
-    "Failed to create a valid segment for {.file {basename(output_file)}} after {max_attempts} attempts."
+      # If the loop finishes, all attempts have failed.
+      cli::cli_abort(
+        "Failed to create a valid segment for {.file {basename(output_file)}} after {max_attempts} attempts."
+      )
+    },
+    error = function(cnd) {
+      if (on_error == "abort") {
+        rlang::abort(message = conditionMessage(cnd), parent = cnd)
+      }
+
+      structure(
+        FALSE,
+        error = conditionMessage(cnd),
+        class = "minutemaker_audio_error"
+      )
+    }
   )
 }
 
@@ -107,6 +128,17 @@ split_audio <- function(
   output_folder = file.path(dirname(audio_file), "recording_parts"),
   parallel = getOption("minutemaker_split_audio_parallel", FALSE)
 ) {
+  if (!rlang::is_string(audio_file) || audio_file == "") {
+    cli::cli_abort(
+      c(
+        "No valid audio file provided to {.fn split_audio}.",
+        "x" = "Received {.val {audio_file}}.",
+        "i" = "Provide a path to an existing audio file (e.g., .wav, .mp3, .mp4).",
+        "i" = "If you are starting from an existing transcript, bypass audio splitting by supplying {.code external_transcript} to {.fn speech_to_summary_workflow}."
+      )
+    )
+  }
+
   # Check if the av package is installed and ask to install it if not
   rlang::check_installed("av")
 
@@ -142,7 +174,7 @@ split_audio <- function(
   output_folder <- normalizePath(output_folder, mustWork = TRUE)
 
   if (parallel) {
-    # --- PARALLEL EXECUTION ---
+    ## PARALLEL EXECUTION ----
     rlang::check_installed("mirai", reason = "for parallel processing.")
 
     max_parallel_wait <- getOption(
@@ -155,7 +187,7 @@ split_audio <- function(
     started_daemons <- FALSE
 
     if (mirai::status(.compute = "minutemaker")$daemons == 0) {
-      cli::cli_alert_info(
+      cli::cli_alert(
         "Starting mirai daemons for parallel audio splitting..."
       )
       n_daemons <- max(1, parallel::detectCores() - 1)
@@ -214,7 +246,7 @@ split_audio <- function(
       )
     })
 
-    cli::cli_alert_info("Started {length(tasks)} parallel splitting tasks.")
+    cli::cli_alert("Started {length(tasks)} parallel splitting tasks.")
 
     # Track processing status of each parallel task, initially all FALSE (not
     # completed)
@@ -222,6 +254,7 @@ split_audio <- function(
     # Flag to indicate if a failure has occurred, which should halt task
     # processing
     fail_fast_triggered <- FALSE
+    failure_message <- NULL
     fallback_used <- FALSE
 
     # Continue loop until all tasks are processed or a failure occurs
@@ -253,28 +286,49 @@ split_audio <- function(
           mirai::daemons(0, .compute = "minutemaker")
           started_daemons <- FALSE
         } else {
-          cli::cli_alert_info(
+          cli::cli_warn(
             "Skipping shutdown of pre-existing mirai daemons after timeout."
           )
         }
         cli::cli_alert_warning(
-          c(
-            "Parallel splitting exceeded timeout of {max_parallel_wait} seconds.",
-            i = "Processed {sum(processed_flags)}/{length(tasks)} segments before timing out.",
-            i = "Falling back to sequential processing for remaining segments."
-          )
+          "Parallel splitting exceeded timeout of {max_parallel_wait} seconds."
+        )
+        cli::cli_alert_info(
+          "Processed {sum(processed_flags)}/{length(tasks)} segments before timing out."
+        )
+        cli::cli_alert_info(
+          "Falling back to sequential processing for remaining segments."
         )
 
         pending_idxs <- which(!processed_flags)
         for (i in pending_idxs) {
+          # Compute the segment bounds for this index.
           start_time <- (i - 1) * segment_length_sec
+          # Build the expected output path for the segment file.
           output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))
-          extract_audio_segment(
+          # Run the same extraction logic sequentially after timeout, but
+          # capture failures as structured FALSE values instead of aborting
+          # the whole function immediately.
+          result <- extract_audio_segment(
             audio_file = audio_file,
             output_file = output_file,
             start_time = start_time,
-            duration = segment_length_sec
+            duration = segment_length_sec,
+            on_error = "return"
           )
+          # When a segment extraction fails, keep the error detail locally so
+          # it can be surfaced in the fail-fast handling below.
+          if (isFALSE(result)) {
+            failure_message <- paste0(
+              "A worker failed: ",
+              attr(result, "error")
+            )
+            # Trigger the shared error path used by both parallel and fallback
+            # execution so we can exit cleanly and report diagnostics once.
+            fail_fast_triggered <- TRUE
+            break
+          }
+          # Mark the segment as completed to avoid reprocessing.
           processed_flags[i] <- TRUE
         }
 
@@ -301,7 +355,7 @@ split_audio <- function(
         } else if (is.list(still_running)) {
           task_unresolved <- any(purrr::map_lgl(
             still_running,
-            ~ identical(.x, tasks[[i]])
+            \(task) identical(task, tasks[[i]])
           ))
         }
 
@@ -327,7 +381,6 @@ split_audio <- function(
             }
           )
           failure_message <- paste0("A worker failed: ", err_message)
-          cli::cli_alert_danger(failure_message)
           fail_fast_triggered <- TRUE
           break
         }
@@ -341,6 +394,9 @@ split_audio <- function(
     }
 
     if (fail_fast_triggered) {
+      if (!is.null(failure_message)) {
+        cli::cli_alert_danger(failure_message)
+      }
       cli::cli_alert_danger(
         "Halting due to worker error. Checking source file integrity..."
       )
@@ -363,7 +419,7 @@ split_audio <- function(
 
     cli::cli_alert_success("All segments processed successfully.")
   } else {
-    # --- SEQUENTIAL EXECUTION ---
+    ## SEQUENTIAL EXECUTION ----
     purrr::walk(seq_len(num_segments), \(i) {
       start_time <- (i - 1) * segment_length_sec
       output_file <- file.path(output_folder, paste0("segment_", i, ".mp3"))

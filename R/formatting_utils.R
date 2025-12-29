@@ -26,17 +26,19 @@ format_summary_tree <- function(
   output_file = NULL
 ) {
   # If summary_tree is a file path, load the data from the file
-  if (is.character(summary_tree) && file.exists(summary_tree)) {
+  if (rlang::is_string(summary_tree)) {
     summary_tree <- load_serialized(summary_tree, "summary tree")
   }
 
   # Import agenda from file
-  if (is.character(agenda)) {
+  if (rlang::is_string(agenda)) {
     agenda <- load_serialized(agenda, "agenda")
   }
 
   # Check the consistency of the summary tree and the agenda
   check_agenda_summary_tree_consistency(agenda, summary_tree)
+
+  warn_missing_event_start_time(agenda, event_start_time)
 
   # Initialize the output string
   output <- ""
@@ -75,18 +77,10 @@ format_summary_tree <- function(
     agenda_element$moderators <- stringr::str_flatten_comma(
       agenda_element$moderators
     )
-    agenda_element$session <- ifelse(
-      is.null(agenda_element$session),
-      "",
-      agenda_element$session
-    )
-    agenda_element$title <- ifelse(
-      is.null(
-        agenda_element$title
-      ),
-      "",
-      agenda_element$title
-    )
+    for (field in c("session", "title")) {
+      value <- agenda_element[[field]]
+      agenda_element[[field]] <- if (rlang::is_empty(value)) "" else value
+    }
 
     output_piece <- stringr::str_glue_data(
       agenda_element,
@@ -134,9 +128,11 @@ format_agenda <- function(
   event_start_time = getOption("minutemaker_event_start_time")
 ) {
   # Import agenda from file
-  if (is.character(agenda)) {
+  if (rlang::is_string(agenda)) {
     agenda <- load_serialized(agenda, "agenda")
   }
+
+  warn_missing_event_start_time(agenda, event_start_time)
 
   # Covert times from second to clock time if possible
   agenda <- convert_agenda_times(
@@ -150,15 +146,18 @@ format_agenda <- function(
   # moderators and summary, if not NULL/empty
   output <- purrr::map_chr(
     agenda,
-    ~ {
-      .x$speakers <- stringr::str_flatten_comma(.x$speakers)
-      .x$moderators <- stringr::str_flatten_comma(.x$moderators)
-      .x$session <- ifelse(is.null(.x$session), "", .x$session)
-      .x$title <- ifelse(is.null(.x$title), "", .x$title)
-      .x$description <- ifelse(is.null(.x$description), "", .x$description)
+    \(agenda_item) {
+      agenda_item$speakers <- stringr::str_flatten_comma(agenda_item$speakers)
+      agenda_item$moderators <- stringr::str_flatten_comma(
+        agenda_item$moderators
+      )
+      for (field in c("session", "title", "description")) {
+        value <- agenda_item[[field]]
+        agenda_item[[field]] <- if (rlang::is_empty(value)) "" else value
+      }
 
       stringr::str_glue_data(
-        .x,
+        agenda_item,
         "Session: {session};
     Title: {title};
     Description: {description};

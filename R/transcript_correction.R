@@ -53,6 +53,121 @@ apply_llm_correction <- function(
   # Collect additional LLM parameters
   llm_extra_params <- list(...)
 
+  # === ADAPTIVE BACKOFF CORRECTION SYSTEM ===
+  #
+  # When LLM calls fail on large transcript chunks, we implement an adaptive
+  # backoff strategy that recursively splits the transcript into smaller
+  # segments until corrections succeed.
+  # This prevents complete failure when large chunks exceed model context limits
+  # or cause parsing issues.
+  #
+  # Key benefits:
+  # - Graceful degradation: Large failures become smaller successes
+  # - Preserves data integrity: All segments get processed individually
+  # - Reduces retry consumption: Backoff attempts don't count as full retries
+  #
+  # Helper function to apply corrections to text (handles both strings and
+  # lists).
+  # This function safely applies a corrections map to text, handling different
+  # input types (single strings, lists of strings) that may result from
+  # segment-based processing.
+  apply_corrections_to_text <- function(text, corrections_map) {
+    # Early return if no corrections to apply
+    if (rlang::is_empty(corrections_map)) {
+      return(text)
+    }
+    # Handle list inputs (e.g., multiple text segments) by applying corrections
+    # to each element recursively
+    if (is.list(text)) {
+      return(purrr::map(
+        text,
+        \(text_entry) apply_single_correction_set(text_entry, corrections_map)
+      ))
+    }
+    # Apply corrections to single text input
+    apply_single_correction_set(text, corrections_map)
+  }
+
+  # Core adaptive backoff function for segment-based correction
+  #
+  # This function implements a recursive binary splitting strategy:
+  # 1. Try to correct all segments at once
+  # 2. If it fails and we have enough segments (> min_segments), split in half
+  # 3. Recursively correct each half independently
+  # 4. Merge successful results from both halves
+  #
+  # The min_segments parameter prevents infinite splitting - if a chunk is too
+  # small to split further, we accept the failure rather than continue.
+  #
+  # Returns a standardized result structure with status and corrections_map
+  correct_with_segment_backoff <- function(
+    segments,
+    min_segments = 5
+  ) {
+    if (rlang::is_empty(segments)) {
+      return(list(status = "no_text_to_correct", corrections_map = NULL))
+    }
+
+    # Extract text content from segments, handling missing text fields
+    # gracefully
+    segment_texts <- purrr::map_chr(segments, "text", .default = "")
+    segment_texts <- tidyr::replace_na(segment_texts, "")
+
+    # Recursive function that attempts correction on a subset of segments
+    # Uses binary splitting when corrections fail on large chunks
+    split_and_correct <- function(indices) {
+      result <- correct_transcription_errors(
+        text_to_correct = segment_texts[indices],
+        terms = terms,
+        include_reasoning = include_reasoning,
+        llm_extra_params = llm_extra_params
+      )
+
+      # === BACKOFF LOGIC ===
+      # If correction failed and we have enough segments to split further,
+      # recursively process each half of the segment range
+      if (
+        result$status %in%
+          c("llm_call_failed", "parsing_failed") &&
+          length(indices) > min_segments
+      ) {
+        # Calculate midpoint and split segment indices into two halves
+        # This ensures balanced processing and prevents one half from being much
+        # larger
+        mid <- floor(length(indices) / 2)
+        left <- split_and_correct(indices[seq_len(mid)])
+        right <- split_and_correct(indices[(mid + 1):length(indices)])
+
+        # If either half still failed after backoff, propagate the original failure
+        # This prevents partial success from masking underlying issues
+        if (
+          left$status %in%
+            c("llm_call_failed", "parsing_failed") ||
+            right$status %in% c("llm_call_failed", "parsing_failed")
+        ) {
+          return(list(status = result$status, corrections_map = NULL))
+        }
+
+        # Successfully processed both halves - merge their correction maps
+        # Use c() to combine named lists; duplicate keys will be handled by
+        # later processing
+        combined_map <- c(left$corrections_map, right$corrections_map)
+        combined_status <- if (rlang::is_empty(combined_map)) {
+          "no_changes_signal" # Both halves indicated no changes needed
+        } else {
+          "corrections_applied" # At least one correction was found across halves
+        }
+
+        return(list(status = combined_status, corrections_map = combined_map))
+      }
+
+      list(status = result$status, corrections_map = result$corrections_map)
+    }
+
+    # Seed the recursion with all segment indices.
+    split_and_correct(seq_along(segment_texts))
+  }
+
   # Determine which files to process based on input_path
   files_to_process <- character()
   if (dir.exists(input_path)) {
@@ -84,7 +199,7 @@ apply_llm_correction <- function(
   # Iterate over files, attempting correction for each.
   # NA_character_ is used to mark failures for later filtering.
   processed_files <- purrr::map_chr(files_to_process, \(file_path) {
-    cli::cli_alert_info(
+    cli::cli_alert(
       "Processing transcript file for correction: {.file {basename(file_path)}}"
     )
 
@@ -119,14 +234,21 @@ apply_llm_correction <- function(
       return(file_path) # Return the path as it was processed (skipped)
     }
 
-    # Start Correction Attempt with Retry Logic ----
+    ## Start Correction Attempt with Retry Logic ----
     # Initialize variables for the retry loop
     correction_result <- NULL
     retry_count <- 0
     success <- FALSE
     original_transcript_data <- transcript_data # Keep original
 
+    # === MAIN CORRECTION LOOP WITH ADAPTIVE BACKOFF ===
+    # Enhanced retry logic that first attempts segment-based backoff before
+    # consuming a full retry attempt. This preserves retry budget for genuine
+    # failures rather than context-limit issues.
     while (retry_count <= max_retries && !success) {
+      # Track whether segment backoff was used in this iteration
+      # This prevents backoff success from being treated as a retry failure
+      used_segment_backoff <- FALSE
       # Attempt the core correction logic.
       correction_result <- tryCatch(
         {
@@ -159,7 +281,52 @@ apply_llm_correction <- function(
       # Check the status returned by correct_transcription_errors
       status <- correction_result$status
 
+      # === SEGMENT BACKOFF INTEGRATION ===
+      # Before consuming a retry attempt, try segment-based correction
+      # This gives us a chance to salvage the correction using smaller chunks
       if (status %in% c("llm_call_failed", "parsing_failed")) {
+        # Only attempt backoff if transcript has segments to work with
+        if (!rlang::is_empty(transcript_data$segments)) {
+          # Attempt correction using recursive segment splitting
+          # This is our "last chance" before consuming a retry
+          backoff_result <- correct_with_segment_backoff(
+            transcript_data$segments
+          )
+
+          # If backoff succeeded, apply those corrections to the main text
+          if (
+            !backoff_result$status %in% c("llm_call_failed", "parsing_failed")
+          ) {
+            # Apply corrections from successful segment backoff to main transcript text
+            corrected_main_text <- apply_corrections_to_text(
+              original_transcript_data$text, # Use original to avoid compounding changes
+              backoff_result$corrections_map
+            )
+            # Check if backoff corrections actually changed the text
+            made_changes <- !identical(
+              original_transcript_data$text,
+              corrected_main_text
+            )
+
+            # Update correction result with backoff outcomes
+            correction_result <- list(
+              corrected_text = corrected_main_text,
+              corrections_map = backoff_result$corrections_map,
+              status = backoff_result$status,
+              made_changes = made_changes
+            )
+            status <- correction_result$status
+            used_segment_backoff <- TRUE
+          }
+        }
+
+        # If segment backoff succeeded, treat as overall success
+        # Skip retry logic and proceed to write results
+        if (used_segment_backoff) {
+          success <- TRUE
+          next
+        }
+
         retry_count <- retry_count + 1
         if (retry_count <= max_retries) {
           cli::cli_alert_warning(
@@ -449,7 +616,7 @@ correct_transcription_errors <- function(
   # climbing further up the parent chain.
   flag_env <- environment()
 
-  # -- Prepare the LLM prompts --
+  ## Prepare the LLM prompts ----
 
   terms_instructions <- "Understand the transcript content and context and use
   your domain knowledge to identify the corrections that would make sense to
@@ -557,6 +724,11 @@ Apply these rules to your JSON output if corrections are made:
   mapping would be '{{\"and project\": \"AMD project\"}}' if the context
   was \"and project\". This ensures that only the specific instance
   is corrected.
+- **Exact-match only:** Every JSON key must be a verbatim substring of the input
+  text. Do not paraphrase, expand, summarize, or add missing words. If you
+  cannot point to the exact substring in the input, do not propose that
+  correction. This prevents hallucinated corrections that don't match the
+  actual transcript content.
 - If a first name (e.g., 'John', 'Anna') appears in the input text and is
   ALREADY SPELLED CORRECTLY according to the provided list or general knowledge,
   DO NOT expand it to a full name (e.g., 'Anna' to 'Anna Smith'), even if 'Anna
@@ -575,27 +747,25 @@ Apply these rules to your JSON output if corrections are made:
   clear and correct."
   )
 
-  # -- Perform LLM call --
+  ## Perform LLM call ----
 
   messages_payload <- c(system = system_prompt, user = full_text_for_llm)
-
   # Default LLM parameters. Reasoning models do not accept temperature, so use
   # reasoning_effort there and keep temperature only for non-reasoning calls.
+
   base_llm_params <- if (include_reasoning) {
-    list(reasoning_effort = "medium")
-  } else {
     list(temperature = 0)
+  } else {
+    list(reasoning_effort = "medium")
   }
 
   # Allow user-provided parameters to override defaults
   final_llm_params <- purrr::list_modify(base_llm_params, !!!llm_extra_params)
 
-  # Guard against passing temperature to reasoning models.
-  if (include_reasoning && "temperature" %in% names(final_llm_params)) {
-    final_llm_params <- final_llm_params[setdiff(
-      names(final_llm_params),
-      "temperature"
-    )]
+  # Guard against passing temperature alongside `reasoning_effort` (many
+  # reasoning endpoints reject temperature or only accept a constrained value).
+  if ("reasoning_effort" %in% names(final_llm_params)) {
+    final_llm_params$temperature <- NULL
   }
 
   llm_response_str <- NULL
@@ -638,7 +808,7 @@ Apply these rules to your JSON output if corrections are made:
   cli::cli_verbatim(llm_response_str) # Use verbatim for raw output
   cli::cli_h2("End of LLM correction response")
 
-  # -- Parse and validate the LLM response --
+  ## Parse and validate the LLM response ----
 
   # Always expect content within XML tags.
   xml_pattern <- stringr::str_glue(
@@ -753,7 +923,44 @@ Apply these rules to your JSON output if corrections are made:
     return(failed_parsing_return_struct)
   }
 
-  # -- Apply corrections --
+  # === CORRECTION VALIDATION ===
+  # Validate that all correction keys actually appear in the input text
+  # This prevents application of corrections that don't match the source
+  # material.
+  #
+  # LLM models can sometimes hallucinate or misremember text, leading to
+  # corrections that reference substrings not present in the input. We warn
+  # about these but keep them for transparency (they won't be applied).
+  correction_keys <- names(corrections_map)
+  correction_keys <- correction_keys[!is.na(correction_keys)]
+  if (length(correction_keys) > 0) {
+    # Find keys that don't appear as exact substrings in the input text
+    unmatched_keys <- correction_keys[
+      !stringr::str_detect(
+        full_text_for_llm,
+        # Exact matching, no regex interpretation
+        stringr::fixed(correction_keys)
+      )
+    ]
+    if (length(unmatched_keys) > 0) {
+      # Show examples of unmatched keys for debugging
+      example_keys <- utils::head(unmatched_keys, 3)
+      cli::cli_warn(
+        c(
+          "!" = paste0(
+            length(unmatched_keys),
+            " correction key(s) were not found in the input text and will not be applied."
+          ),
+          "i" = "Examples: {.value {example_keys}}"
+        )
+      )
+      # TODO: If this issue persists, consider implementing
+      # a follow-up LLM call to reconcile mismatched keys with the original text
+      # This could help identify typos in the LLM's key proposals.
+    }
+  }
+
+  ## Apply corrections ----
   corrected_text_vector <- apply_single_correction_set(
     text_to_correct,
     corrections_map

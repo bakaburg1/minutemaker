@@ -1,4 +1,4 @@
-# Tests for check_summary_tree_consistency() ---
+# Tests for check_summary_tree_consistency() ----
 
 test_that("reports mismatching ids for nameless summary tree", {
   summary_tree <- list(
@@ -26,7 +26,7 @@ test_that("fails gracefully when summary tree file is malformed", {
   })
 })
 
-# Tests for check_agenda_summary_tree_consistency() ---
+# Tests for check_agenda_summary_tree_consistency() ----
 
 test_that("aborts with context when agenda path cannot be read", {
   withr::with_tempdir({
@@ -284,7 +284,7 @@ test_that("validate_agenda_element allows NULL for non-required, non-time fields
   expect_false(res_fail)
 })
 
-# Tests for validate_agenda() --------------------------------------------------
+# Tests for validate_agenda() ----
 
 test_that("validate_agenda handles agenda = FALSE input", {
   expect_false(validate_agenda(FALSE))

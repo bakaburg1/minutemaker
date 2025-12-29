@@ -36,11 +36,12 @@ remotes::install_github("bakaburg1/minutemaker")
 
 This package allows transcribing audio recordings using different speech-to-text
 APIs and then summarizing the transcripts using remote or local Large Language
-Models.
+Models. You can also start directly with existing transcripts from the major
+meeting platforms (WebEx, Zoom, MS Teams, etc.) to bypass speech-to-text entirely.
 
-The package at the moment uses the Whisper API from either OpenAI or Azure or a
-local model on top of https://github.com/Softcatala/whisper-ctranslate2 (to be
-installed separetely) for the speech transcription.
+The package supports the Whisper API from OpenAI or Azure, or local models via
+https://github.com/Softcatala/whisper-ctranslate2 (install separately) for speech
+transcription.
 
 For the transcript summarization, the package can use the chat endpoint from
 either OpenAI, Azure or a local model with an OpenAI compatible REST API (for
@@ -125,9 +126,42 @@ option system is more convenient. You only need to set the options for the APIs
 you want to use (e.g., you don't need the speech-to-text API options if you
 already have a transcript).
 
+### Transcript-First Workflow
+
+If you already have a transcript from your meeting platform (such as WebEx VTT files, SRT files, or MS Teams DOCX exports), you can skip the speech-to-text transcription entirely and start directly with the transcript. The package supports:
+
+- **WebEx transcripts** (.vtt files)
+- **Generic SRT subtitles** (.srt files)
+- **MS Teams transcripts** (.docx files exported from Teams meetings)
+
+This approach saves time and API costs while maintaining all downstream functionality like LLM-based correction, agenda inference, and summarization.
+
+```{r, eval = FALSE}
+# Use an external transcript directly
+speech_to_summary_workflow(
+  target_dir = "path/to/your/project",
+
+  # Skip audio processing entirely by providing external transcript
+  external_transcript = "path/to/transcript.vtt", # or .srt, or .docx
+  source_audio = NULL, # No audio file needed
+
+  # Enable speaker diarization import if available in the transcript
+  import_diarization = TRUE,
+
+  # All other arguments work the same as with audio input
+  use_agenda = "yes",
+  llm_provider = "openai",
+  formatted_output_file = "meeting_summary.txt"
+)
+```
+
+The workflow will automatically detect and standardize your external transcript into the package's internal format, then proceed with LLM correction and summarization as usual.
+
+Alternatively, simply place your transcript file (.vtt, .srt, or .docx) in your working directory - the workflow will auto-detect it and use it as the primary source.
+
 ### Transcribing the audio
 
-The first step is usually transcribing the audio recording of a meeting. 
+If you don't have an existing transcript, the first step is transcribing the audio recording of a meeting. 
 
 Since the Whisper API can process files only up to 25MB (~ 50-60 minutes in mp3),
 it could be useful to split the audio file into smaller chunks. This can be done
@@ -207,54 +241,32 @@ just remove this file and restart the process. For other API related error,
 restarting the process is usually enough. Otherwise, feel free to open an
 issue.
 
-### Importation of existing transcript data
+### Manual Transcript Import and Enhancement
 
-Due to imperfections in transcription processes, such as those from the Whisper
-model, gaps in the transcript might occur. To address this, one can use
-transcripts from other sources like WebEx, which, while more complete, may lack
-the accuracy of Whisper transcripts. Additionally, WebEx transcripts offer extra
-details like speaker names and chat messages.
+For advanced users who want to work with transcripts manually, the package provides functions to import and enhance transcript data.
 
-The provided package includes two key functions:
-`import_transcript_from_file()`, which is designed to read vtt/srt format
-transcripts, and `add_chat_transcript()`, which integrates chat messages into
-the existing transcript data. Currently, these functions are compatible
-exclusively with WebEx outputs.
-
-For combining transcripts from various sources, the package offers the
-`merge_transcripts()` function. This function is also capable of integrating
-speaker names if they are included in the transcripts. The merging process is
-guided by several heuristics due to potential misalignments between different
-transcripts. For instance, a segment from the imported transcript is placed into
-the nearest corresponding empty segment in the original transcript. Regarding
-speaker names, the GloVe word embedding model is used to calculate a similarity
-score between adjacent segments, helping to accurately assign speaker names to
-the most appropriate segment.
-
+The `import_transcript_from_file()` function can read transcripts in various formats:
 
 ```{r, eval = FALSE}
-
-imported_transcript <- import_transcript_from_file(
-  transcript_file = "path-to-transcript-file.vtt",
+# Import a transcript file
+transcript <- import_transcript_from_file(
+  transcript_file = "path/to/transcript.vtt", # Supports .vtt, .srt, .docx
+  import_diarization = TRUE # Include speaker information if available
 )
-
-merged_transcript <- merge_transcripts(
-  transcript_x = original_transctript,
-  transcript_y = imported_transcript,
-)
-
-final_transcript <- add_chat_transcript(
-  transcript_data = merged_transcript,
-  chat_transcript = "path-to-chat-file.txt",
-  # Necessary to align the chat messages with the transcript
-  # can use both HH::MM AM/PM or HH:MM:SS
-  start_time = "12:00 PM"
-)
-
-# Optionally, you can save the transcript to a file
-readr::write_csv(final_transcript, file.path(work_dir, day, "transcript.csv"))
-
 ```
+
+For transcripts that include chat messages (such as WebEx exports), you can integrate them using `add_chat_transcript()`:
+
+```{r, eval = FALSE}
+# Add chat messages to an existing transcript
+enhanced_transcript <- add_chat_transcript(
+  transcript_data = transcript,
+  chat_transcript = "path/to/chat_export.txt",
+  start_time = "12:00 PM" # To align chat timestamps
+)
+```
+
+**Note**: For most users, the transcript-first workflow (see above) handles all of this automatically. Manual import functions are mainly useful for custom processing or when working with unusual transcript formats.
 
 ### LLM-based Transcript Correction
 
@@ -418,7 +430,8 @@ method <- "rolling" # or "simple"
 agenda <- dget("path-to-agenda.R")
 
 transcript_text <- extract_text_from_transcript(
-  transcript_data, agenda = agenda[[1]] # First talk in the agenda
+  transcript_data,
+  agenda_element = agenda[[1]] # First talk in the agenda
 )
 
 # You may want to define some other contextual information about the meeting
@@ -575,13 +588,14 @@ The output will be saved at the location indicated by `output_file` if not
 
 ### Workflow shortcut function
 
-The package is built around a typical workflow that starts from a source audio
-file and ends with a formatted summary file. The workflow includes all the steps
-described above, from
-the splitting of the audio file (if requested, necessary for most STT APIs),
-to the transcription of the audio segments (with LLM-supported correction),
-to the merging of externally generated transcripts and/or chat files, to the
-summarization of the transcript, to the formatting of the summary.
+The package is built around a flexible workflow that can start from either audio
+files or existing transcripts, ending with a formatted summary file. The workflow
+includes all the steps described above:
+
+- **Audio-first path**: Splitting audio files → Speech-to-text transcription → LLM correction → Summarization
+- **Transcript-first path**: External transcript import → Standardization → LLM correction → Summarization
+
+Both paths support chat message integration, agenda inference, and formatted output generation.
 
 The `speech_to_summary_workflow()` function implements this workflow and can be
 used to perform all the steps in one go.
@@ -613,7 +627,7 @@ speech_to_summary_workflow(
   stt_model = getOption("minutemaker_stt_model"),
   stt_initial_prompt = initial_prompt,
   stt_language = "en",
-  stt_overwrite_output_files = FALSE,
+  overwrite_transcription_files = FALSE,
 
   # Arguments for LLM-based transcript correction (runs after STT)
   enable_llm_correction = TRUE, # Defaults to TRUE
@@ -624,16 +638,19 @@ speech_to_summary_workflow(
   event_start_time = "09:00 AM",
   overwrite_transcript = FALSE,
 
-  # Arguments for `merge_transcripts`
-  transcript_to_merge = list.files(
+  # Arguments for external transcript input (transcript-first workflow)
+  # Set to NULL to skip external transcripts, or provide a path
+  # Auto-detection example (returns NA if no match, which is treated as NULL):
+  external_transcript = list.files(
     work_dir,
-    pattern = "\\.(vtt|srt)",
+    pattern = "\\.(vtt|srt|docx)$",
+    ignore.case = TRUE,
     full.names = TRUE
-  )[1],
-  import_diarization_on_merge = TRUE,
+  )[1], # Auto-detects external transcripts in working directory
+  import_diarization = TRUE, # Include speaker info from transcript
 
   # Arguments for `add_chat_transcript`
-  chat_file = list.files(work_dir, pattern = "Chat", full.names = TRUE)[1],
+  chat_file = list.files(work_dir, pattern = "Chat.*\\.txt$", full.names = TRUE, ignore.case = TRUE)[1],
   chat_format = "webex",
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`

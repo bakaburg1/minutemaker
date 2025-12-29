@@ -1,4 +1,4 @@
-# Tests for generate_recording_details() ---
+# Tests for generate_recording_details() ----
 
 test_that("returns NULL when all arguments are NULL", {
   expect_null(generate_recording_details())
@@ -185,9 +185,9 @@ test_that("output elements are separated by newline correctly", {
   )
 })
 
-# Tests for summarise_transcript() ---
+# Tests for summarise_transcript() ----
 
-# Helper functions and data ---
+# Helper functions and data ----
 
 # Mock llmR::prompt_llm
 # This function will be called by summarise_transcript
@@ -341,9 +341,7 @@ mock_extract_text_from_transcript <- function(
     return("")
   }
 
-  # ------------------------------------------------------------------
   # 1. Build each line
-  # ------------------------------------------------------------------
   if (
     isTRUE(import_diarization) &&
       "speaker" %in% names(transcript_df) &&
@@ -361,10 +359,8 @@ mock_extract_text_from_transcript <- function(
     line_vec <- transcript_df$text
   }
 
-  # ------------------------------------------------------------------
   # 2. Collapse into the final transcript string
   #    Two newlines between blocks mirrors the real helper.
-  # ------------------------------------------------------------------
   paste(line_vec, collapse = "\n\n")
 }
 
@@ -848,7 +844,7 @@ test_that("arguments are correctly passed for rolling method (to aggregation)", 
   })
 })
 
-# Tests for summarise_full_meeting() ---
+# Tests for summarise_full_meeting() ----
 
 # Helper data for summarise_full_meeting tests
 sample_agenda_list <- list(

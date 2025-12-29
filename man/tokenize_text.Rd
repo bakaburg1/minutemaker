@@ -17,3 +17,9 @@ This function processes and tokenizes a given text. It converts the text to
 lowercase, removes special characters and extra spaces, and then splits the
 text into tokens.
 }
+\section{Lifecycle}{
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
+GloVe infrastructure is soft-deprecated.
+}
+

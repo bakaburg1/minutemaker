@@ -50,8 +50,8 @@ validate_agenda_element <- function(
   # Check if the required items are present in the agenda element
   el_checks <- purrr::imap_lgl(
     args,
-    ~ {
-      !is.null(agenda_element[[.y]]) || isFALSE(.x)
+    \(required, field_name) {
+      !is.null(agenda_element[[field_name]]) || isFALSE(required)
     }
   )
 
@@ -191,6 +191,30 @@ validate_agenda_element <- function(
 
   # Return the validation result
   is_valid
+}
+
+#' Warn when agenda items have numeric 'from' but no event_start_time provided
+#'
+#' @param agenda list of events.
+#' @param event_start_time POSIXct/character/numeric or NULL.
+#'
+#' @return invisible NULL.
+#'
+#' @description When the agenda is non-empty, the event_start_time is NULL, and
+#'   all agenda items have numeric 'from' values, this function emits a
+#'   {cli::cli_alert_warning} stating that "00:00:00" will be used as the
+#'   default.
+warn_missing_event_start_time <- function(agenda, event_start_time) {
+  if (
+    length(agenda) > 0 && # agenda non-empty
+      is.null(event_start_time) && # event_start_time NULL
+      all(purrr::map_lgl(agenda, \(x) is.numeric(x$from))) # all items numeric
+  ) {
+    cli::cli_alert_warning(
+      "No start time provided. Using \"00:00:00\" as start time. Consider
+      setting the event start time using {.fn set_event_start_time}."
+    )
+  }
 }
 
 
@@ -388,7 +412,7 @@ check_summary_tree_consistency <- function(summary_tree) {
       ""
     }
   }) |>
-    purrr::discard(~ !nzchar(.x))
+    purrr::discard(\(detail) !nzchar(detail))
 
   cli::cli_abort(
     c(
@@ -460,7 +484,7 @@ check_agenda_summary_tree_consistency <- function(agenda, summary_tree) {
       ""
     }
   }) |>
-    purrr::discard(~ !nzchar(.x))
+    purrr::discard(\(detail) !nzchar(detail))
 
   cli::cli_abort(
     c(

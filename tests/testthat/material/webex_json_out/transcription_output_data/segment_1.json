@@ -1,0 +1,89 @@
+{
+  "text": "Can everyone hear me? Yes. Loud and clear. Yeah. Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 kilohertz, and the navigation solver remapped coordinates during the same 2.3 seconds. We confirmed it's in the raw stream, not the UI. [laughter] [inaudible] The console shows \"SAFE MODE\" but the log includes & flags a checksum mismatch. I will share my screen now. Can you see the slide deck? No, not yet. I see it now, it just appeared. Yes, same here. It's visible in presenter mode.  So, the star-map kind of rewrote itself and. we saw drift then it snapped back, NO error bars around it, but these are large numbers, so it's likely quite accurate.",
+  "segments": [
+    {
+      "start": 0.649,
+      "end": 3.21,
+      "speaker": "VOICE-A17",
+      "text": "Can everyone hear me?"
+    },
+    {
+      "start": 3.21,
+      "end": 10.6,
+      "speaker": "NODE-03",
+      "text": "Yes. Loud and clear."
+    },
+    {
+      "start": 10.6,
+      "end": 10.95,
+      "speaker": "CALLER-X",
+      "text": "Yeah."
+    },
+    {
+      "start": 10.95,
+      "end": 33.8,
+      "speaker": "VOICE-B04",
+      "text": "Quick recap: the slipstream test produced a harmonic pattern at 13, 21, and 34 kilohertz, and the navigation solver remapped coordinates during the same 2.3 seconds. We confirmed it's in the raw stream, not the UI."
+    },
+    {
+      "start": 33.8,
+      "end": 36.5,
+      "speaker": "VOICE-A17",
+      "text": "[laughter]"
+    },
+    {
+      "start": 36.5,
+      "end": 40.2,
+      "speaker": "NODE-03",
+      "text": "[inaudible]"
+    },
+    {
+      "start": 40.2,
+      "end": 50.9,
+      "speaker": "VOICE-C99",
+      "text": "The console shows \"SAFE MODE\" but the log includes & flags a checksum mismatch."
+    },
+    {
+      "start": 50.9,
+      "end": 61.3,
+      "speaker": "VOICE-D12",
+      "text": "I will share my screen now."
+    },
+    {
+      "start": 61.3,
+      "end": 66.7,
+      "speaker": "VOICE-D12-RENAMED",
+      "text": "Can you see the slide deck?"
+    },
+    {
+      "start": 66.7,
+      "end": 70.9,
+      "speaker": "UNKNOWN-PORT",
+      "text": "No, not yet."
+    },
+    {
+      "start": 70.9,
+      "end": 76.5,
+      "speaker": "VOICE-E21",
+      "text": "I see it now, it just appeared."
+    },
+    {
+      "start": 76.5,
+      "end": 82,
+      "speaker": "VOICE-F08",
+      "text": "Yes, same here. It's visible in presenter mode."
+    },
+    {
+      "start": 82,
+      "end": 84.3,
+      "speaker": "NODE-07",
+      "text": ""
+    },
+    {
+      "start": 84.3,
+      "end": 104.9,
+      "speaker": "VOICE-G33",
+      "text": "So, the star-map kind of rewrote itself and. we saw drift then it snapped back, NO error bars around it, but these are large numbers, so it's likely quite accurate."
+    }
+  ]
+}

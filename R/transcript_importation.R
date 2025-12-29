@@ -12,7 +12,8 @@
 #'   seconds.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
 #'   format. Will be used to add the actual clock time to the transcript
-#'   segments. If NULL, the clock time will not be added.
+#'   segments. If NULL, the clock time will not be added. If NA, metadata from
+#'   transcript JSON files will be ignored.
 #'
 #' @return A data frame with the text and start and end time of each segment.
 #'
@@ -28,7 +29,7 @@ parse_transcript_json <- function(
   # Is the input a string?
   transcript_list <- if (is.character(transcript_json)) {
     # Is the string a path to a folder?
-    if (dir.exists(transcript_json)) {
+    if (fs::dir_exists(transcript_json)) {
       # Mark the input as a path
       file_input <- TRUE
 
@@ -56,7 +57,7 @@ parse_transcript_json <- function(
           )
         }
       )
-    } else if (file.exists(transcript_json)) {
+    } else if (fs::file_exists(transcript_json)) {
       # Is the string a path to a file?
 
       # Mark the input as a path
@@ -103,6 +104,14 @@ parse_transcript_json <- function(
       {.fn parse_transcript_json}.
       Expecting a JSON string, file path, directory path, or list."
     )
+  }
+
+  if (length(event_start_time) == 1 && is.na(event_start_time)) {
+    event_start_time <- NULL
+  } else if (is.null(event_start_time)) {
+    json_start_time <- transcript_list[[1]]$transcript_start_time %||% NULL
+    event_start_time <- json_start_time %||%
+      getOption("minutemaker_event_start_time")
   }
 
   # Initialize full_transcript with the expected schema.
@@ -158,7 +167,7 @@ parse_transcript_json <- function(
     if (
       file_input &&
         (!rlang::is_scalar_character(json_files[i]) ||
-          !file.exists(json_files[i]))
+          !fs::file_exists(json_files[i]))
     ) {
       cli::cli_abort(
         c(
@@ -260,25 +269,190 @@ import_transcript_from_file <- function(
   transcript_file,
   import_diarization = TRUE
 ) {
-  # Read the file content
-  lines <- readLines(transcript_file, warn = FALSE)
-
   # Check the file extension to determine the format
-  file_extension <- tools::file_ext(transcript_file)
+  file_extension <- tolower(tools::file_ext(transcript_file))
+
+  if (file_extension == "docx") {
+    rlang::check_installed("officer")
+
+    doc <- tryCatch(
+      officer::read_docx(transcript_file),
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "Unsupported transcript format for {.file {basename(transcript_file)}}.",
+            "x" = "{e$message}",
+            "i" = "Ensure the DOCX is a valid Word document exported from MS Teams."
+          ),
+          parent = e
+        )
+      }
+    )
+    content <- officer::docx_summary(doc)
+
+    # Helper function to parse a time string in "MM:SS" or "HH:MM:SS" format
+    # Returns the total number of seconds as a numeric value.
+    # - t: a character string, e.g., "01:23" for 1 minute 23 seconds, or
+    #   "01:23:45" for 1 hour 23 minutes 45 seconds.
+    # - Returns NA_real_ if the input cannot be parsed.
+    parse_relative_time <- function(t) {
+      parts <- as.numeric(stringr::str_split_1(t, ":"))
+      if (length(parts) == 2) {
+        # MM:SS format
+        return(parts[1] * 60 + parts[2])
+      } else if (length(parts) == 3) {
+        # HH:MM:SS format
+        return(parts[1] * 3600 + parts[2] * 60 + parts[3])
+      }
+      # If not matching expected time formats, return NA
+      NA_real_
+    }
+
+    # MS Teams transcripts are typically tables or specific paragraph
+    # structures.
+    if (any(content$content_type == "table cell")) {
+      # Extract table data
+      table_data <- content |>
+        dplyr::filter(.data$content_type == "table cell") |>
+        dplyr::select("text", "row_id", "cell_id") |>
+        tidyr::pivot_wider(
+          names_from = "cell_id",
+          values_from = "text",
+          names_prefix = "col_"
+        )
+
+      # Teams tables usually have 3 columns: Time, Speaker, Message
+      # Plus the row_id column from pivot_wider
+      if (ncol(table_data) >= 4) {
+        transcript_data <- table_data |>
+          dplyr::transmute(
+            start = purrr::map_dbl(.data$col_1, parse_relative_time),
+            end = .data$start,
+            speaker = if (import_diarization) .data$col_2 else NA_character_,
+            text = .data$col_3
+          ) |>
+          dplyr::filter(!is.na(.data$start))
+      } else {
+        cli::cli_abort(
+          "The table structure in {.file {basename(transcript_file)}} is not recognized as a standard MS Teams transcript."
+        )
+      }
+    } else {
+      # Handle paragraph-based Teams transcripts
+      # Pattern: Speaker Name [space] Time \n Text
+      # or \n Speaker Name [space] Time \n Text
+      # Different versions of {officer} and different DOCX exports can change
+      # how MS Teams transcript paragraphs are represented:
+      # - Some include a newline between "Speaker Time" and "Text".
+      # - Others flatten everything into one paragraph (sometimes even without a
+      #   space after the time, e.g. "0:10Hello").
+      # We support both by matching the multiline form first, then falling back
+      # to a single-line capture.
+      teams_pattern_multiline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*\\n\\s*(.*)$"
+      teams_pattern_singleline <- "^\\s*(.*?)\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)\\s*(.*)$"
+
+      paragraphs <- content |>
+        dplyr::filter(.data$content_type == "paragraph")
+
+      date_header_pattern <- "^\\s*.+\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(am|pm)\\b\\s*$"
+      date_header_rows <- stringr::str_detect(
+        paragraphs$text,
+        stringr::regex(date_header_pattern, ignore_case = TRUE)
+      )
+      transcript_start_time <- NULL
+      if (any(date_header_rows)) {
+        transcript_start_time <- stringr::str_squish(
+          paragraphs$text[date_header_rows][1]
+        )
+      }
+
+      # First, try to match the standard "Speaker Time \n Text" paragraph form.
+      matches <- stringr::str_match(paragraphs$text, teams_pattern_multiline)
+      # Any paragraph that fails the multiline match might be a flattened
+      # export where the newline is lost (e.g., "Speaker 0:10Text").
+      missing <- is.na(matches[, 1])
+      if (any(missing)) {
+        # Re-run matching only for the non-matching rows using the fallback
+        # single-line regex, and overwrite just those rows in the match matrix.
+        matches[missing, ] <- stringr::str_match(
+          paragraphs$text[missing],
+          teams_pattern_singleline
+        )
+      }
+
+      # Keep only paragraphs that matched either regex.
+      keep <- !is.na(matches[, 1]) & !date_header_rows
+
+      # Build a clean transcript table from the regex capture groups:
+      # [2] speaker, [3] time, [4] text.
+      transcript_data <- dplyr::tibble(
+        start = purrr::map_dbl(matches[keep, 3], parse_relative_time),
+        end = .data$start,
+        speaker = if (import_diarization) {
+          # Some exports embed an extra numeric token (e.g. an internal ID)
+          # before the speaker name; strip it if present.
+          matches[keep, 2] |>
+            stringr::str_remove("^\\d+\\s*") |>
+            stringr::str_squish()
+        } else {
+          NA_character_
+        },
+        text = matches[keep, 4]
+      ) |>
+        dplyr::filter(!is.na(.data$start))
+
+      if (!is.null(transcript_start_time)) {
+        attr(transcript_data, "transcript_start_time") <- transcript_start_time
+      }
+    }
+
+    if (nrow(transcript_data) == 0) {
+      cli::cli_abort(
+        "The file {.file {basename(transcript_file)}} does not appear to be a valid MS Teams transcript."
+      )
+    }
+
+    # Sort the transcript data by start time and end time
+    transcript_data <- transcript_data |>
+      dplyr::arrange(.data$start, .data$end)
+
+    # Set the end time to the next start time if it exists, otherwise set it to
+    # 10 seconds after the start time
+    if (nrow(transcript_data) > 0) {
+      next_start <- dplyr::lead(transcript_data$start)
+      transcript_data$end <- dplyr::if_else(
+        !is.na(next_start),
+        next_start,
+        transcript_data$start + 10
+      )
+    }
+
+    return(transcript_data)
+  }
 
   if (!file_extension %in% c("srt", "vtt")) {
     cli::cli_abort(
-      "Unsupported file format. Supported formats are SRT and VTT."
+      "Unsupported transcript format for {.file {basename(transcript_file)}}. Supported formats are SRT and VTT."
     )
   }
 
+  # Read the file content
+  lines <- readLines(transcript_file, warn = FALSE)
+
   times_pos <- which(stringr::str_detect(lines, "-->"))
 
+  # Check if file has any time cues at all - if not, it's not a valid transcript
+  if (length(times_pos) == 0) {
+    cli::cli_abort(
+      "The file {.file {basename(transcript_file)}} does not contain any time cues and is not a valid transcript file."
+    )
+  }
+
   # Iterate over each time position
-  purrr::map(
+  transcript_data <- purrr::map(
     times_pos,
-    ~ {
-      cue_line_content <- lines[.x]
+    \(time_pos) {
+      cue_line_content <- lines[time_pos]
 
       # Extract the start and end times
       times <- stringr::str_split_1(cue_line_content, "-->") |>
@@ -291,7 +465,7 @@ import_transcript_from_file <- function(
           sprintf(
             "Skipping malformed time cue in '%s'. Line %d: \"%s\"",
             basename(transcript_file),
-            .x,
+            time_pos,
             cue_line_content
           ),
           call. = FALSE
@@ -300,7 +474,7 @@ import_transcript_from_file <- function(
       }
 
       # Safely get the line content for text (line after timestamp)
-      text_line_idx <- .x + 1
+      text_line_idx <- time_pos + 1
       raw_text_content <- if (text_line_idx <= length(lines)) {
         lines[text_line_idx]
       } else {
@@ -336,7 +510,7 @@ import_transcript_from_file <- function(
         speaker_to_assign <- NA_character_ # Initialize speaker
 
         # Get content of line above timestamp, if it exists
-        line_above_idx <- .x - 1
+        line_above_idx <- time_pos - 1
         line_above_content <- if (line_above_idx >= 1) {
           lines[line_above_idx]
         } else {
@@ -418,7 +592,7 @@ add_chat_transcript <- function(
   chat_format <- match.arg(chat_format)
 
   if (rlang::is_scalar_character(chat_transcript)) {
-    if (!file.exists(chat_transcript)) {
+    if (!fs::file_exists(chat_transcript)) {
       cli::cli_abort("Chat file not found.")
     }
 
@@ -436,7 +610,7 @@ add_chat_transcript <- function(
           # Remove encoding characters
           stringr::str_remove_all("\xfe|\xff|\xff|\xfe|\xef|\xbb|\xbf") |>
           purrr::discard(is_silent) |>
-          purrr::map(~ stringr::str_split_1(.x, "\\t\\s*") |> t())
+          purrr::map(\(line) stringr::str_split_1(line, "\\t\\s*") |> t())
 
         # Loop over the chat messages and concatenate the ones that are split
         # across multiple lines
@@ -460,7 +634,15 @@ add_chat_transcript <- function(
         }
 
         chat_transcript <- do.call("rbind", chat_transcript) |>
-          as.data.frame() |>
+          as.data.frame()
+
+        if (ncol(chat_transcript) < 4) {
+          cli::cli_abort(
+            "The chat file {.file {basename(file_name)}} does not appear to be a valid Webex chat export."
+          )
+        }
+
+        chat_transcript <- chat_transcript |>
           setNames(c("date", "start", "speaker", "text")) |>
           mutate(
             date = NULL,
@@ -515,4 +697,160 @@ add_chat_transcript <- function(
   dplyr::bind_rows(transcript_data, chat_transcript) |>
     dplyr::arrange(.data$start) |>
     dplyr::as_tibble()
+}
+
+#' Standardize and prepare an external transcript for the workflow
+#'
+#' This function takes an external transcript file (VTT, SRT, or DOCX),
+#' standardizes it into the internal format used by the package, and saves the
+#' result as JSON segment files in the transcription output directory, split
+#' according to `lines_per_json`. This allows the rest of the workflow to
+#' proceed as if the transcript was generated by the package's speech-to-text
+#' models.
+#'
+#' @param file Path to the external transcript file.
+#' @param target_dir Path to the target directory where the workflow is running.
+#' @param import_diarization A boolean indicating whether the speaker should be
+#'   imported from the transcript, if present.
+#' @param lines_per_json A positive integer indicating how many transcript rows
+#'   should be written to each JSON segment file.
+#' @param overwrite A boolean indicating whether existing JSON segment files
+#'   should be overwritten.
+#'
+#' @return Invisibly returns the paths to the created JSON segment files.
+#'
+#' @export
+use_transcript_input <- function(
+  file,
+  target_dir = getwd(),
+  import_diarization = TRUE,
+  lines_per_json = 50,
+  overwrite = FALSE
+) {
+  cli::cli_alert("Preparing external transcript: {.file {basename(file)}}")
+
+  # Smaller default chunks keep correction prompts under token limits and
+  # reduce the chance of oversized LLM outputs.
+  # Accept numeric "whole numbers" like 200 (double) as well as 200L (integer),
+  # but reject non-integers like 200.5.
+  if (!rlang::is_scalar_integerish(lines_per_json) || lines_per_json < 1) {
+    cli::cli_abort("`lines_per_json` must be a positive integer.")
+  }
+
+  # Import the transcript data
+  transcript_df <- import_transcript_from_file(
+    transcript_file = file,
+    import_diarization = import_diarization
+  )
+
+  if (nrow(transcript_df) == 0) {
+    cli::cli_abort(
+      "The provided transcript file is empty or could not be parsed."
+    )
+  }
+
+  # Create the transcription output directory if it doesn't exist
+  transcription_output_dir <- file.path(target_dir, "transcription_output_data")
+  if (!fs::dir_exists(transcription_output_dir)) {
+    fs::dir_create(transcription_output_dir)
+  }
+
+  existing_files <- list.files(
+    transcription_output_dir,
+    pattern = "\\.json$",
+    full.names = TRUE
+  )
+
+  if (!overwrite && length(existing_files) > 0) {
+    file_order <- stringr::str_order(
+      basename(existing_files),
+      numeric = TRUE
+    )
+    existing_files <- existing_files[file_order]
+
+    cli::cli_alert_info(
+      "Existing transcript JSON files found in {.path {transcription_output_dir}}.
+      Skipping overwrite."
+    )
+
+    return(invisible(existing_files))
+  }
+
+  # Ensure consistent ordering before chunking, so segments are written and
+  # reconstructed in chronological order.
+  transcript_df <- transcript_df |>
+    dplyr::arrange(.data$start, .data$end)
+
+  if (
+    !all(is.finite(transcript_df$start)) || !all(is.finite(transcript_df$end))
+  ) {
+    cli::cli_abort(
+      c(
+        "The provided transcript contains invalid time cues.",
+        "x" = "Found non-finite values in {.var start} or {.var end}.",
+        "i" = "Ensure the transcript has valid timestamp cues and try again."
+      )
+    )
+  }
+
+  # Clean up NA values in text column for proper JSON serialization
+  transcript_df$text <- tidyr::replace_na(transcript_df$text, "")
+
+  # Split the transcript into multiple JSON files to avoid producing one very
+  # large prompt payload for downstream LLM steps.
+  chunk_id <- ceiling(seq_len(nrow(transcript_df)) / lines_per_json)
+  n_chunks <- max(chunk_id)
+  transcript_start_time <- attr(transcript_df, "transcript_start_time")
+  # Pad the segment index with zeros so alphabetical ordering matches numeric
+  # ordering (and parse_transcript_json() also sorts with numeric = TRUE).
+  pad_width <- nchar(as.character(n_chunks))
+
+  output_files <- character(n_chunks)
+  # parse_transcript_json() adds an accumulated `last_time` across files.
+  # To preserve absolute timestamps while writing chunked JSON, we write each
+  # chunk with times relative to the end of the previous chunk.
+  offset_time <- 0
+
+  for (chunk_index in seq_len(n_chunks)) {
+    rows <- which(chunk_id == chunk_index)
+    chunk_df <- transcript_df[rows, , drop = FALSE]
+
+    chunk_end_abs <- max(chunk_df$end, na.rm = TRUE)
+
+    chunk_df$start <- chunk_df$start - offset_time
+    chunk_df$end <- chunk_df$end - offset_time
+
+    # Standardize into the JSON format expected by parse_transcript_json().
+    transcript_json <- list(
+      text = paste(chunk_df$text, collapse = " "),
+      segments = purrr::transpose(chunk_df)
+    )
+    if (
+      chunk_index == 1 &&
+        !is.null(transcript_start_time) &&
+        !is.na(transcript_start_time)
+    ) {
+      transcript_json$transcript_start_time <- transcript_start_time
+    }
+
+    output_file <- file.path(
+      transcription_output_dir,
+      sprintf(paste0("segment_%0", pad_width, "d.json"), chunk_index)
+    )
+    jsonlite::write_json(
+      transcript_json,
+      output_file,
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
+
+    output_files[chunk_index] <- output_file
+    offset_time <- chunk_end_abs
+  }
+
+  cli::cli_alert_success(
+    "External transcript standardized and saved to {.path {basename(transcription_output_dir)}}"
+  )
+
+  return(invisible(output_files))
 }

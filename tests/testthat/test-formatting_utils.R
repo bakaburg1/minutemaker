@@ -1,4 +1,4 @@
-# Helper functions ---
+# Helper functions ----
 normalize_for_comparison <- function(text) {
   # Be robust to NULL, character(0), or multi-line vectors.
   if (is.null(text) || length(text) == 0L) {
@@ -17,7 +17,7 @@ normalize_for_comparison <- function(text) {
   paste(non_empty_lines, collapse = "\n")
 }
 
-# Tests for format_agenda() ----------------------------------------------------
+# Tests for format_agenda() ----
 
 test_that("format_agenda correctly formats a basic agenda", {
   sample_agenda <- list(
@@ -96,9 +96,8 @@ test_that("format_agenda correctly formats a basic agenda", {
 })
 
 test_that("format_agenda handles an empty agenda list", {
-  expect_warning(
-    formatted_empty <- format_agenda(list()),
-    regexp = "No start time provided.*Using \"00:00:00\" as start time"
+  expect_silent(
+    formatted_empty <- format_agenda(list())
   )
   expect_identical(formatted_empty, "")
 })
@@ -237,9 +236,8 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   agenda_char_times <- list(
     list(title = "Event A", from = "01:00", to = "01:30")
   )
-  expect_warning(
-    formatted_a <- format_agenda(agenda_char_times), # event_start_time is NULL
-    regexp = "No start time provided.*Using \"00:00:00\" as start time"
+  expect_silent(
+    formatted_a <- format_agenda(agenda_char_times) # event_start_time is NULL
   )
   # With origin 00:00, 01:00 remains 01:00, 01:30 remains 01:30 (format %R)
   expected_a <- "Title: Event A;\n    Time: 01:00 - 01:30;"
@@ -256,7 +254,7 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   agenda_num_times <- list(
     list(title = "Event B", from = 3600, to = 5400) # 1 hour to 1.5 hours
   )
-  expect_warning(
+  expect_message(
     formatted_b <- format_agenda(agenda_num_times), # event_start_time is NULL
     regexp = "No start time provided.*Using \"00:00:00\" as start time"
   )
@@ -272,7 +270,7 @@ test_that("format_agenda warns and defaults event_start_time if NULL", {
   )
 })
 
-# Tests for format_summary_tree() -----------
+# Tests for format_summary_tree() ----
 
 test_that("format_summary_tree correctly formats a basic summary tree and agenda", {
   sample_agenda_for_summary <- list(

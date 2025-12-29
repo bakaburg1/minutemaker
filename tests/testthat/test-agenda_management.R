@@ -1,5 +1,4 @@
-library(lubridate)
-
+# Helpers ----
 # Helper function to create a sample agenda item
 create_agenda_item <- function(
   session = NULL,
@@ -19,23 +18,26 @@ create_agenda_item <- function(
 create_sample_agenda <- function(n_items = 3) {
   purrr::map(
     seq_len(n_items),
-    ~ create_agenda_item(
-      session = paste0("Session", .x),
-      title = paste0("Talk", .x),
-      from = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
-          lubridate::hours(.x - 1),
-        "%H:%M"
-      ),
-      to = format(
-        lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
-          lubridate::hours(.x),
-        "%H:%M"
+    \(x) {
+      create_agenda_item(
+        session = paste0("Session", x),
+        title = paste0("Talk", x),
+        from = format(
+          lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+            lubridate::hours(x - 1),
+          "%H:%M"
+        ),
+        to = format(
+          lubridate::ymd_hm("2024-01-01 09:00", tz = "UTC") +
+            lubridate::hours(x),
+          "%H:%M"
+        )
       )
-    )
+    }
   )
 }
 
+# build_ids_from_agenda ----
 test_that("build_ids_from_agenda handles empty agenda", {
   build_ids_from_agenda(list()) |> testthat::expect_length(0)
 })
@@ -73,6 +75,7 @@ test_that("build_ids_from_agenda handles NULL sessions", {
   expect_identical(ids[2], "Talk2")
 })
 
+# convert_agenda_times ----
 test_that("convert_agenda_times validates input times with specific warnings and error", {
   # Invalid 'from' time
   # to = "10:00" by default
@@ -225,11 +228,10 @@ test_that("convert_agenda_times handles POSIXct event start time", {
   expect_equal(converted[[1]]$to, 7200)
 })
 
-test_that("convert_agenda_times warns when no event start time provided", {
+test_that("convert_agenda_times handles missing event start time without warning", {
   agenda <- create_sample_agenda(1)
-  expect_warning(
-    convert_agenda_times(agenda, convert_to = "seconds"),
-    "No start time provided"
+  expect_no_warning(
+    convert_agenda_times(agenda, convert_to = "seconds")
   )
 })
 
@@ -283,7 +285,7 @@ test_that("convert_agenda_times respects custom conversion format", {
 
 test_that("convert_agenda_times requires exact convert_to value", {
   agenda <- list(list(from = 0, to = 3600))
-  
+
   # Exact value "clocktime" should work
   expect_no_error(
     convert_agenda_times(
@@ -292,7 +294,7 @@ test_that("convert_agenda_times requires exact convert_to value", {
       event_start_time = "09:00"
     )
   )
-  
+
   # Partial match "clock" should work due to match.arg partial matching,
   # but exact value is preferred for clarity
   expect_no_error(
@@ -302,7 +304,7 @@ test_that("convert_agenda_times requires exact convert_to value", {
       event_start_time = "09:00"
     )
   )
-  
+
   # Invalid value should fail
   expect_error(
     convert_agenda_times(
@@ -313,5 +315,3 @@ test_that("convert_agenda_times requires exact convert_to value", {
     "should be one of"
   )
 })
-
-cat("\nAll testthat tests for agenda_management.R defined.\n")

@@ -284,6 +284,11 @@ summarise_transcript <- function(
       )
     }
 
+    # Return NA if the transcript is NA or empty
+    if (is.na(transcript) || transcript == "") {
+      return(NA_character_)
+    }
+
     args <- args[
       c(
         "event_description",
@@ -307,6 +312,12 @@ summarise_transcript <- function(
 
   if (prompt_only) {
     return(prompts)
+  }
+
+  # Remove any NA or empty prompts, error if none remain
+  prompts <- purrr::discard(prompts, \(prompt) is.na(prompt) || prompt == "")
+  if (length(prompts) == 0) {
+    cli::cli_abort("No transcript segments available for summarisation.")
   }
 
   # Generate the summaries
@@ -760,7 +771,52 @@ infer_agenda_from_transcript <- function(
 
   options("minutemaker_temp_agenda_hash" = arg_hash)
 
-  update_agenda <- function(agenda_elements) {
+  # Validate agenda start times for agenda inference:
+  # return numeric(0) with a warning when empty, abort on non-atomic or
+  # non-numeric values after coercion, otherwise return numeric.
+  validate_agenda_start_times <- function(
+    agenda_elements,
+    bp_left = NULL,
+    bp_right = NULL
+  ) {
+    if (is.null(agenda_elements) || length(agenda_elements) == 0) {
+      if (!is.null(bp_left) && !is.null(bp_right)) {
+        cli::cli_alert_warning(
+          "Agenda start times are empty. Skipping segment {bp_left}-{bp_right}."
+        )
+      } else {
+        cli::cli_alert_warning(
+          "Agenda start times are empty. Skipping this segment."
+        )
+      }
+      return(numeric(0))
+    }
+
+    if (!is.atomic(agenda_elements)) {
+      cli::cli_abort("Agenda start times must be numeric.")
+    }
+
+    agenda_times <- suppressWarnings(as.numeric(agenda_elements))
+
+    if (anyNA(agenda_times)) {
+      cli::cli_abort("Agenda start times must be numeric.")
+    }
+
+    agenda_times
+  }
+
+  # Updates the temporary agenda option by appending sorted new agenda elements
+  update_agenda <- function(agenda_elements, bp_left = NULL, bp_right = NULL) {
+    agenda_elements <- validate_agenda_start_times(
+      agenda_elements,
+      bp_left = bp_left,
+      bp_right = bp_right
+    )
+
+    if (length(agenda_elements) == 0) {
+      return(invisible(NULL))
+    }
+
     cur_agenda <- c(
       getOption("minutemaker_temp_agenda", list()),
       agenda_elements |> sort()
@@ -875,7 +931,9 @@ infer_agenda_from_transcript <- function(
 
     # Attempt to parse the result json
     parsed_result <- try(
-      jsonlite::fromJSON(result_json, simplifyDataFrame = F)$start_times,
+      jsonlite::fromJSON(result_json, simplifyDataFrame = FALSE)[[
+        "start_times"
+      ]],
       silent = TRUE
     )
 
@@ -909,7 +967,7 @@ infer_agenda_from_transcript <- function(
     }
 
     # If the parsing is successful, update the agenda
-    update_agenda(parsed_result)
+    update_agenda(parsed_result, bp_left = bp_left, bp_right = bp_right)
 
     json_error <- FALSE
 

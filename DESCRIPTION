@@ -1,6 +1,6 @@
 Package: minutemaker
 Title: GenAI-based meeting and conferences minutes generator
-Version: 0.14.0
+Version: 0.15.0
 Authors@R:
     person("Angelo", "D'Ambrosio", , "a.dambrosioMD@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2045-5155"))
@@ -19,7 +19,10 @@ Imports:
     stringr (>= 1.5.1),
     styler (>= 1.10.2),
     tools (>= 4.3.2),
-    cli (>= 3.6.5)
+    cli (>= 3.6.5),
+    fs (>= 1.6.0),
+    lifecycle (>= 1.0.4),
+    tidyr (>= 1.3.1)
 Remotes:
     github::bakaburg1/llmR
 Config/testthat/edition: 3
@@ -36,4 +39,5 @@ Suggests:
     tictoc (>= 1.2),
     usethis (>= 2.2.3),
     withr (>= 3.0.2),
-    mirai (>= 2.5.3)
+    mirai (>= 2.5.3),
+    officer (>= 0.7.2)
