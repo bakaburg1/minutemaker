@@ -555,7 +555,7 @@ import_transcript_from_file <- function(
         extract <- extract |>
           dplyr::mutate(
             speaker = speaker_to_assign,
-            .before = text
+            .before = "text"
           )
       }
 

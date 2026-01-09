@@ -202,7 +202,7 @@ validate_agenda_element <- function(
 #'
 #' @description When the agenda is non-empty, the event_start_time is NULL, and
 #'   all agenda items have numeric 'from' values, this function emits a
-#'   {cli::cli_alert_warning} stating that "00:00:00" will be used as the
+#'   `cli::cli_alert_warning()` stating that "00:00:00" will be used as the
 #'   default.
 warn_missing_event_start_time <- function(agenda, event_start_time) {
   if (
