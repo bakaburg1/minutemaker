@@ -758,3 +758,67 @@ speech_to_summary_workflow <- function(
 
   return(mget(return_vec))
 }
+
+#' Generate a workflow template script
+#'
+#' Copy the meeting summary template script from the package to a target path.
+#' This template provides a starting point for running the full workflow.
+#'
+#' @param path A file path or directory where the template should be written.
+#'   If a directory is supplied, the file will be named
+#'   `meeting_summary_template.R`.
+#' @param overwrite A logical value indicating whether to overwrite an existing
+#'   file at the target path.
+#'
+#' @return The path to the generated template, invisibly.
+#' @export
+#'
+generate_workflow_template <- function(path = ".", overwrite = FALSE) {
+  if (!rlang::is_string(path) || is.na(path) || path == "") {
+    cli::cli_abort(
+      c(
+        "Invalid {.arg path} provided.",
+        "x" = "Expected a non-empty string."
+      )
+    )
+  }
+
+  template_path <- system.file(
+    "templates",
+    "meeting_summary_template.R",
+    package = "minutemaker"
+  )
+
+  if (template_path == "") {
+    cli::cli_abort(
+      c(
+        "Template file not found in the package.",
+        "x" = "Expected the template at {.path inst/templates}."
+      )
+    )
+  }
+
+  if (fs::dir_exists(path)) {
+    dest_path <- file.path(path, "meeting_summary_template.R")
+  } else {
+    dest_path <- path
+    dest_dir <- dirname(dest_path)
+    if (!fs::dir_exists(dest_dir)) {
+      fs::dir_create(dest_dir, recurse = TRUE)
+    }
+  }
+
+  if (file.exists(dest_path) && !isTRUE(overwrite)) {
+    cli::cli_abort(
+      c(
+        "Template already exists at {.path {dest_path}}.",
+        "i" = "Set {.arg overwrite} to TRUE to replace it."
+      )
+    )
+  }
+
+  fs::file_copy(template_path, dest_path, overwrite = overwrite)
+  cli::cli_alert_success("Template written to {.path {dest_path}}.")
+
+  invisible(dest_path)
+}

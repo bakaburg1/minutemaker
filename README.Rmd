@@ -57,6 +57,25 @@ loss of information.
 
 Here is an example workflow.
 
+### Template workflow script
+
+You can start from the packaged workflow template and customize it for your
+meeting. The helper below writes a copy to the target directory.
+
+```{r, eval = FALSE}
+generate_workflow_template("path/to/meeting/folder")
+```
+
+If you prefer to inspect the template without copying it:
+
+```{r, eval = FALSE}
+system.file(
+  "templates",
+  "meeting_summary_template.R",
+  package = "minutemaker"
+)
+```
+
 ### Setting up the package
 
 You need to set up the infrastructure for the speech-to-text and text
