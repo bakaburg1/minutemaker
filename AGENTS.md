@@ -63,6 +63,9 @@ current_project:
   - name: readme generation workflow
     description: Update only `README.Rmd` and regenerate `README.md` via `devtools::build_readme()`.
     scope: documentation
+  - name: context generation cache
+    description: generate_context caches per-field context in `context/`, uses `minutemaker_context_material_dir` and `minutemaker_overwrite_context` options, and existing files override manual inputs with info alerts.
+    scope: context generation
 general:
   - name: cli alert level conventions
     description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
