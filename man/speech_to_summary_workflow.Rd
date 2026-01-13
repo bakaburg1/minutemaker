@@ -29,6 +29,7 @@ speech_to_summary_workflow(
   chat_file = list.files(target_dir, pattern = "Chat.*\\\\.txt$", ignore.case = TRUE,
     full.names = TRUE)[1],
   chat_format = "webex",
+  generate_context = TRUE,
   use_agenda = c("ask", "yes", "no"),
   agenda_file = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
@@ -136,6 +137,10 @@ that \code{event_start_time} must be set if \code{chat_file} is not NULL.}
 
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}
+
+\item{generate_context}{A logical value indicating whether to generate
+meeting context from documentation materials and transcripts before running
+the workflow.}
 
 \item{use_agenda}{Controls whether to use an agenda for summarization.
 Possible values are "ask" (interactive prompting), "yes" (use or generate
