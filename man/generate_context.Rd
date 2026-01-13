@@ -9,7 +9,6 @@ generate_context(
   material_dir = getOption("minutemaker_context_material_dir", "documentation"),
   overwrite = getOption("minutemaker_overwrite_context", FALSE),
   strategy = getOption("minutemaker_context_gen_strategy", "one_pass"),
-  mode = c("single", "per_field"),
   generate_expected_agenda = TRUE,
   generate_event_description = TRUE,
   generate_audience = TRUE,
@@ -37,15 +36,12 @@ documentation materials. Defaults to the
 should be overwritten. Defaults to the
 \code{minutemaker_overwrite_context} option or \code{FALSE}.}
 
-\item{strategy}{One of \code{"one_pass"} or \code{"agentic"}. \code{"one_pass"} uses the
-legacy single-agent generation flow (single or per-field). \code{"agentic"}
-runs a multi-agent pipeline that first drafts context from documentation
-materials, then proposes transcript-driven edits in batches, and finally
-consolidates everything into final context files written at the end.}
-
-\item{mode}{One of \code{"single"} or \code{"per_field"}. \code{"single"} requests all
-outputs in one LLM call, while \code{"per_field"} generates each output
-sequentially.}
+\item{strategy}{One of \code{one_pass} or \code{agentic}. \code{one_pass} uses a
+single-agent generation flow that requests all outputs in one LLM call.
+\code{agentic} runs a multi-agent pipeline that first drafts context from
+documentation materials, then proposes transcript-driven edits in batches,
+and finally consolidates everything into final context files written at
+the end.}
 
 \item{generate_expected_agenda}{Logical value indicating whether to generate
 the expected agenda.}

@@ -13,14 +13,12 @@
 #' @param overwrite Logical value indicating whether existing context files
 #'   should be overwritten. Defaults to the
 #'   `minutemaker_overwrite_context` option or `FALSE`.
-#' @param strategy One of `"one_pass"` or `"agentic"`. `"one_pass"` uses the
-#'   legacy single-agent generation flow (single or per-field). `"agentic"`
-#'   runs a multi-agent pipeline that first drafts context from documentation
-#'   materials, then proposes transcript-driven edits in batches, and finally
-#'   consolidates everything into final context files written at the end.
-#' @param mode One of `"single"` or `"per_field"`. `"single"` requests all
-#'   outputs in one LLM call, while `"per_field"` generates each output
-#'   sequentially.
+#' @param strategy One of `one_pass` or `agentic`. `one_pass` uses a
+#'   single-agent generation flow that requests all outputs in one LLM call.
+#'   `agentic` runs a multi-agent pipeline that first drafts context from
+#'   documentation materials, then proposes transcript-driven edits in batches,
+#'   and finally consolidates everything into final context files written at
+#'   the end.
 #' @param generate_expected_agenda Logical value indicating whether to generate
 #'   the expected agenda.
 #' @param generate_event_description Logical value indicating whether to
@@ -62,7 +60,6 @@ generate_context <- function(
   material_dir = getOption("minutemaker_context_material_dir", "documentation"),
   overwrite = getOption("minutemaker_overwrite_context", FALSE),
   strategy = getOption("minutemaker_context_gen_strategy", "one_pass"),
-  mode = c("single", "per_field"),
   generate_expected_agenda = TRUE,
   generate_event_description = TRUE,
   generate_audience = TRUE,
@@ -119,9 +116,8 @@ generate_context <- function(
     cli::cli_abort("The {.arg overwrite} must be TRUE or FALSE.")
   }
 
-  # Validate strategy and mode arguments against allowed values.
+  # Validate strategy argument against allowed values.
   strategy <- match.arg(strategy, c("one_pass", "agentic"))
-  mode <- match.arg(mode)
 
   # Model override system ----
   # Allow per-function model override via option, similar to transcript correction.
@@ -329,7 +325,6 @@ generate_context <- function(
     provided_context,
     generated_context,
     requested_fields,
-    mode,
     has_external_transcript
   ) {
     # Helper: Format materials into tagged blocks for safer parsing.
@@ -440,8 +435,8 @@ generate_context <- function(
       paste(rules, collapse = "\n")
     }
 
-    # Helper: Define output format instructions based on the requested mode.
-    build_output_rules <- function(fields, mode) {
+    # Helper: Define output format instructions for single-call JSON generation.
+    build_output_rules <- function(fields) {
       field_keys <- vapply(
         fields,
         function(field) {
@@ -450,41 +445,20 @@ generate_context <- function(
         character(1)
       )
 
-      if (mode == "single") {
-        key_list <- paste(field_keys, collapse = ", ")
-        return(
-          paste(
-            "Output format: Return a JSON object with keys:",
-            key_list,
-            ".",
-            "For text fields return a string or null.",
-            "For vocabulary return a JSON array.",
-            "Wrap the JSON object inside <json_context_output>...</json_context_output> tags.",
-            "No extra keys or text outside the tags."
-          )
-        )
-      }
-
-      field <- fields[[1]]
-      if (field == "vocabulary") {
-        return(
-          paste(
-            "Output format (json): Return ONLY a JSON array of strings or null.",
-            "Wrap the JSON array inside <json_context_output>...</json_context_output> tags.",
-            "Do not wrap the array in code fences or extra text."
-          )
-        )
-      }
-
-      paste0(
-        "Output format: Return ONLY the ",
-        field_keys[[1]],
-        " text or null. Do not add labels."
+      key_list <- paste(field_keys, collapse = ", ")
+      paste(
+        "Output format: Return a JSON object with keys:",
+        key_list,
+        ".",
+        "For text fields return a string or null.",
+        "For vocabulary return a JSON array.",
+        "Wrap the JSON object inside <json_context_output>...</json_context_output> tags.",
+        "No extra keys or text outside the tags."
       )
     }
 
     field_rules <- build_field_rules(requested_fields, has_external_transcript)
-    output_rules <- build_output_rules(requested_fields, mode)
+    output_rules <- build_output_rules(requested_fields)
 
     # Build the prompt sequentially so materials remain ahead of instructions.
     prompt_sections <- character(0)
@@ -1257,154 +1231,61 @@ generate_context <- function(
   }
 
   # One-pass strategy execution ----
-  # Legacy single-pass approach for backward compatibility and simplicity.
+  # Single-pass approach: generate all fields in one LLM call.
 
   # Ensure output directory exists before writing files.
   if (!fs::dir_exists(context_dir)) {
     fs::dir_create(context_dir, recurse = TRUE)
   }
 
-  ## Single mode ----
-  # Generate all requested fields in one LLM call, returning structured JSON.
-  if (mode == "single") {
-    cli::cli_alert(
-      "Generating context with a single LLM call ({length(fields_to_generate)} outputs)."
-    )
+  cli::cli_alert(
+    "Generating context with a single LLM call ({length(fields_to_generate)} outputs)."
+  )
 
-    # Build comprehensive prompt with all materials and context.
-    prompt <- build_prompt(
-      materials = materials,
-      transcript_text = transcript_text,
-      provided_context = provided_context,
-      generated_context = NULL, # No prior context in single mode
-      requested_fields = fields_to_generate,
-      mode = mode,
-      has_external_transcript = !is.null(transcript_text)
-    )
+  # Build comprehensive prompt with all materials and context.
+  prompt <- build_prompt(
+    materials = materials,
+    transcript_text = transcript_text,
+    provided_context = provided_context,
+    generated_context = NULL,
+    requested_fields = fields_to_generate,
+    has_external_transcript = !is.null(transcript_text)
+  )
 
-    # Prepare LLM arguments for single-call execution.
-    llm_args <- rlang::list2(...)
-    if (!"provider" %in% names(llm_args) && !is.null(llm_provider)) {
-      llm_args$provider <- llm_provider
-    }
-    # Force JSON response for structured single-call output.
-    if (!"force_json" %in% names(llm_args)) {
-      llm_args$force_json <- TRUE
-    }
-
-    result <- do.call(
-      safe_prompt_llm,
-      c(
-        list(
-          messages = c(
-            system = "Extract meeting context for a summarisation workflow.",
-            user = prompt
-          )
-        ),
-        llm_args
-      )
-    )
-
-    # Parse the JSON response once and distribute fields to outputs.
-    result_json <- parse_json(
-      result,
-      "context JSON output",
-      expected = "object"
-    )
-
-    for (field in fields_to_generate) {
-      field_info <- context_fields[[field]]
-      raw_value <- result_json[[field_info$prompt_key]]
-      value <- normalize_llm_value(raw_value, field_info$type)
-
-      if (is.null(value)) {
-        value <- context_values[[field]]
-        if (!is.null(value)) {
-          cli::cli_alert_info(
-            "LLM returned null for {field_info$label}. Using provided context."
-          )
-        }
-      }
-
-      if (!is.null(value)) {
-        context_values[[field]] <- value
-        write_context_file(
-          file.path(context_dir, field_info$file),
-          value,
-          field_info$type
-        )
-      }
-    }
-
-    return(context_values)
+  # Prepare LLM arguments for single-call execution.
+  llm_args <- rlang::list2(...)
+  if (!"provider" %in% names(llm_args) && !is.null(llm_provider)) {
+    llm_args$provider <- llm_provider
+  }
+  # Force JSON response for structured single-call output.
+  if (!"force_json" %in% names(llm_args)) {
+    llm_args$force_json <- TRUE
   }
 
-  ## Per-field mode ----
-  # Generate each field sequentially, allowing later fields to reference earlier ones.
-  # This provides incremental context building for better quality.
-
-  # Define stable generation order for consistent incremental context.
-  field_order <- c(
-    "expected_agenda", # First: establish meeting structure
-    "event_description", # Second: overall meeting purpose
-    "vocabulary", # Third: terms used throughout
-    "audience", # Fourth: who the content is for
-    "stt_initial_prompt" # Last: speech-to-text hints
+  result <- do.call(
+    safe_prompt_llm,
+    c(
+      list(
+        messages = c(
+          system = "Extract meeting context for a summarisation workflow.",
+          user = prompt
+        )
+      ),
+      llm_args
+    )
   )
-  steps <- field_order[field_order %in% fields_to_generate]
-  generated_context <- list() # Accumulate context from previous steps
-  total_steps <- length(steps)
 
-  for (step_index in seq_along(steps)) {
-    field <- steps[[step_index]]
+  # Parse the JSON response once and distribute fields to outputs.
+  result_json <- parse_json(
+    result,
+    "context JSON output",
+    expected = "object"
+  )
+
+  for (field in fields_to_generate) {
     field_info <- context_fields[[field]]
-
-    cli::cli_alert(
-      "Generating {field_info$label} context ({step_index}/{total_steps})."
-    )
-
-    # Build prompt with access to previously generated context.
-    prompt <- build_prompt(
-      materials = materials,
-      transcript_text = transcript_text,
-      provided_context = provided_context, # User-provided context
-      generated_context = generated_context, # Previously generated fields
-      requested_fields = field, # Only this field
-      mode = mode,
-      has_external_transcript = !is.null(transcript_text)
-    )
-
-    # Prepare LLM arguments for this field generation.
-    llm_args <- rlang::list2(...)
-    if (!"provider" %in% names(llm_args) && !is.null(llm_provider)) {
-      llm_args$provider <- llm_provider
-    }
-
-    result <- do.call(
-      safe_prompt_llm,
-      c(
-        list(
-          messages = c(
-            system = "Extract meeting context for a summarisation workflow.",
-            user = prompt
-          )
-        ),
-        llm_args
-      )
-    )
-
-    # Vocabulary uses structured JSON; other fields are plain text.
-    if (field_info$type == "json") {
-      value <- parse_json(result, "vocabulary output", expected = "array")
-      value <- normalize_vocab(value)
-    } else {
-      text <- stringr::str_trim(result)
-      if (identical(tolower(text), "null") || text == "") {
-        value <- NULL
-      } else {
-        value <- text
-      }
-    }
+    raw_value <- result_json[[field_info$prompt_key]]
+    value <- normalize_llm_value(raw_value, field_info$type)
 
     if (is.null(value)) {
       value <- context_values[[field]]
@@ -1417,8 +1298,6 @@ generate_context <- function(
 
     if (!is.null(value)) {
       context_values[[field]] <- value
-      generated_context[[field]] <- value
-
       write_context_file(
         file.path(context_dir, field_info$file),
         value,
