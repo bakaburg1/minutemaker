@@ -193,6 +193,7 @@ test_that("workflow bypasses STT when external_transcript is provided", {
         speech_to_summary_workflow(
           target_dir = target_dir,
           external_transcript = vtt_path,
+          generate_context = FALSE,
           source_audio = NULL,
           use_agenda = "no",
           llm_provider = "mock",

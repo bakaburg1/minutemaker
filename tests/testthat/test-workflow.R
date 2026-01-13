@@ -73,6 +73,7 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
             overwrite_transcript = TRUE,
             external_transcript = NULL,
             chat_file = NULL,
+            generate_context = FALSE,
             use_agenda = "no", # Simplifies flow, avoids agenda generation/use
             llm_provider = "mock_provider_arg",
             formatted_output_file = file.path(target_dir, "event_summary.txt"),
@@ -105,6 +106,7 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
         speech_to_summary_workflow(
           target_dir = ".",
           external_transcript = NULL,
+          generate_context = FALSE,
           source_audio = NULL,
           split_audio = FALSE,
           overwrite_stt_audio = TRUE,
@@ -157,6 +159,7 @@ test_that("workflow accepts a file path as target_dir when a transcript is prese
       speech_to_summary_workflow(
         target_dir = script_path,
         use_agenda = "no",
+        generate_context = FALSE,
         llm_provider = "mock_provider",
         formatted_output_file = "summary.txt",
         enable_llm_correction = FALSE
@@ -177,6 +180,7 @@ test_that("workflow errors clearly on NA target_dir", {
     speech_to_summary_workflow(
       target_dir = NA_character_,
       use_agenda = "no",
+      generate_context = FALSE,
       enable_llm_correction = FALSE,
       llm_provider = NULL
     ),
@@ -206,6 +210,7 @@ test_that("workflow errors when stt_audio_dir is a file", {
         ),
         stt_model = "mock_stt_model",
         use_agenda = "no",
+        generate_context = FALSE,
         llm_provider = "mock_provider",
         formatted_output_file = file.path(target_dir, "event_summary.txt"),
         enable_llm_correction = FALSE
@@ -275,6 +280,7 @@ test_that("workflow forwards overwrite to LLM correction", {
           external_transcript = NULL,
           chat_file = NULL,
           use_agenda = "no",
+          generate_context = FALSE,
           llm_provider = "mock_provider_arg",
           formatted_output_file = file.path(target_dir, "event_summary.txt"),
           overwrite_formatted_output = TRUE,
@@ -344,6 +350,7 @@ test_that("workflow warns when using deprecated stt_output_dir", {
             external_transcript = NULL,
             chat_file = NULL,
             use_agenda = "no",
+            generate_context = FALSE,
             llm_provider = "mock_provider_arg",
             formatted_output_file = file.path(target_dir, "event_summary.txt"),
             overwrite_formatted_output = TRUE,

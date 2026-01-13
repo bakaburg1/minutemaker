@@ -66,6 +66,13 @@
 #'   that `event_start_time` must be set if `chat_file` is not NULL.
 #' @param chat_format A string indicating the online meeting platform used to
 #'   generate the chat file. See `add_chat_transcript` for more details.
+#' @param generate_context A logical value indicating whether to generate
+#'   meeting context from documentation materials and transcripts before running
+#'   the workflow. When TRUE, analyzes materials in the 'documentation' folder
+#'   to automatically extract: expected agenda, event description, audience info,
+#'   domain vocabulary, and STT initial prompts. This significantly improves
+#'   summarization quality by providing domain-specific context to the LLMs.
+#'   Generated context takes precedence over manually provided parameters.
 #' @param use_agenda Controls whether to use an agenda for summarization.
 #'   Possible values are "ask" (interactive prompting), "yes" (use or generate
 #'   agenda), or "no" (don't use an agenda).
@@ -177,6 +184,7 @@ speech_to_summary_workflow <- function(
     full.names = TRUE
   )[1],
   chat_format = "webex",
+  generate_context = TRUE,
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
   use_agenda = c("ask", "yes", "no"),
@@ -207,7 +215,7 @@ speech_to_summary_workflow <- function(
   formatted_output_file = file.path(target_dir, "event_summary.txt"),
   overwrite_formatted_output = FALSE
 ) {
-  if (!rlang::is_string(target_dir) || is.na(target_dir) || target_dir == "") {
+  if (!rlang::is_string(target_dir) || !nzchar(target_dir)) {
     cli::cli_abort(
       c(
         "Invalid {.code target_dir} provided.",
@@ -253,6 +261,84 @@ speech_to_summary_workflow <- function(
 
   # Initialize agenda variable to track the actual agenda content
   agenda <- NULL
+
+  ## Context Generation ----
+  # Generate meeting context from documentation materials to improve summarization quality.
+  # This extracts meeting-specific information that helps LLMs produce more accurate and
+  # contextually appropriate summaries by providing domain knowledge, vocabulary, and
+  # structural information about the meeting.
+
+  if (isTRUE(generate_context)) {
+    cli::cli_h2("Context Generation")
+
+    # Determine if we have an external transcript available for context generation.
+    # The STT initial prompt is only generated when no external transcript exists,
+    # as external transcripts are typically already high-quality and don't need STT hints.
+    external_transcript_path <- NULL
+    if (
+      rlang::is_string(external_transcript) &&
+        fs::file_exists(external_transcript)
+    ) {
+      external_transcript_path <- external_transcript
+      cli::cli_alert_info(
+        "External transcript available for context generation: {.file {basename(external_transcript)}}"
+      )
+    }
+
+    # Generate context using the specified strategy (one_pass or agentic).
+    # This analyzes documentation materials in the 'documentation' folder and
+    # optionally uses transcript content to create meeting-specific context.
+    cli::cli_alert("Generating meeting context from documentation materials...")
+    context_values <- minutemaker::generate_context(
+      target_dir = target_dir,
+      material_dir = getOption(
+        "minutemaker_context_material_dir",
+        "documentation"
+      ),
+      overwrite = getOption("minutemaker_overwrite_context", FALSE),
+      generate_expected_agenda = use_agenda != "no", # Only generate agenda if it will be used
+      generate_event_description = TRUE, # Meeting purpose and goals
+      generate_audience = TRUE, # Who the meeting is for and focus areas
+      generate_vocabulary = TRUE, # Domain-specific terms and abbreviations
+      generate_initial_prompt = is.null(external_transcript_path), # STT hints only when needed
+      expected_agenda = expected_agenda, # User-provided agenda guidance
+      event_description = event_description, # User-provided meeting description
+      audience = audience, # User-provided audience info
+      vocabulary = vocabulary, # User-provided vocabulary terms
+      stt_initial_prompt = stt_initial_prompt, # User-provided STT hints
+      external_transcript = external_transcript_path, # Transcript for context (optional)
+      llm_provider = llm_provider
+    )
+
+    # Integrate generated context into workflow parameters.
+    # Generated context takes precedence over user-provided values, with informative alerts.
+    if (!is.null(context_values$expected_agenda)) {
+      cli::cli_alert_success(
+        "Using generated expected agenda for summarization"
+      )
+      expected_agenda <- context_values$expected_agenda
+    }
+    if (!is.null(context_values$event_description)) {
+      cli::cli_alert_success("Using generated event description")
+      event_description <- context_values$event_description
+    }
+    if (!is.null(context_values$audience)) {
+      cli::cli_alert_success("Using generated audience information")
+      audience <- context_values$audience
+    }
+    if (!is.null(context_values$vocabulary)) {
+      cli::cli_alert_success(
+        "Using generated vocabulary ({length(context_values$vocabulary)} terms)"
+      )
+      vocabulary <- context_values$vocabulary
+    }
+    if (!is.null(context_values$stt_initial_prompt)) {
+      cli::cli_alert_success("Using generated STT initial prompt")
+      stt_initial_prompt <- context_values$stt_initial_prompt
+    }
+
+    cli::cli_alert_success("Context generation completed")
+  }
 
   cli::cli_h1("Audio Preprocessing")
   ## Perform audio splitting ##
@@ -807,6 +893,8 @@ generate_workflow_template <- function(path = ".", overwrite = FALSE) {
       fs::dir_create(dest_dir, recurse = TRUE)
     }
   }
+
+  dest_path <- fs::path_abs(dest_path)
 
   if (file.exists(dest_path) && !isTRUE(overwrite)) {
     cli::cli_abort(
