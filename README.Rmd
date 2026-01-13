@@ -145,6 +145,32 @@ option system is more convenient. You only need to set the options for the APIs
 you want to use (e.g., you don't need the speech-to-text API options if you
 already have a transcript).
 
+### Automated Context Generation
+
+For enhanced summarization quality, you can automatically generate meeting context
+from documentation materials using the `generate_context()` function. This extracts
+expected agendas, event descriptions, audience information, vocabulary lists, and
+speech-to-text prompts from meeting materials (PDFs, DOCX, PPTX, Excel files).
+
+```{r, eval = FALSE}
+# Generate context from documentation in a materials folder
+generate_context(
+  target_dir = "meeting_folder",
+  material_dir = "documentation",  # Folder with meeting materials
+  strategy = "agentic"  # Multi-pass context generation (recommended)
+)
+
+# Context is automatically used by speech_to_summary_workflow() when generate_context = TRUE
+speech_to_summary_workflow(
+  target_dir = "meeting_folder",
+  generate_context = TRUE,  # Enable automatic context generation
+  # ... other arguments
+)
+```
+
+**Model recommendations:** Use large, state-of-the-art models like GPT-5.2 and the `agentic` strategy for best results.
+The `one_pass` strategy is suitable for a cost-effective solution.
+
 ### Transcript-First Workflow
 
 If you already have a transcript from your meeting platform (such as WebEx VTT files, SRT files, or MS Teams DOCX exports), you can skip the speech-to-text transcription entirely and start directly with the transcript. The package supports:
