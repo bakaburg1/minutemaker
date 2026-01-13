@@ -66,6 +66,9 @@ current_project:
   - name: context generation cache
     description: generate_context caches per-field context in `context/`, uses `minutemaker_context_material_dir` and `minutemaker_overwrite_context` options, and existing files override manual inputs with info alerts.
     scope: context generation
+  - name: context generation strategy control
+    description: generate_context uses only `strategy` parameter ("one_pass" or "agentic") to control generation method. The legacy `mode` parameter (single/per_field) was removed; "one_pass" now always uses single-call JSON generation.
+    scope: context generation
   - name: helper usage preference
     description: Avoid trivial global helpers; keep globals only for logic that needs tests or reuse, and add preamble comments to in-body helpers.
     scope: code structure
