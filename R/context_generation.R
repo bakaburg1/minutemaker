@@ -654,11 +654,11 @@ generate_context <- function(
         return(result)
       }
     }
-    # Fallback: return empty string if all retries exhausted without error.
+    # Fallback: return NULL if all retries exhausted without error.
     cli::cli_alert_warning(
-      "LLM retry loop exited without result or error. Returning empty string."
+      "LLM retry loop exited without result or error. Returning NULL."
     )
-    return("")
+    return(NULL)
   }
 
   # Helper: Parse the LLM JSON response with consistent error handling.
@@ -1287,6 +1287,14 @@ generate_context <- function(
       llm_args
     )
   )
+
+  # Abort early when the retry loop yielded no output.
+  if (is.null(result)) {
+    cli::cli_abort(
+      "LLM retry loop exited without result or error.",
+      call = NULL
+    )
+  }
 
   # Parse the JSON response once and distribute fields to outputs.
   result_json <- parse_json(

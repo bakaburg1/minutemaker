@@ -208,6 +208,39 @@ test_that("generate_context falls back to provided context on empty string outpu
   })
 })
 
+test_that("generate_context aborts on retry loop with null output", {
+  withr::with_tempdir({
+    material_dir <- file.path(getwd(), "documentation")
+    dir.create(material_dir)
+    writeLines("Materials only", file.path(material_dir, "notes.txt"))
+
+    testthat::local_mocked_bindings(
+      prompt_llm = function(...) NULL,
+      .package = "llmR"
+    )
+
+    generate_context(
+      target_dir = getwd(),
+      material_dir = "documentation",
+      strategy = "one_pass",
+      generate_expected_agenda = FALSE,
+      generate_event_description = TRUE,
+      generate_audience = FALSE,
+      generate_vocabulary = FALSE,
+      generate_initial_prompt = FALSE,
+      overwrite = TRUE
+    ) |>
+      expect_warning(
+        "LLM retry loop exited without result or error",
+        fixed = TRUE
+      ) |>
+      expect_error(
+        "LLM retry loop exited without result or error",
+        fixed = TRUE
+      )
+  })
+})
+
 test_that("parse_json handles fenced arrays for vocabulary", {
   json_text <- "```json\n[\"ECDC\", \"MRSA: methicillin-resistant Staphylococcus aureus\"]\n```"
   parsed <- minutemaker:::.gen_cntx_parse_json(
