@@ -27,3 +27,4 @@ end_line).
 \description{
 Persist transcript chunks to disk for downstream LLM processing.
 }
+\keyword{internal}

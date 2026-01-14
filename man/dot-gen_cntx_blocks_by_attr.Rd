@@ -17,3 +17,4 @@ Named list mapping attribute values to block content.
 \description{
 Index extracted blocks by a chosen attribute.
 }
+\keyword{internal}

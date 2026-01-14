@@ -15,3 +15,4 @@ Named list of parsed attributes.
 \description{
 Parse simple XML attributes from a tag header.
 }
+\keyword{internal}

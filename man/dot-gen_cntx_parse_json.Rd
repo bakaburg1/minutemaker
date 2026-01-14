@@ -19,3 +19,4 @@ Parsed JSON value.
 \description{
 Parse JSON output from an LLM response.
 }
+\keyword{internal}

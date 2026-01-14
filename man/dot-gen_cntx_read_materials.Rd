@@ -15,3 +15,4 @@ Named list of file contents (character scalars).
 \description{
 Read documentation materials from a folder.
 }
+\keyword{internal}

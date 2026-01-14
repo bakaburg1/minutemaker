@@ -1317,6 +1317,7 @@ generate_context <- function(
 #'
 #' @return Logical value indicating whether the file is likely plain text.
 #'
+#' @keywords internal
 .gen_cntx_is_plain_text <- function(
   path,
   sample_bytes = 8192,
@@ -1362,6 +1363,7 @@ generate_context <- function(
 #'
 #' @return Character scalar encoding label, or `NULL` if unknown.
 #'
+#' @keywords internal
 .gen_cntx_detect_text_encoding <- function(
   path,
   sample_bytes = 8192
@@ -1407,6 +1409,7 @@ generate_context <- function(
 #'
 #' @return Named list of file contents (character scalars).
 #'
+#' @keywords internal
 .gen_cntx_read_materials <- function(material_dir) {
   if (!fs::dir_exists(material_dir)) {
     return(list())
@@ -1438,6 +1441,7 @@ generate_context <- function(
 #'
 #' @return Character scalar with file contents, or `NULL` when unsupported.
 #'
+#' @keywords internal
 .gen_cntx_read_file <- function(path) {
   ext <- tolower(tools::file_ext(path))
 
@@ -1529,6 +1533,7 @@ generate_context <- function(
 #'
 #' @return Character scalar containing flattened text.
 #'
+#' @keywords internal
 .gen_cntx_read_officer <- function(path, ext) {
   if (ext == "pptx") {
     ppt <- officer::read_pptx(path)
@@ -1661,6 +1666,7 @@ generate_context <- function(
 #'
 #' @return Character scalar transcript contents, or `NULL` if unavailable.
 #'
+#' @keywords internal
 .gen_cntx_read_external_transcript <- function(path) {
   if (!rlang::is_string(path) || !nzchar(path)) {
     return(NULL)
@@ -1689,6 +1695,7 @@ generate_context <- function(
 #'
 #' @return Parsed JSON value.
 #'
+#' @keywords internal
 .gen_cntx_parse_json <- function(
   json_text,
   label,
@@ -1759,6 +1766,7 @@ generate_context <- function(
 #'
 #' @return Named list of parsed attributes.
 #'
+#' @keywords internal
 .gen_cntx_parse_xml_attributes <- function(attrs_text) {
   if (!rlang::is_string(attrs_text) || !nzchar(attrs_text)) {
     return(list())
@@ -1787,6 +1795,7 @@ generate_context <- function(
 #'
 #' @return List of blocks. Each block is a list with `attrs` and `content`.
 #'
+#' @keywords internal
 .gen_cntx_extract_xml_blocks <- function(text, tag) {
   if (!rlang::is_string(text) || !nzchar(text)) {
     return(list())
@@ -1840,6 +1849,7 @@ generate_context <- function(
 #'
 #' @return Named list mapping attribute values to block content.
 #'
+#' @keywords internal
 .gen_cntx_blocks_by_attr <- function(blocks, attr) {
   if (!is.list(blocks) || length(blocks) == 0) {
     return(list())
@@ -1875,6 +1885,7 @@ generate_context <- function(
 #'
 #' @return Content with include tags replaced by included material slices.
 #'
+#' @keywords internal
 .gen_cntx_expand_mm_include <- function(content, materials) {
   if (!rlang::is_string(content)) {
     return("")
@@ -2014,6 +2025,7 @@ generate_context <- function(
 #' @return Data frame with chunk metadata (chunk_id, chunk_path, start_line,
 #'   end_line).
 #'
+#' @keywords internal
 .gen_cntx_write_transcript_chunks <- function(
   transcript_text,
   chunks_dir,

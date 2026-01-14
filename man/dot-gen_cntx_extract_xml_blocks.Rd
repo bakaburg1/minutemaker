@@ -18,3 +18,4 @@ List of blocks. Each block is a list with \code{attrs} and \code{content}.
 This is a lightweight parser intended for predictable agent outputs. It
 supports both paired tags (\if{html}{\out{<tag>}}...\if{html}{\out{</tag>}}) and self-closing tags (\if{html}{\out{<tag />}}).
 }
+\keyword{internal}

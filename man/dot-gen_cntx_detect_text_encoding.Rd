@@ -17,3 +17,4 @@ Character scalar encoding label, or \code{NULL} if unknown.
 \description{
 Detect text encoding from a file sample.
 }
+\keyword{internal}

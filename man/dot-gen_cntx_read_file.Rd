@@ -15,3 +15,4 @@ Character scalar with file contents, or \code{NULL} when unsupported.
 \description{
 Read a single documentation file into plain text.
 }
+\keyword{internal}

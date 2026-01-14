@@ -17,3 +17,4 @@ Character scalar containing flattened text.
 \description{
 Read DOCX or PPTX content with basic structure preservation.
 }
+\keyword{internal}

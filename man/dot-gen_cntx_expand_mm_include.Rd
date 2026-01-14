@@ -19,3 +19,4 @@ Inclusion supports optional one-sided or two-sided bounds via \code{start} and/o
 \code{end}. Bounds are line-based and exclude the marker lines themselves. When
 the computed inclusion is empty, the entire file is included.
 }
+\keyword{internal}

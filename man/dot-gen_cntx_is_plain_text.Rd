@@ -19,3 +19,4 @@ Logical value indicating whether the file is likely plain text.
 \description{
 Detect whether a file looks like plain text.
 }
+\keyword{internal}

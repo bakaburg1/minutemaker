@@ -15,3 +15,4 @@ Character scalar transcript contents, or \code{NULL} if unavailable.
 \description{
 Read an external transcript file as plain text.
 }
+\keyword{internal}
