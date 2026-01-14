@@ -148,6 +148,8 @@ time_to_numeric <- function(time, origin = NULL) {
 #'   messages are used). Within \code{fail_msg}, \code{path} expands to the full
 #'   path string and \code{basepath} to its basename.
 #'
+#' @keywords internal
+#'
 #' @return The trimmed path if valid, or \code{FALSE} when \code{stop_on_error =
 #'   FALSE} and validation fails.
 #'
@@ -314,6 +316,30 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #'
 #' @return The trimmed path if it exists with the requested \code{type}, or
 #'   \code{FALSE} otherwise.
+#'
+#' @keywords internal
+#'
+#' @examples
+#' # Default behavior - check if a file exists (will abort on invalid input)
+#' \dontrun{
+#' minutemaker:::path_exists("some_file.txt")  # TRUE if file exists, FALSE otherwise
+#' }
+#'
+#' # Check directory existence
+#' temp_dir <- tempdir()
+#' minutemaker:::path_exists(temp_dir, type = "dir")  # TRUE
+#'
+#' # Check with custom fail message using interpolation
+#' temp_file <- fs::file_temp()
+#' writeLines("test", temp_file)
+#' minutemaker:::path_exists(
+#'   temp_file,
+#'   fail_msg = "Required file {basepath} not found at {path}"
+#' )
+#'
+#' # Suppress messaging and return FALSE on failure
+#' minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = FALSE)
+#' minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = NA)
 #'
 path_exists <- function(
   path,

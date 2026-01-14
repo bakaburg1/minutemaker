@@ -32,3 +32,4 @@ testing. The function trims leading and trailing whitespace from the path.
 Can either raise errors or issue warnings depending on the
 \code{stop_on_error} parameter.
 }
+\keyword{internal}

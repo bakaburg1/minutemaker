@@ -40,3 +40,27 @@ Wraps \code{fs::file_exists()} and \code{fs::dir_exists()} with a
 \code{check_path()} pre-validation step to avoid errors on invalid path
 inputs. This function is intended for existence checks only.
 }
+\examples{
+# Default behavior - check if a file exists (will abort on invalid input)
+\dontrun{
+minutemaker:::path_exists("some_file.txt")  # TRUE if file exists, FALSE otherwise
+}
+
+# Check directory existence
+temp_dir <- tempdir()
+minutemaker:::path_exists(temp_dir, type = "dir")  # TRUE
+
+# Check with custom fail message using interpolation
+temp_file <- fs::file_temp()
+writeLines("test", temp_file)
+minutemaker:::path_exists(
+  temp_file,
+  fail_msg = "Required file {basepath} not found at {path}"
+)
+
+# Suppress messaging and return FALSE on failure
+minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = FALSE)
+minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = NA)
+
+}
+\keyword{internal}
