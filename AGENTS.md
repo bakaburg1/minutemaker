@@ -40,7 +40,7 @@ Do not read these guidelines if not relevant to the task at hand.
 
 ### Track learning points
 
-Update progressively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, etc. and expecially, corrections and remarks from the user.
+Update progressively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, etc. and especially, corrections and remarks from the user.
 
 Any learning point that refers to functions, datasets, or concepts of this package is **project-specific** by definition and must be recorded under `current_project`, not `general`.
 
