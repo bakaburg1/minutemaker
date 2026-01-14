@@ -92,8 +92,7 @@ vocabulary <- c(
   "Deliverable B",
   "Person One",
   "Person Two"
-) |>
-  unique()
+)
 
 # Diarization instructions (speaker identification)
 diarization_instructions <- paste(
