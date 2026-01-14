@@ -230,7 +230,15 @@ generate_context <- function(
     }
 
     # Keep original line breaks but trim trailing whitespace.
-    stringr::str_trim(paste(value, collapse = "\n"))
+    result <- stringr::str_trim(paste(value, collapse = "\n"))
+
+    # Return NULL for empty strings to trigger fallback to user-provided
+    # context.
+    if (!nzchar(result)) {
+      return(NULL)
+    }
+
+    result
   }
 
   # normalize_vocab: Convert vocabulary inputs to unique character vector.
@@ -647,6 +655,9 @@ generate_context <- function(
       }
     }
     # Fallback: return empty string if all retries exhausted without error.
+    cli::cli_alert_warning(
+      "LLM retry loop exited without result or error. Returning empty string."
+    )
     return("")
   }
 
@@ -1470,7 +1481,7 @@ generate_context <- function(
             "Sheet: ",
             sheet,
             "\n",
-            paste(csv, collapse = "\n")
+            csv
           )
         })
 

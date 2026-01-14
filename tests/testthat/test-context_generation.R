@@ -169,6 +169,45 @@ test_that("generate_context falls back to provided context on null output", {
   })
 })
 
+test_that("generate_context falls back to provided context on empty string output", {
+  withr::with_tempdir({
+    material_dir <- file.path(getwd(), "documentation")
+    dir.create(material_dir)
+    writeLines("Materials only", file.path(material_dir, "notes.txt"))
+
+    llm_response <- "{\"event_description\": \"\"}"
+
+    testthat::local_mocked_bindings(
+      prompt_llm = function(messages, ...) {
+        llm_response
+      },
+      .package = "llmR"
+    )
+
+    context <- NULL
+    expect_message(
+      context <- generate_context(
+        target_dir = getwd(),
+        material_dir = "documentation",
+        strategy = "one_pass",
+        generate_expected_agenda = FALSE,
+        generate_event_description = TRUE,
+        generate_audience = FALSE,
+        generate_vocabulary = FALSE,
+        generate_initial_prompt = FALSE,
+        event_description = "Provided description.",
+        overwrite = TRUE
+      ),
+      regexp = "LLM returned null"
+    )
+
+    desc_path <- file.path("context", "event_description.txt")
+    expect_true(file.exists(desc_path))
+    expect_identical(readLines(desc_path), "Provided description.")
+    expect_identical(context$event_description, "Provided description.")
+  })
+})
+
 test_that("parse_json handles fenced arrays for vocabulary", {
   json_text <- "```json\n[\"ECDC\", \"MRSA: methicillin-resistant Staphylococcus aureus\"]\n```"
   parsed <- minutemaker:::.gen_cntx_parse_json(
