@@ -154,87 +154,117 @@ time_to_numeric <- function(time, origin = NULL) {
 #'   and validation fails.
 #'
 check_path <- function(path, stop_on_error = TRUE, fail_msg) {
+  # Helper: Determine if custom messaging for failure is suppressed (fail_msg =
+  # FALSE or NA)
+  is_msg_suppressed <- function(fail_msg) {
+    isFALSE(fail_msg) ||
+      (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg))
+  }
+
+  # Select caller environment for error/warning glue interpolation ----
+
+  # Needed so fail_msg passed from path_exists() can expand {path}, {basepath}
+  # in the proper (original) user's environment, not just inside path_exists.
   caller_env <- parent.frame()
-  # When called via path_exists(), we want custom fail_msg expressions to be
-  # evaluated in the original caller's environment (not inside path_exists()).
   if (length(sys.calls()) >= 2) {
     caller_call <- sys.call(-2)
     if (
       is.call(caller_call) &&
         identical(rlang::call_name(caller_call), "path_exists")
     ) {
+      # If we came here via path_exists(), set env to grandparent (user call)
       caller_env <- parent.frame(2)
     }
   }
-  path_input <- path
-  fail_msg_missing <- missing(fail_msg)
-  fail_msg_suppressed <- !fail_msg_missing &&
-    (isFALSE(fail_msg) ||
-      (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg)))
 
+  # Prepare initial variables for glue and validation logic ----
+
+  # Store original input for glue expansion regardless of in-body mutation.
+  path_input <- path
+
+  # Track if fail_msg is missing (to select default vs custom messages)
+  fail_msg_missing <- missing(fail_msg)
+
+  # Should custom fail_msg be suppressed? (fail_msg = FALSE or NA).
+  # If so, fall back to silent FALSE in warning-mode, or use default in error.
+  fail_msg_suppressed <- !fail_msg_missing && is_msg_suppressed(fail_msg)
+
+  # Pre-trim path for glue: may be NA or not character
   path_trimmed <- if (rlang::is_string(path_input) && !is.na(path_input)) {
     trimws(path_input)
   } else {
     path_input
   }
+
+  # Compute basename for glue-messages; NA if path is NA/invalid
   basepath <- if (rlang::is_string(path_trimmed) && !is.na(path_trimmed)) {
     basename(path_trimmed)
   } else {
     NA_character_
   }
 
-  # Helper for consistent messaging and return handling.
+  # Helper for consistent messaging and return handling. ----
+
+  # Uses the correct environment so glue variables work in cli alerts.
+  # Respects messaging suppression flags.
   fail <- function(default_bullets) {
+    # Build environment for glue: includes local path/basepath plus caller's
+    # parent env.
     env <- rlang::env(
       parent = caller_env,
       path = path_trimmed,
       basepath = basepath
     )
-
+    # When fail_msg is suppressed and we are erroring, use default (not custom).
     fail_msg_missing_for_error <- fail_msg_missing ||
       (isTRUE(stop_on_error) && fail_msg_suppressed)
-
     if (isTRUE(stop_on_error)) {
-      bullets <- if (fail_msg_missing_for_error) default_bullets else fail_msg
-      cli::cli_abort(bullets, .envir = env)
+      # Raise error, using fail_msg if NOT suppressed, otherwise default.
+      cli::cli_abort(
+        if (fail_msg_missing_for_error) default_bullets else fail_msg,
+        .envir = env
+      )
     }
-
+    # If not erroring, emit warning unless suppressed. Otherwise silent FALSE.
     if (!fail_msg_missing && !fail_msg_suppressed) {
       cli::cli_warn(fail_msg, .envir = env)
     }
     FALSE
   }
 
-  # Check if path is a string and not NA
+  # Validation 1: Must be a non-NA string ----
   if (!rlang::is_string(path)) {
+    # Not character scalar, immediately fail
     return(fail(c(
       "Invalid path provided.",
       "x" = "Expected a character string."
     )))
   }
-
   if (is.na(path)) {
+    # Disallow NA values
     return(fail(c(
       "Invalid path provided.",
       "x" = "Path cannot be NA."
     )))
   }
 
-  # Trim whitespace
-  path <- trimws(path)
-  path_trimmed <- path
-  basepath <- basename(path)
+  # Validation 2: Whitespace trimming and further checks on trimmed result ----
 
-  # Check if empty after trimming
+  path <- trimws(path)
+
   if (path == "") {
+    # Path cannot be empty after trimming (whitespace-only invalid)
     return(fail(c(
       "Invalid path provided.",
       "x" = "Path cannot be empty or whitespace-only."
     )))
   }
 
-  # Check for null bytes or dangerous control characters (excluding tab and
-  # newline which might be valid in some contexts)
+  # Validation 3: Disallow embedded control characters (except tab/newline) ----
+
+  # Control chars: ASCII 0x01-0x08, 0x0B, 0x0C, 0x0E-0x1F; allow 0x09(TAB) and
+  # 0x0A/0D(NL/CR).
+  # Prevent old Mac/Win bugs and malicious input.
   if (grepl("[\001-\010\013-\014\016-\037]", path)) {
     return(fail(c(
       "Invalid path provided.",
@@ -242,7 +272,10 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
     )))
   }
 
-  # Check for Windows reserved names in the basename
+  # Validation 4: Forbid Windows reserved device filenames ----
+
+  # (CON, PRN, AUX, NUL, COM1-9, LPT1-9), applied to the basename minus
+  # extension.
   basename_part <- basename(path)
   reserved_names <- c(
     "CON",
@@ -252,6 +285,7 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
     paste0("COM", 1:9),
     paste0("LPT", 1:9)
   )
+  # Remove file extension and coerce to upper case for comparison
   basename_no_ext <- toupper(tools::file_path_sans_ext(basename_part))
   if (basename_no_ext %in% reserved_names) {
     return(fail(c(
@@ -261,26 +295,26 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
     )))
   }
 
-  # For relative paths, test if the directory structure can be created
+  # Validation 5: Directory structure creatability for relative paths ----
+
+  # For relative paths only, attempt to create the target directory structure in
+  # tempdir().
+  # If this fails, filesystem is not accepting the pattern—fail fast.
   if (!fs::is_absolute_path(path)) {
     temp_base <- file.path(tempdir(), "path_validation_test")
     test_dir <- file.path(temp_base, dirname(path))
-
     result <- tryCatch(
       {
         fs::dir_create(test_dir, recurse = TRUE)
         TRUE
       },
-      error = function(e) {
-        FALSE
-      }
+      error = function(e) FALSE
     )
-
-    # Clean up test directory
-    if (dir.exists(temp_base)) {
+    # Cleanup no matter what, so we don't leave behind folders due to test.
+    if (fs::dir_exists(temp_base)) {
       unlink(temp_base, recursive = TRUE)
     }
-
+    # Fail (warn/error) if directory could not be created
     if (!result) {
       return(fail(c(
         "Invalid path provided.",
@@ -344,8 +378,18 @@ path_exists <- function(
   stop_on_error = TRUE,
   fail_msg
 ) {
+  # Helper: Determine if custom messaging for failure is suppressed (fail_msg =
+  # FALSE or NA)
+  is_msg_suppressed <- function(fail_msg) {
+    isFALSE(fail_msg) ||
+      (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg))
+  }
+
+  # Validate and standardize the 'type' argument (file/any/dir)
   type <- match.arg(type)
 
+  # Step 1: Path validation using check_path() prior to existence check.
+  #         If a custom fail_msg is provided, pass it along.
   checked_path <- if (!missing(fail_msg)) {
     check_path(
       path,
@@ -358,10 +402,17 @@ path_exists <- function(
       stop_on_error = stop_on_error
     )
   }
+
+  # If check_path() failed and stop_on_error = FALSE, return FALSE immediately.
   if (isFALSE(checked_path)) {
     return(FALSE)
   }
 
+  # Step 2: Actual existence check depending on `type`.
+  #  - "any": file_exists (which also includes directories, per fs spec)
+  #  - "dir": dir_exists
+  #  - "file": file_exists and not dir_exists (exclude directories named like
+  # files)
   exists <- switch(
     type,
     any = fs::file_exists(checked_path),
@@ -369,7 +420,10 @@ path_exists <- function(
     file = fs::file_exists(checked_path) && !fs::dir_exists(checked_path)
   )
 
+  # Step 3: If the path does not exist as requested, handle
+  # error/warning/report.
   if (!isTRUE(exists)) {
+    # Prepare interpolation environment for cli errors/warnings
     basepath <- basename(checked_path)
     env <- rlang::env(
       parent = parent.frame(),
@@ -377,11 +431,12 @@ path_exists <- function(
       basepath = basepath
     )
 
+    # Determine: are we missing a custom fail_msg? Is messaging suppressed?
     fail_msg_missing_for_error <- missing(fail_msg) ||
-      (isTRUE(stop_on_error) &&
-        (isFALSE(fail_msg) ||
-          (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg))))
+      (isTRUE(stop_on_error) && is_msg_suppressed(fail_msg))
 
+    # If asked to stop on error, abort with default or custom message as
+    # appropriate
     if (isTRUE(stop_on_error)) {
       bullets <- if (fail_msg_missing_for_error) {
         c(
@@ -394,13 +449,12 @@ path_exists <- function(
       cli::cli_abort(bullets, .envir = env)
     }
 
-    if (
-      !missing(fail_msg) &&
-        !(isFALSE(fail_msg) ||
-          (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg)))
-    ) {
+    # Otherwise, if we're in warning mode and messaging is NOT suppressed, emit
+    # warning
+    if (!missing(fail_msg) && !is_msg_suppressed(fail_msg)) {
       cli::cli_warn(fail_msg, .envir = env)
     }
+    # Always return FALSE to indicate the check failed if we get to here
     return(FALSE)
   }
 
