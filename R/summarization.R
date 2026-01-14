@@ -573,7 +573,7 @@ summarise_full_meeting <- function(
 #'
 #' This function removes breakpoints from a numeric vector that are too close to
 #' specified pauses. Specifically, it ensures that any breakpoint which is
-#' either the first or last in the sequence, or is within \code{pause_duration}
+#' either the first or last in the sequence, or is within `pause_duration`
 #' units of a pause, is removed. This helps to guard against stale indices and
 #' unwanted breaks near areas of silence in transcript segmentation or
 #' windowing.

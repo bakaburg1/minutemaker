@@ -40,10 +40,10 @@
 #' @param ... Additional arguments passed to `llmR::prompt_llm`.
 #'
 #' @details
-#' By default, the active llmR model (option \code{llmr_current_model}) is used.
+#' By default, the active llmR model (option `llmr_current_model`) is used.
 #' To force a specific model for context generation, set the option
-#' \code{minutemaker_context_gen_llm_model} to a registered llmR model label
-#' (e.g., \code{"mm_gpt-4.1_azure"}).
+#' `minutemaker_context_gen_llm_model` to a registered llmR model label
+#' (e.g., `"mm_gpt-4.1_azure"`).
 #'
 #' @return A list containing generated context values.
 #'

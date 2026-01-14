@@ -5,25 +5,25 @@
 #' correct errors based on provided terms/names and general context. The
 #' corrected transcript is then written back to the original file path. The LLM
 #' model used for correction is determined by the R option
-#' \code{getOption("minutemaker_correction_llm_model")}.
+#' `getOption("minutemaker_correction_llm_model")`.
 #'
 #' @param input_path Path to a single transcript JSON file or a directory
 #'   containing transcript JSON files.
 #' @param terms A character vector of important terms, names, or acronyms that
 #'   the LLM should pay special attention to. Can be NULL.
-#' @param include_reasoning Logical, if \code{TRUE}, the LLM will be asked to
+#' @param include_reasoning Logical, if `TRUE`, the LLM will be asked to
 #'   provide its reasoning before the JSON output. This approach improves
 #'   quality with non-reasoning models. This reasoning will be messaged to the
-#'   console. Defaults to \code{getOption("minutemaker_include_llm_reasoning",
-#'   TRUE)}.
-#' @param overwrite Logical, if \code{TRUE}, existing files will be overwritten
-#'   with the corrected transcript. Defaults to \code{FALSE}.
+#'   console. Defaults to `getOption("minutemaker_include_llm_reasoning",
+#'   TRUE)`.
+#' @param overwrite Logical, if `TRUE`, existing files will be overwritten
+#'   with the corrected transcript. Defaults to `FALSE`.
 #' @param max_retries Integer, maximum number of times to retry the LLM call
 #'   per file if it fails (e.g., due to temporary API issues or parsing
 #'   errors). Defaults to 2.
 #' @param ... Additional arguments to be passed as parameters to the LLM call
-#'   via \code{llmR::prompt_llm(params = list(...))}, e.g., \code{temperature},
-#'   \code{max_tokens}. Note: \code{temperature = 0} is set by default if not
+#'   via `llmR::prompt_llm(params = list(...))`, e.g., `temperature`,
+#'   `max_tokens`. Note: `temperature = 0` is set by default if not
 #'   overridden here.
 #'
 #' @return Invisibly returns a list of paths to the processed (and potentially

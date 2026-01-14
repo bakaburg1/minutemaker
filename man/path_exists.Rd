@@ -14,37 +14,33 @@ path_exists(
 \arguments{
 \item{path}{A path to check for existence.}
 
-\item{type}{What to check for: \code{"file"} (file only), \code{"any"} (file
-or directory), or \code{"dir"} (directory only).}
+\item{type}{What to check for: \code{"file"} (file only), \code{"any"} (file or
+directory), or \code{"dir"} (directory only).}
 
 \item{stop_on_error}{If \code{TRUE}, invalid path inputs raise an error. If
 \code{FALSE}, invalid path inputs return \code{FALSE}.}
 
 \item{fail_msg}{Optional error/warning message to use when the path is
 invalid or does not exist. If missing, default messages are used. If
-\code{stop_on_error = FALSE} and \code{fail_msg} is provided, it is emitted
-as a warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the
-function simply returns \code{FALSE}. When \code{stop_on_error = TRUE},
-\code{fail_msg = FALSE} or \code{NA} is treated as if \code{fail_msg} was
-missing (default error messages are used). Within \code{fail_msg},
-use glue-style interpolation with \code{{path}} for the full path string
-and \code{{basepath}} for its basename. For example,
-\code{"File {basepath} not found at {path}"}.}
+\code{stop_on_error = FALSE} and \code{fail_msg} is provided, it is emitted as a
+warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the function
+simply returns \code{FALSE}. When \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or
+\code{NA} is treated as if \code{fail_msg} was missing (default error messages are
+used). Within \code{fail_msg}, use glue-style interpolation with \code{{path}} for
+the full path string and \code{{basepath}} for its basename. For example, \code{"File {basepath} not found at {path}"}.}
 }
 \value{
-The trimmed path if it exists with the requested \code{type}, or
-\code{FALSE} otherwise.
+The trimmed path if it exists with the requested \code{type}, or \code{FALSE}
+otherwise.
 }
 \description{
-Wraps \code{fs::file_exists()} and \code{fs::dir_exists()} with a
-\code{check_path()} pre-validation step to avoid errors on invalid path
-inputs. This function is intended for existence checks only.
+Wraps \code{fs::file_exists()} and \code{fs::dir_exists()} with a \code{check_path()}
+pre-validation step to avoid errors on invalid path inputs. This function is
+intended for existence checks only.
 }
 \examples{
 # Default behavior - check if a file exists (will abort on invalid input)
-\dontrun{
-minutemaker:::path_exists("some_file.txt")  # TRUE if file exists, FALSE otherwise
-}
+minutemaker:::path_exists("some_file.txt")
 
 # Check directory existence
 temp_dir <- tempdir()

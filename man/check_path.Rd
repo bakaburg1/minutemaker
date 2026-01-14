@@ -9,27 +9,27 @@ check_path(path, stop_on_error = TRUE, fail_msg)
 \arguments{
 \item{path}{A file path to validate.}
 
-\item{stop_on_error}{If \code{TRUE}, raises an error when validation fails.
-If \code{FALSE}, returns \code{FALSE}.}
+\item{stop_on_error}{If \code{TRUE}, raises an error when validation fails. If
+\code{FALSE}, returns \code{FALSE}.}
 
 \item{fail_msg}{Optional error/warning message to use when validation fails.
 If missing, default messages are used. If \code{stop_on_error = FALSE} and
-\code{fail_msg} is provided, it is emitted as a warning. If \code{FALSE} or
-\code{NA}, messaging is suppressed and the function simply returns
-\code{FALSE}. When \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or
-\code{NA} is treated as if \code{fail_msg} was missing (default error
-messages are used). Within \code{fail_msg}, \code{path} expands to the full
-path string and \code{basepath} to its basename.}
+\code{fail_msg} is provided, it is emitted as a warning. If \code{FALSE} or \code{NA},
+messaging is suppressed and the function simply returns \code{FALSE}. When
+\code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or \code{NA} is treated as if
+\code{fail_msg} was missing (default error messages are used). Within
+\code{fail_msg}, \code{path} expands to the full path string and \code{basepath} to its
+basename.}
 }
 \value{
-The trimmed path if valid, or \code{FALSE} when \code{stop_on_error =
-  FALSE} and validation fails.
+The trimmed path if valid, or \code{FALSE} when \code{stop_on_error = FALSE}
+and validation fails.
 }
 \description{
 Performs comprehensive validation on file paths including type checking,
 emptiness, dangerous characters, reserved names, and directory creation
 testing. The function trims leading and trailing whitespace from the path.
-Can either raise errors or issue warnings depending on the
-\code{stop_on_error} parameter.
+Can either raise errors or issue warnings depending on the \code{stop_on_error}
+parameter.
 }
 \keyword{internal}

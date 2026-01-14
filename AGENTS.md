@@ -118,6 +118,9 @@ general:
   - name: rscript dollar expansion
     description: When running `Rscript -e` in the shell, escape `$` or use single quotes otherwise shell expansion will transform e.g. `Rscript -e "a <- list(); a$b <- 3"` into `a <- list(); a <- 3`.
     scope: shell
+  - name: roxygen backticks for inline code
+    description: Use backticks (`code`) instead of \code{code} for inline code formatting in Roxygen documentation to follow modern R documentation conventions.
+    scope: documentation
 ```
 
 ### Tested assumptions

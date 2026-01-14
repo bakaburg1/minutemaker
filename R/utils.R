@@ -133,25 +133,25 @@ time_to_numeric <- function(time, origin = NULL) {
 #' Performs comprehensive validation on file paths including type checking,
 #' emptiness, dangerous characters, reserved names, and directory creation
 #' testing. The function trims leading and trailing whitespace from the path.
-#' Can either raise errors or issue warnings depending on the
-#' \code{stop_on_error} parameter.
+#' Can either raise errors or issue warnings depending on the `stop_on_error`
+#' parameter.
 #'
 #' @param path A file path to validate.
-#' @param stop_on_error If \code{TRUE}, raises an error when validation fails.
-#'   If \code{FALSE}, returns \code{FALSE}.
+#' @param stop_on_error If `TRUE`, raises an error when validation fails. If
+#'   `FALSE`, returns `FALSE`.
 #' @param fail_msg Optional error/warning message to use when validation fails.
-#'   If missing, default messages are used. If \code{stop_on_error = FALSE} and
-#'   \code{fail_msg} is provided, it is emitted as a warning. If \code{FALSE} or
-#'   \code{NA}, messaging is suppressed and the function simply returns
-#'   \code{FALSE}. When \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or
-#'   \code{NA} is treated as if \code{fail_msg} was missing (default error
-#'   messages are used). Within \code{fail_msg}, \code{path} expands to the full
-#'   path string and \code{basepath} to its basename.
+#'   If missing, default messages are used. If `stop_on_error = FALSE` and
+#'   `fail_msg` is provided, it is emitted as a warning. If `FALSE` or `NA`,
+#'   messaging is suppressed and the function simply returns `FALSE`. When
+#'   `stop_on_error = TRUE`, `fail_msg = FALSE` or `NA` is treated as if
+#'   `fail_msg` was missing (default error messages are used). Within
+#'   `fail_msg`, `path` expands to the full path string and `basepath` to its
+#'   basename.
 #'
 #' @keywords internal
 #'
-#' @return The trimmed path if valid, or \code{FALSE} when \code{stop_on_error =
-#'   FALSE} and validation fails.
+#' @return The trimmed path if valid, or `FALSE` when `stop_on_error = FALSE`
+#'   and validation fails.
 #'
 check_path <- function(path, stop_on_error = TRUE, fail_msg) {
   caller_env <- parent.frame()
@@ -294,36 +294,33 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 
 #' Check whether a path exists
 #'
-#' Wraps \code{fs::file_exists()} and \code{fs::dir_exists()} with a
-#' \code{check_path()} pre-validation step to avoid errors on invalid path
-#' inputs. This function is intended for existence checks only.
+#' Wraps `fs::file_exists()` and `fs::dir_exists()` with a `check_path()`
+#' pre-validation step to avoid errors on invalid path inputs. This function is
+#' intended for existence checks only.
 #'
 #' @param path A path to check for existence.
-#' @param type What to check for: \code{"file"} (file only), \code{"any"} (file
-#'   or directory), or \code{"dir"} (directory only).
-#' @param stop_on_error If \code{TRUE}, invalid path inputs raise an error. If
-#'   \code{FALSE}, invalid path inputs return \code{FALSE}.
+#' @param type What to check for: `"file"` (file only), `"any"` (file or
+#'   directory), or `"dir"` (directory only).
+#' @param stop_on_error If `TRUE`, invalid path inputs raise an error. If
+#'   `FALSE`, invalid path inputs return `FALSE`.
 #' @param fail_msg Optional error/warning message to use when the path is
 #'   invalid or does not exist. If missing, default messages are used. If
-#'   \code{stop_on_error = FALSE} and \code{fail_msg} is provided, it is emitted
-#'   as a warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the
-#'   function simply returns \code{FALSE}. When \code{stop_on_error = TRUE},
-#'   \code{fail_msg = FALSE} or \code{NA} is treated as if \code{fail_msg} was
-#'   missing (default error messages are used). Within \code{fail_msg},
-#'   use glue-style interpolation with \code{{path}} for the full path string
-#'   and \code{{basepath}} for its basename. For example,
-#'   \code{"File {basepath} not found at {path}"}.
+#'   `stop_on_error = FALSE` and `fail_msg` is provided, it is emitted as a
+#'   warning. If `FALSE` or `NA`, messaging is suppressed and the function
+#'   simply returns `FALSE`. When `stop_on_error = TRUE`, `fail_msg = FALSE` or
+#'   `NA` is treated as if `fail_msg` was missing (default error messages are
+#'   used). Within `fail_msg`, use glue-style interpolation with `{path}` for
+#'   the full path string and `{basepath}` for its basename. For example, `"File
+#'   {basepath} not found at {path}"`.
 #'
-#' @return The trimmed path if it exists with the requested \code{type}, or
-#'   \code{FALSE} otherwise.
+#' @return The trimmed path if it exists with the requested `type`, or `FALSE`
+#'   otherwise.
 #'
 #' @keywords internal
 #'
 #' @examples
 #' # Default behavior - check if a file exists (will abort on invalid input)
-#' \dontrun{
-#' minutemaker:::path_exists("some_file.txt")  # TRUE if file exists, FALSE otherwise
-#' }
+#' minutemaker:::path_exists("some_file.txt")
 #'
 #' # Check directory existence
 #' temp_dir <- tempdir()
