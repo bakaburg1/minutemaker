@@ -364,3 +364,132 @@ test_that("workflow warns when using deprecated stt_output_dir", {
     expect_identical(output_dir_seen, deprecated_output_dir)
   })
 })
+
+test_that("workflow sets generate_initial_prompt correctly based on external transcript", {
+  withr::with_tempdir({
+    target_dir <- "."
+    dir.create(file.path(target_dir, "documentation"))
+    writeLines("Test material", file.path(target_dir, "documentation", "test.txt"))
+
+    # Track generate_context calls
+    generate_context_calls <- list()
+
+    spy_generate_context <- function(..., generate_initial_prompt) {
+      generate_context_calls <<- append(
+        generate_context_calls,
+        list(list(generate_initial_prompt = generate_initial_prompt))
+      )
+      # Return empty context to avoid file generation
+      list()
+    }
+
+    testthat::local_mocked_bindings(
+      generate_context = spy_generate_context,
+      perform_speech_to_text = function(...) {
+        file.create(file.path(
+          "transcription_output_data",
+          "dummy_stt_output.json"
+        ))
+        invisible(NULL)
+      },
+      apply_llm_correction = function(...) invisible(NULL),
+      parse_transcript_json = function(...) {
+        dplyr::tibble(
+          text = "mocked transcript text",
+          start_time = 0,
+          end_time = 1000,
+          speaker = "SPEAKER_00"
+        )
+      },
+      summarise_transcript = function(...) "mock summary content",
+      get_prompts = function(...) "mock prompt",
+      .package = "minutemaker"
+    )
+
+    # Test 1: No external transcript -> generate_initial_prompt should be TRUE
+    withr::with_options(
+      list(
+        minutemaker_stt_model = "mock_stt_model",
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL
+      ),
+      {
+        generate_context_calls <- list()
+        dir.create(file.path(target_dir, "audio_to_transcribe"))
+        dir.create(file.path(target_dir, "transcription_output_data"))
+        file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+
+        speech_to_summary_workflow(
+          target_dir = target_dir,
+          source_audio = NULL,
+          split_audio = FALSE,
+          overwrite_stt_audio = FALSE,
+          stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
+          transcription_output_dir = file.path(
+            target_dir,
+            "transcription_output_data"
+          ),
+          stt_model = "mock_stt_model",
+          overwrite_transcription_files = TRUE,
+          enable_llm_correction = FALSE,
+          transcript_file = file.path(target_dir, "transcript.csv"),
+          overwrite_transcript = TRUE,
+          external_transcript = NULL, # No external transcript
+          chat_file = NULL,
+          generate_context = TRUE,
+          use_agenda = "no",
+          llm_provider = "mock_provider",
+          formatted_output_file = file.path(target_dir, "event_summary.txt"),
+          overwrite_formatted_output = TRUE
+        )
+
+        expect_length(generate_context_calls, 1)
+        expect_true(generate_context_calls[[1]]$generate_initial_prompt)
+      }
+    )
+
+    # Test 2: External transcript exists -> generate_initial_prompt should be FALSE
+    withr::with_options(
+      list(
+        minutemaker_stt_model = "mock_stt_model",
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL
+      ),
+      {
+        generate_context_calls <- list()
+        vtt_path <- file.path(target_dir, "transcript.vtt")
+        writeLines(
+          c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
+          vtt_path
+        )
+
+        speech_to_summary_workflow(
+          target_dir = target_dir,
+          source_audio = NULL,
+          split_audio = FALSE,
+          overwrite_stt_audio = FALSE,
+          stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
+          transcription_output_dir = file.path(
+            target_dir,
+            "transcription_output_data"
+          ),
+          stt_model = "mock_stt_model",
+          overwrite_transcription_files = TRUE,
+          enable_llm_correction = FALSE,
+          transcript_file = file.path(target_dir, "transcript.csv"),
+          overwrite_transcript = TRUE,
+          external_transcript = vtt_path, # External transcript exists
+          chat_file = NULL,
+          generate_context = TRUE,
+          use_agenda = "no",
+          llm_provider = "mock_provider",
+          formatted_output_file = file.path(target_dir, "event_summary.txt"),
+          overwrite_formatted_output = TRUE
+        )
+
+        expect_length(generate_context_calls, 1)
+        expect_false(generate_context_calls[[1]]$generate_initial_prompt)
+      }
+    )
+  })
+})

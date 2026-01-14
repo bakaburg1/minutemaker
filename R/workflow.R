@@ -290,7 +290,7 @@ speech_to_summary_workflow <- function(
     # This analyzes documentation materials in the 'documentation' folder and
     # optionally uses transcript content to create meeting-specific context.
     cli::cli_alert("Generating meeting context from documentation materials...")
-    context_values <- minutemaker::generate_context(
+    context_values <- generate_context(
       target_dir = target_dir,
       material_dir = getOption(
         "minutemaker_context_material_dir",
@@ -301,7 +301,7 @@ speech_to_summary_workflow <- function(
       generate_event_description = TRUE, # Meeting purpose and goals
       generate_audience = TRUE, # Who the meeting is for and focus areas
       generate_vocabulary = TRUE, # Domain-specific terms and abbreviations
-      generate_initial_prompt = is.null(external_transcript_path), # STT hints only when needed
+      generate_initial_prompt = isFALSE(external_transcript_path), # STT hints only when needed
       expected_agenda = expected_agenda, # User-provided agenda guidance
       event_description = event_description, # User-provided meeting description
       audience = audience, # User-provided audience info
