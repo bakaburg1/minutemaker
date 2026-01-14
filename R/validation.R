@@ -294,16 +294,18 @@ validate_agenda <- function(
 
   # Check if the agenda is a file path
   if (!purrr::is_empty(agenda) && is.character(agenda)) {
-    if (!file.exists(agenda)) {
-      cli::cli_warn(
-        c(
-          general_warn,
-          "x" = "The agenda file path does not exist."
-        )
+    agenda_path <- path_exists(
+      agenda,
+      stop_on_error = FALSE,
+      fail_msg = c(
+        general_warn,
+        "x" = "The agenda file path does not exist."
       )
-
+    )
+    if (isFALSE(agenda_path)) {
       return(FALSE)
     }
+    agenda <- agenda_path
 
     agenda_from_file <- load_serialized(
       agenda,

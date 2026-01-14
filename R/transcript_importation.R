@@ -28,10 +28,23 @@ parse_transcript_json <- function(
 
   # Is the input a string?
   transcript_list <- if (is.character(transcript_json)) {
+    dir_path <- path_exists(
+      transcript_json,
+      type = "dir",
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    )
+    file_path <- path_exists(
+      transcript_json,
+      type = "file",
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    )
     # Is the string a path to a folder?
-    if (fs::dir_exists(transcript_json)) {
+    if (!isFALSE(dir_path)) {
       # Mark the input as a path
       file_input <- TRUE
+      transcript_json <- dir_path
 
       # Get all JSON files in the folder
       json_files <- list.files(transcript_json, pattern = "\\.json$")
@@ -57,11 +70,12 @@ parse_transcript_json <- function(
           )
         }
       )
-    } else if (fs::file_exists(transcript_json)) {
+    } else if (!isFALSE(file_path)) {
       # Is the string a path to a file?
 
       # Mark the input as a path
       file_input <- TRUE
+      transcript_json <- file_path
 
       json_files <- transcript_json
 
@@ -166,8 +180,11 @@ parse_transcript_json <- function(
     # Check if the file path is valid, unless the input is a string
     if (
       file_input &&
-        (!rlang::is_scalar_character(json_files[i]) ||
-          !fs::file_exists(json_files[i]))
+        isFALSE(path_exists(
+          json_files[i],
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
     ) {
       cli::cli_abort(
         c(
@@ -269,6 +286,14 @@ import_transcript_from_file <- function(
   transcript_file,
   import_diarization = TRUE
 ) {
+  transcript_file <- path_exists(
+    transcript_file,
+    fail_msg = c(
+      "Transcript file not found.",
+      "x" = "No file exists at {.path {path}}."
+    )
+  )
+
   # Check the file extension to determine the format
   file_extension <- tolower(tools::file_ext(transcript_file))
 
@@ -591,10 +616,11 @@ add_chat_transcript <- function(
 ) {
   chat_format <- match.arg(chat_format)
 
-  if (rlang::is_scalar_character(chat_transcript)) {
-    if (!fs::file_exists(chat_transcript)) {
-      cli::cli_abort("Chat file not found.")
-    }
+  if (is.character(chat_transcript)) {
+    chat_transcript <- path_exists(
+      chat_transcript,
+      fail_msg = "Chat file not found."
+    )
 
     file_name <- chat_transcript
     # Silence the linter since this var is used in the error message only
@@ -736,6 +762,14 @@ use_transcript_input <- function(
   if (!rlang::is_scalar_integerish(lines_per_json) || lines_per_json < 1) {
     cli::cli_abort("`lines_per_json` must be a positive integer.")
   }
+
+  file <- path_exists(
+    file,
+    fail_msg = c(
+      "Transcript file not found.",
+      "x" = "No file exists at {.path {path}}."
+    )
+  )
 
   # Import the transcript data
   transcript_df <- import_transcript_from_file(

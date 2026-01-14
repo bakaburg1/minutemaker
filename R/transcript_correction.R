@@ -39,16 +39,15 @@ apply_llm_correction <- function(
   max_retries = 2,
   ...
 ) {
-  # Check if the input path is valid.
-  if (!file.exists(input_path)) {
-    cli::cli_abort(
-      c(
-        "The provided {.arg input_path} is not a valid file or folder:
-          {.path {input_path}}",
-        "x" = "Path does not exist."
-      )
+  input_path <- path_exists(
+    input_path,
+    type = "any",
+    fail_msg = c(
+      "The provided {.arg input_path} is not a valid file or folder:
+        {.path {path}}",
+      "x" = "Path does not exist."
     )
-  }
+  )
 
   # Collect additional LLM parameters
   llm_extra_params <- list(...)
@@ -945,6 +944,10 @@ Apply these rules to your JSON output if corrections are made:
     if (length(unmatched_keys) > 0) {
       # Show examples of unmatched keys for debugging
       example_keys <- utils::head(unmatched_keys, 3)
+
+      # Silence the linter since this var is used in the cli message only
+      example_keys
+
       cli::cli_warn(
         c(
           "!" = paste0(

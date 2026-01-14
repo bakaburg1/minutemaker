@@ -271,17 +271,18 @@ speech_to_summary_workflow <- function(
   if (isTRUE(generate_context)) {
     cli::cli_h2("Context Generation")
 
-    # Determine if we have an external transcript available for context generation.
-    # The STT initial prompt is only generated when no external transcript exists,
-    # as external transcripts are typically already high-quality and don't need STT hints.
-    external_transcript_path <- NULL
-    if (
-      rlang::is_string(external_transcript) &&
-        fs::file_exists(external_transcript)
-    ) {
-      external_transcript_path <- external_transcript
+    # Determine if we have an external transcript available for context
+    # generation. The STT initial prompt is only generated when no external
+    # transcript exists, as external transcripts are typically already
+    # high-quality and don't need STT hints.
+    external_transcript_path <- path_exists(
+      external_transcript,
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    )
+    if (!isFALSE(external_transcript_path)) {
       cli::cli_alert_info(
-        "External transcript available for context generation: {.file {basename(external_transcript)}}"
+        "External transcript available for context generation: {.file {basename(external_transcript_path)}}"
       )
     }
 
@@ -345,39 +346,46 @@ speech_to_summary_workflow <- function(
 
   # Decide whether to perform STT or use external transcript
   perform_stt <- TRUE
-  if (rlang::is_string(external_transcript)) {
-    if (fs::file_exists(external_transcript)) {
-      cli::cli_alert_info(
-        "External transcript found: {.file {basename(external_transcript)}}.
-        Bypassing speech-to-text transcription."
+  ext_path <- path_exists(
+    external_transcript,
+    stop_on_error = FALSE,
+    fail_msg = if (
+      rlang::is_string(external_transcript) && !is.na(external_transcript)
+    ) {
+      c(
+        "External transcript file not found.",
+        "x" = "No file exists at {.path {path}}."
       )
-      use_transcript_input(
-        file = external_transcript,
-        target_dir = target_dir,
-        import_diarization = import_diarization,
-        overwrite = overwrite_transcription_files
-      )
-      perform_stt <- FALSE
     } else {
-      cli::cli_warn(
-        "External transcript file not found at {.path {external_transcript}}."
-      )
+      FALSE
     }
+  )
+  if (!isFALSE(ext_path)) {
+    cli::cli_alert_info(
+      "External transcript found: {.file {basename(ext_path)}}.
+      Bypassing speech-to-text transcription."
+    )
+    use_transcript_input(
+      file = ext_path,
+      target_dir = target_dir,
+      import_diarization = import_diarization,
+      overwrite = overwrite_transcription_files
+    )
+    perform_stt <- FALSE
   }
 
   if (perform_stt) {
     # Check if the stt audio dir is empty or overwrite is TRUE
     if (overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))) {
-      if (!rlang::is_string(source_audio) || !fs::file_exists(source_audio)) {
-        cli::cli_abort(
-          c(
-            "No audio found for speech-to-text.",
-            "x" = "Expected a valid source audio file but received: {.path {source_audio}}",
-            "i" = "Place an audio file in {.path {stt_audio_dir}} or pass it explicitly via {.code source_audio}.",
-            "i" = "If you want to start from an existing transcript, supply it via {.code external_transcript} (e.g., a .vtt/.srt/.docx file in {.path {target_dir}})."
-          )
+      source_audio <- path_exists(
+        source_audio,
+        fail_msg = c(
+          "No audio found for speech-to-text.",
+          "x" = "Expected a valid source audio file but received: {.path {path}}",
+          "i" = "Place an audio file in the folder specified by {.arg stt_audio_dir} or pass it explicitly via {.code source_audio}.",
+          "i" = "If you want to start from an existing transcript, supply it via {.code external_transcript} (e.g., a .vtt/.srt/.docx file in your target directory)."
         )
-      }
+      )
 
       if (isFALSE(split_audio)) {
         # If `split_audio` is FALSE, the audio file will be just copied to the
@@ -590,8 +598,10 @@ speech_to_summary_workflow <- function(
     multipart_summary <- FALSE
   } else {
     # Check if agenda file exists
-    agenda_file_exists <- rlang::is_string(agenda_file) &&
-      fs::file_exists(agenda_file)
+    agenda_file_exists <- !isFALSE(path_exists(
+      agenda_file,
+      stop_on_error = FALSE
+    ))
 
     # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
     if (use_agenda == "ask" && !interactive()) {
@@ -860,14 +870,7 @@ speech_to_summary_workflow <- function(
 #' @export
 #'
 generate_workflow_template <- function(path = ".", overwrite = FALSE) {
-  if (!rlang::is_string(path) || is.na(path) || path == "") {
-    cli::cli_abort(
-      c(
-        "Invalid {.arg path} provided.",
-        "x" = "Expected a non-empty string."
-      )
-    )
-  }
+  path <- check_path(path)
 
   template_path <- system.file(
     "templates",

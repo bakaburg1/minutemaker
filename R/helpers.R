@@ -46,15 +46,14 @@ load_serialized <- function(
     return(NULL)
   }
 
-  # Validate that path is a single character string
-  if (!is.character(path) || length(path) != 1) {
-    return(.fail("Provide a single string path to a serialized R object."))
-  }
-
-  # Check if file actually exists before attempting read
-  if (!file.exists(path)) {
+  path_checked <- path_exists(
+    path,
+    stop_on_error = FALSE
+  )
+  if (isFALSE(path_checked)) {
     return(.fail("The file does not exist."))
   }
+  path <- path_checked
 
   # Attempt to read file; trap warnings as errors for consistency
   tryCatch(

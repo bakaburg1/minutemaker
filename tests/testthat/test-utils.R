@@ -1,9 +1,11 @@
+# Tests for is_silent() ---
+
 test_that("is_silent correctly identifies silent segments", {
   expect_true(is_silent("[...]"))
   expect_true(is_silent(NA_character_))
   expect_true(is_silent(""))
   expect_false(is_silent("some text"))
-  expect_false(is_silent(" NA ")) # NA with spaces is not NA
+  expect_false(is_silent(" NA "))
   expect_identical(
     is_silent(c("[...]", "text", NA, "")),
     c(TRUE, FALSE, TRUE, TRUE)
@@ -13,6 +15,8 @@ test_that("is_silent correctly identifies silent segments", {
 test_that("silent returns the correct silent indicator", {
   expect_identical(silent(), "[...]")
 })
+
+# Tests for parse_event_time() ---
 
 test_that("parse_event_time handles POSIXct input", {
   now <- Sys.time()
@@ -55,6 +59,8 @@ test_that("parse_event_time throws error for invalid input types", {
   expect_error(parse_event_time(TRUE), regexp = "Invalid time format provided")
 })
 
+# Tests for time_to_numeric() ---
+
 test_that("time_to_numeric handles valid numeric input", {
   expect_equal(time_to_numeric(3600), 3600)
   expect_equal(time_to_numeric(0), 0)
@@ -83,7 +89,6 @@ test_that("time_to_numeric calculates difference from origin", {
   origin_posixct <- lubridate::parse_date_time("01:00:00", orders = "HMS")
   expect_equal(time_to_numeric(time_posixct, origin = origin_posixct), 3600)
 
-  # Mixed valid types for time and origin (both non-numeric)
   expect_equal(time_to_numeric(time_posixct, origin = "01:00:00"), 3600)
   expect_equal(time_to_numeric("02:00:00", origin = origin_posixct), 3600)
 })
@@ -134,7 +139,6 @@ test_that("time_to_numeric throws error for negative time difference", {
 })
 
 test_that("time_to_numeric handles unparseable time strings via parse_event_time", {
-  # Single invalid time and origin
   expect_warning(
     res1 <- time_to_numeric("invalid", origin = "00:00:00"),
     regexp = "All formats failed to parse. No formats found."
@@ -146,20 +150,17 @@ test_that("time_to_numeric handles unparseable time strings via parse_event_time
   )
   expect_true(is.na(res2))
 
-  # Both time and origin invalid: two warnings expected
   {
     res3 <- time_to_numeric("invalid1", origin = "invalid2")
   } |>
-    # The function parse_event_time is called for time and origin separately,
-    # so two identical warnings are expected.
     expect_warning("All formats failed to parse. No formats found.") |>
     expect_warning("All formats failed to parse. No formats found.")
   expect_true(is.na(res3))
 
-  # Only time invalid, default origin: one warning
   expect_warning(
     res4 <- time_to_numeric("invalid"),
     regexp = "All formats failed to parse. No formats found."
   )
   expect_true(is.na(res4))
 })
+

@@ -46,3 +46,20 @@ test_that("overwrites when overwrite is TRUE", {
     expect_identical(readLines(dest_path), readLines(template_path))
   })
 })
+
+test_that("errors on whitespace-only path", {
+  expect_error(
+    generate_workflow_template("   "),
+    "Invalid.*path.*provided"
+  )
+
+  expect_error(
+    generate_workflow_template("\t"),
+    "Invalid.*path.*provided"
+  )
+
+  expect_error(
+    generate_workflow_template(""),
+    "Invalid.*path.*provided"
+  )
+})

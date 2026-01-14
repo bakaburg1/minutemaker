@@ -101,6 +101,7 @@ test_that("generate_context writes files from a single LLM response", {
     context <- generate_context(
       target_dir = getwd(),
       material_dir = "documentation",
+      strategy = "one_pass",
       generate_expected_agenda = TRUE,
       generate_event_description = TRUE,
       generate_audience = TRUE,
@@ -149,6 +150,7 @@ test_that("generate_context falls back to provided context on null output", {
       context <- generate_context(
         target_dir = getwd(),
         material_dir = "documentation",
+        strategy = "one_pass",
         generate_expected_agenda = FALSE,
         generate_event_description = TRUE,
         generate_audience = FALSE,
@@ -253,6 +255,7 @@ test_that("generate_context uses minutemaker_context_gen_llm_model and restores 
         context <- generate_context(
           target_dir = getwd(),
           material_dir = "documentation",
+          strategy = "one_pass",
           generate_expected_agenda = FALSE,
           generate_event_description = TRUE,
           generate_audience = FALSE,

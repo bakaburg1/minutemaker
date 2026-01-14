@@ -440,6 +440,8 @@ summarise_full_meeting <- function(
   overwrite = FALSE,
   ...
 ) {
+  output_file <- check_path(output_file)
+
   if (!validate_agenda(agenda)) {
     cli::cli_abort("The agenda is not valid.")
   }
@@ -458,7 +460,8 @@ summarise_full_meeting <- function(
   )
 
   # Generate the output container if it doesn't exist
-  if (!file.exists(output_file)) {
+  output_file_exists <- path_exists(output_file, stop_on_error = FALSE)
+  if (isFALSE(output_file_exists)) {
     result_tree <- list()
   } else {
     result_tree <- load_serialized(output_file, "summary output")
@@ -681,11 +684,22 @@ infer_agenda_from_transcript <- function(
   output_file = NULL,
   ...
 ) {
+  if (!is.null(output_file)) {
+    output_file <- check_path(output_file)
+  }
+
   # Set the default prompts if not already set
   set_prompts()
 
   # import the transcript if it's a file path
   if (is.character(transcript)) {
+    transcript <- path_exists(
+      transcript,
+      fail_msg = c(
+        "Transcript file not found.",
+        "x" = "No file exists at {.path {path}}."
+      )
+    )
     # Is the transcript a CSV file?
     if (stringr::str_detect(transcript, "\\.csv$")) {
       transcript_data <- readr::read_csv(transcript, show_col_types = FALSE)
