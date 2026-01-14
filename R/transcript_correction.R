@@ -44,7 +44,7 @@ apply_llm_correction <- function(
     type = "any",
     fail_msg = c(
       "The provided {.arg input_path} is not a valid file or folder:
-        {.path {path}}",
+        {.path {`_path`}}",
       "x" = "Path does not exist."
     )
   )

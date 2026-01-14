@@ -145,8 +145,9 @@ time_to_numeric <- function(time, origin = NULL) {
 #'   messaging is suppressed and the function simply returns `FALSE`. When
 #'   `stop_on_error = TRUE`, `fail_msg = FALSE` or `NA` is treated as if
 #'   `fail_msg` was missing (default error messages are used). Within
-#'   `fail_msg`, use `{`_path`}` for the full path string and `{`_basename`}`
-#'   for its basename.
+#'   `fail_msg`, use backticked {`_path`} for the full path string and
+#'   {`_basename`} for its basename so cli-style glue can parse the
+#'   identifiers correctly.
 #'
 #' @keywords internal
 #'
@@ -347,8 +348,9 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #'   warning. If `FALSE` or `NA`, messaging is suppressed and the function
 #'   simply returns `FALSE`. When `stop_on_error = TRUE`, `fail_msg = FALSE` or
 #'   `NA` is treated as if `fail_msg` was missing (default error messages are
-#'   used). Within `fail_msg`, use glue-style interpolation with `{`_path`}` for
-#'   the full path string and `{`_basename`}` for its basename. For example,
+#'   used). Within `fail_msg`, use glue-style interpolation with backticked
+#'   {`_path`} for the full path string and {`_basename`} for its basename so
+#'   cli-style glue can parse the identifiers correctly. For example,
 #'   `"File {`_basename`} not found at {`_path`}"`.
 #'
 #' @return The trimmed path if it exists with the requested `type`, or `FALSE`

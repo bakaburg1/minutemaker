@@ -135,7 +135,7 @@ split_audio <- function(
     audio_file,
     fail_msg = c(
       "No valid audio file provided to {.fn split_audio}.",
-      "x" = "Received {.val {path}}.",
+      "x" = "Received {.val {`_path`}}.",
       "i" = "Provide a path to an existing audio file (e.g., .wav, .mp3, .mp4).",
       "i" = "If you are starting from an existing transcript, bypass audio splitting by supplying {.code external_transcript} to {.fn speech_to_summary_workflow}."
     )

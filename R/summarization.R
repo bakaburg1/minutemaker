@@ -697,7 +697,7 @@ infer_agenda_from_transcript <- function(
       transcript,
       fail_msg = c(
         "Transcript file not found.",
-        "x" = "No file exists at {.path {path}}."
+        "x" = "No file exists at {.path {`_path`}}."
       )
     )
     # Is the transcript a CSV file?

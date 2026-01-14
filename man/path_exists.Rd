@@ -26,8 +26,9 @@ invalid or does not exist. If missing, default messages are used. If
 warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the function
 simply returns \code{FALSE}. When \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or
 \code{NA} is treated as if \code{fail_msg} was missing (default error messages are
-used). Within \code{fail_msg}, use glue-style interpolation with \verb{\{}_path\verb{\}} for
-the full path string and \verb{\{}_basename\verb{\}} for its basename. For example,
+used). Within \code{fail_msg}, use glue-style interpolation with backticked
+{\verb{_path}} for the full path string and {\verb{_basename}} for its basename so
+cli-style glue can parse the identifiers correctly. For example,
 \verb{"File \{}_basename\verb{\} not found at \{}_path\verb{\}"}.}
 }
 \value{

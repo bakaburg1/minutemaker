@@ -290,7 +290,7 @@ import_transcript_from_file <- function(
     transcript_file,
     fail_msg = c(
       "Transcript file not found.",
-      "x" = "No file exists at {.path {path}}."
+      "x" = "No file exists at {.path {`_path`}}."
     )
   )
 
