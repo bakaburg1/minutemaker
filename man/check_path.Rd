@@ -18,8 +18,8 @@ If missing, default messages are used. If \code{stop_on_error = FALSE} and
 messaging is suppressed and the function simply returns \code{FALSE}. When
 \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or \code{NA} is treated as if
 \code{fail_msg} was missing (default error messages are used). Within
-\code{fail_msg}, \code{path} expands to the full path string and \code{basepath} to its
-basename.}
+\code{fail_msg}, use \verb{\{}_path\verb{\}} for the full path string and \verb{\{}_basename\verb{\}}
+for its basename.}
 }
 \value{
 The trimmed path if valid, or \code{FALSE} when \code{stop_on_error = FALSE}

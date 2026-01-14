@@ -79,7 +79,7 @@ current_project:
     description: Use path_exists() for existence checks only (wraps check_path() then fs::file_exists()/dir_exists()). It returns the trimmed path when it exists with the requested type, otherwise returns FALSE (or aborts if stop_on_error = TRUE). Default type is "file"; pass type = "dir" or type = "any" only when needed.
     scope: validation
   - name: fail_msg contract for path validators
-    description: check_path() and path_exists() accept fail_msg to centralize messaging. If missing, default in-function messages are used. If a string or cli-style bullet vector, it is used for cli_abort/cli_warn and can interpolate {path} (full path) and {basepath} (basename). If fail_msg is FALSE or NA, messaging is suppressed and the function returns FALSE when stop_on_error = FALSE; when stop_on_error = TRUE, fail_msg = FALSE/NA is treated as missing (defaults are used). Do not use a separate silent argument.
+    description: check_path() and path_exists() accept fail_msg to centralize messaging. If missing, default in-function messages are used. If a string or cli-style bullet vector, it is used for cli_abort/cli_warn and can interpolate `{`_path`}` (full path) and `{`_basename`}` (basename). If fail_msg is FALSE or NA, messaging is suppressed and the function returns FALSE when stop_on_error = FALSE; when stop_on_error = TRUE, fail_msg = FALSE/NA is treated as missing (defaults are used). Do not use a separate silent argument.
     scope: validation
   - name: avoid is_scalar_character for path checks
     description: Avoid rlang::is_scalar_character() for path validation because it can allow NA values; prefer check_path()/path_exists() to handle NULL/NA/whitespace consistently.

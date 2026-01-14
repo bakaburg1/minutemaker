@@ -26,8 +26,9 @@ invalid or does not exist. If missing, default messages are used. If
 warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the function
 simply returns \code{FALSE}. When \code{stop_on_error = TRUE}, \code{fail_msg = FALSE} or
 \code{NA} is treated as if \code{fail_msg} was missing (default error messages are
-used). Within \code{fail_msg}, use glue-style interpolation with \code{{path}} for
-the full path string and \code{{basepath}} for its basename. For example, \code{"File {basepath} not found at {path}"}.}
+used). Within \code{fail_msg}, use glue-style interpolation with \verb{\{}_path\verb{\}} for
+the full path string and \verb{\{}_basename\verb{\}} for its basename. For example,
+\verb{"File \{}_basename\verb{\} not found at \{}_path\verb{\}"}.}
 }
 \value{
 The trimmed path if it exists with the requested \code{type}, or \code{FALSE}
@@ -51,12 +52,20 @@ temp_file <- fs::file_temp()
 writeLines("test", temp_file)
 minutemaker:::path_exists(
   temp_file,
-  fail_msg = "Required file {basepath} not found at {path}"
+  fail_msg = "Required file {`_basename`} not found at {`_path`}"
 )
 
 # Suppress messaging and return FALSE on failure
-minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = FALSE)
-minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = NA)
+minutemaker:::path_exists(
+  "nonexistent.txt",
+  stop_on_error = FALSE,
+  fail_msg = FALSE
+)
+minutemaker:::path_exists(
+  "nonexistent.txt",
+  stop_on_error = FALSE,
+  fail_msg = NA
+)
 
 }
 \keyword{internal}

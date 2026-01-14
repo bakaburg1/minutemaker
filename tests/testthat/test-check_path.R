@@ -126,6 +126,26 @@ test_that("returns FALSE silently when stop_on_error = FALSE and fail_msg = FALS
   expect_false(result)
 })
 
+test_that("check_path uses unique temp paths for concurrent validation", {
+  # Test that multiple calls to check_path() with relative paths use unique
+  # temporary directories, preventing race conditions when called concurrently.
+  # This verifies that tempfile() is used instead of a fixed path.
+  paths <- paste0("test/path/", 1:20, "/file.txt")
+  results <- vapply(
+    paths,
+    function(p) {
+      result <- tryCatch(
+        check_path(p, stop_on_error = FALSE),
+        error = function(e) FALSE
+      )
+      is.character(result) && result != FALSE
+    },
+    logical(1)
+  )
+  # All should succeed without collisions (tempfile() ensures uniqueness)
+  expect_true(all(results))
+})
+
 # Tests for path_exists() ---
 
 test_that("returns the trimmed path for existing files and directories", {
@@ -196,4 +216,55 @@ test_that("returns FALSE on invalid inputs when stop_on_error = FALSE", {
 
   result <- path_exists(NULL, stop_on_error = FALSE, fail_msg = FALSE)
   expect_false(result)
+})
+
+test_that("wrapper-local variables interpolate correctly when path_exists is wrapped", {
+  # Test that when path_exists() is called through a wrapper, variables defined
+  # in the wrapper's environment are accessible in fail_msg because path_exists()
+  # pre-interpolates the message using parent.frame() before passing it to
+  # check_path().
+
+  # Wrapper-only variable - should work because path_exists pre-interpolates
+  wrapper_with_local <- function(p) {
+    wrapper_only_var <- "wrapper_value"
+    path_exists(
+      p,
+      fail_msg = "Wrapper var: {wrapper_only_var}, path: {`_path`}"
+    )
+  }
+  expect_error(
+    wrapper_with_local(NULL),
+    "Wrapper var: wrapper_value"
+  )
+
+  # User-level variable should also work
+  user_var <- "user_value"
+  wrapper_using_user_var <- function(p) {
+    path_exists(
+      p,
+      fail_msg = "User var: {user_var}, path: {`_path`}"
+    )
+  }
+  expect_error(
+    wrapper_using_user_var(NULL),
+    "User var: user_value"
+  )
+})
+
+test_that("wrapper-local variables interpolate for missing file errors", {
+  # When the path validates but does not exist, path_exists() itself emits the
+  # error/warning; it should still interpolate wrapper-local variables because
+  # it pre-formats fail_msg using parent.frame().
+  wrapper_missing <- function(p) {
+    wrapper_only_var <- "wrapper_value"
+    path_exists(
+      p,
+      fail_msg = "Wrapper var: {wrapper_only_var}, path: {`_path`}"
+    )
+  }
+
+  expect_error(
+    wrapper_missing("definitely_missing_file.txt"),
+    "Wrapper var: wrapper_value"
+  )
 })

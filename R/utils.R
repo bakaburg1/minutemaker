@@ -145,8 +145,8 @@ time_to_numeric <- function(time, origin = NULL) {
 #'   messaging is suppressed and the function simply returns `FALSE`. When
 #'   `stop_on_error = TRUE`, `fail_msg = FALSE` or `NA` is treated as if
 #'   `fail_msg` was missing (default error messages are used). Within
-#'   `fail_msg`, `path` expands to the full path string and `basepath` to its
-#'   basename.
+#'   `fail_msg`, use `{`_path`}` for the full path string and `{`_basename`}`
+#'   for its basename.
 #'
 #' @keywords internal
 #'
@@ -161,21 +161,8 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
       (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg))
   }
 
-  # Select caller environment for error/warning glue interpolation ----
-
-  # Needed so fail_msg passed from path_exists() can expand {path}, {basepath}
-  # in the proper (original) user's environment, not just inside path_exists.
+  # Caller environment for glue interpolation ----
   caller_env <- parent.frame()
-  if (length(sys.calls()) >= 2) {
-    caller_call <- sys.call(-2)
-    if (
-      is.call(caller_call) &&
-        identical(rlang::call_name(caller_call), "path_exists")
-    ) {
-      # If we came here via path_exists(), set env to grandparent (user call)
-      caller_env <- parent.frame(2)
-    }
-  }
 
   # Prepare initial variables for glue and validation logic ----
 
@@ -208,20 +195,35 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
   # Uses the correct environment so glue variables work in cli alerts.
   # Respects messaging suppression flags.
   fail <- function(default_bullets) {
-    # Build environment for glue: includes local path/basepath plus caller's
-    # parent env.
-    env <- rlang::env(
-      parent = caller_env,
-      path = path_trimmed,
-      basepath = basepath
-    )
+    # Build environment for glue: includes local _path/_basename plus caller's
+    # parent env. Also include any local variables that might be referenced in
+    # default error messages (e.g., reserved_names).
+    env <- new.env(parent = caller_env)
+    env$`_path` <- path_trimmed
+    env$`_basename` <- basepath
+
+    # Include reserved_names if it exists in check_path's scope (for Windows
+    # reserved name errors). fail() is defined inside check_path(), so its
+    # environment is check_path()'s environment.
+    if (exists("reserved_names", envir = environment(), inherits = TRUE)) {
+      env$reserved_names <- get(
+        "reserved_names",
+        envir = environment(),
+        inherits = TRUE
+      )
+    }
     # When fail_msg is suppressed and we are erroring, use default (not custom).
     fail_msg_missing_for_error <- fail_msg_missing ||
       (isTRUE(stop_on_error) && fail_msg_suppressed)
     if (isTRUE(stop_on_error)) {
       # Raise error, using fail_msg if NOT suppressed, otherwise default.
+      bullets <- if (fail_msg_missing_for_error) {
+        default_bullets
+      } else {
+        fail_msg
+      }
       cli::cli_abort(
-        if (fail_msg_missing_for_error) default_bullets else fail_msg,
+        bullets,
         .envir = env
       )
     }
@@ -298,10 +300,12 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
   # Validation 5: Directory structure creatability for relative paths ----
 
   # For relative paths only, attempt to create the target directory structure in
-  # tempdir().
+  # a temporary location.
   # If this fails, filesystem is not accepting the pattern—fail fast.
+  # Uses tempfile() to generate a unique path to avoid race conditions when
+  # multiple check_path() calls run concurrently.
   if (!fs::is_absolute_path(path)) {
-    temp_base <- file.path(tempdir(), "path_validation_test")
+    temp_base <- tempfile("path_validation_test")
     test_dir <- file.path(temp_base, dirname(path))
     result <- tryCatch(
       {
@@ -343,9 +347,9 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #'   warning. If `FALSE` or `NA`, messaging is suppressed and the function
 #'   simply returns `FALSE`. When `stop_on_error = TRUE`, `fail_msg = FALSE` or
 #'   `NA` is treated as if `fail_msg` was missing (default error messages are
-#'   used). Within `fail_msg`, use glue-style interpolation with `{path}` for
-#'   the full path string and `{basepath}` for its basename. For example, `"File
-#'   {basepath} not found at {path}"`.
+#'   used). Within `fail_msg`, use glue-style interpolation with `{`_path`}` for
+#'   the full path string and `{`_basename`}` for its basename. For example,
+#'   `"File {`_basename`} not found at {`_path`}"`.
 #'
 #' @return The trimmed path if it exists with the requested `type`, or `FALSE`
 #'   otherwise.
@@ -365,12 +369,20 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #' writeLines("test", temp_file)
 #' minutemaker:::path_exists(
 #'   temp_file,
-#'   fail_msg = "Required file {basepath} not found at {path}"
+#'   fail_msg = "Required file {`_basename`} not found at {`_path`}"
 #' )
 #'
 #' # Suppress messaging and return FALSE on failure
-#' minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = FALSE)
-#' minutemaker:::path_exists("nonexistent.txt", stop_on_error = FALSE, fail_msg = NA)
+#' minutemaker:::path_exists(
+#'   "nonexistent.txt",
+#'   stop_on_error = FALSE,
+#'   fail_msg = FALSE
+#' )
+#' minutemaker:::path_exists(
+#'   "nonexistent.txt",
+#'   stop_on_error = FALSE,
+#'   fail_msg = NA
+#' )
 #'
 path_exists <- function(
   path,
@@ -378,6 +390,8 @@ path_exists <- function(
   stop_on_error = TRUE,
   fail_msg
 ) {
+  caller_env <- parent.frame()
+
   # Helper: Determine if custom messaging for failure is suppressed (fail_msg =
   # FALSE or NA)
   is_msg_suppressed <- function(fail_msg) {
@@ -389,12 +403,42 @@ path_exists <- function(
   type <- match.arg(type)
 
   # Step 1: Path validation using check_path() prior to existence check.
-  #         If a custom fail_msg is provided, pass it along.
+  #         If a custom fail_msg is provided, pre-interpolate it here so
+  #         wrapper-local variables are accessible, then pass the formatted
+  #         string to check_path().
   checked_path <- if (!missing(fail_msg)) {
+    # Pre-format fail_msg if it's a string (not FALSE/NA)
+    fail_msg_for_check <- if (is_msg_suppressed(fail_msg)) {
+      fail_msg
+    } else if (is.character(fail_msg)) {
+      # Pre-interpolate using caller environment + _path/_basename
+      # We need to compute these early for interpolation
+      path_trimmed <- if (rlang::is_string(path) && !is.na(path)) {
+        trimws(path)
+      } else {
+        path
+      }
+      basepath <- if (rlang::is_string(path_trimmed) && !is.na(path_trimmed)) {
+        basename(path_trimmed)
+      } else {
+        NA_character_
+      }
+      env <- new.env(parent = caller_env)
+      env$`_path` <- path_trimmed
+      env$`_basename` <- basepath
+      # Format each element of fail_msg (supports both single strings and
+      # bullet vectors)
+      purrr::map_chr(
+        fail_msg,
+        \(x) cli::format_inline(x, .envir = env)
+      )
+    } else {
+      fail_msg
+    }
     check_path(
       path,
       stop_on_error = stop_on_error,
-      fail_msg = fail_msg
+      fail_msg = fail_msg_for_check
     )
   } else {
     check_path(
@@ -423,14 +467,6 @@ path_exists <- function(
   # Step 3: If the path does not exist as requested, handle
   # error/warning/report.
   if (!isTRUE(exists)) {
-    # Prepare interpolation environment for cli errors/warnings
-    basepath <- basename(checked_path)
-    env <- rlang::env(
-      parent = parent.frame(),
-      path = checked_path,
-      basepath = basepath
-    )
-
     # Determine: are we missing a custom fail_msg? Is messaging suppressed?
     fail_msg_missing_for_error <- missing(fail_msg) ||
       (isTRUE(stop_on_error) && is_msg_suppressed(fail_msg))
@@ -439,20 +475,61 @@ path_exists <- function(
     # appropriate
     if (isTRUE(stop_on_error)) {
       bullets <- if (fail_msg_missing_for_error) {
+        # Default message - needs interpolation
+        basepath <- basename(checked_path)
+        env <- new.env(parent = caller_env)
+        env$`_path` <- checked_path
+        env$`_basename` <- basepath
         c(
           "Path does not exist.",
-          "x" = "No {type} exists at {.path {path}}."
+          "x" = "No {type} exists at {.path {`_path`}}."
+        )
+      } else if (is.character(fail_msg)) {
+        # Pre-format fail_msg using caller environment + _path/_basename/type
+        basepath <- basename(checked_path)
+        env <- new.env(parent = caller_env)
+        env$`_path` <- checked_path
+        env$`_basename` <- basepath
+        env$type <- type
+        purrr::map_chr(
+          fail_msg,
+          \(x) cli::format_inline(x, .envir = env)
         )
       } else {
         fail_msg
       }
-      cli::cli_abort(bullets, .envir = env)
+      # For pre-formatted strings, .envir doesn't matter (no {} left)
+      # For default message, .envir is needed
+      if (fail_msg_missing_for_error) {
+        basepath <- basename(checked_path)
+        env_for_cli <- new.env(parent = caller_env)
+        env_for_cli$`_path` <- checked_path
+        env_for_cli$`_basename` <- basepath
+        cli::cli_abort(bullets, .envir = env_for_cli)
+      } else {
+        # Pre-formatted string, no .envir needed
+        cli::cli_abort(bullets)
+      }
     }
 
     # Otherwise, if we're in warning mode and messaging is NOT suppressed, emit
     # warning
     if (!missing(fail_msg) && !is_msg_suppressed(fail_msg)) {
-      cli::cli_warn(fail_msg, .envir = env)
+      if (is.character(fail_msg)) {
+        # Pre-format fail_msg
+        basepath <- basename(checked_path)
+        env <- new.env(parent = caller_env)
+        env$`_path` <- checked_path
+        env$`_basename` <- basepath
+        env$type <- type
+        bullets <- purrr::map_chr(
+          fail_msg,
+          \(x) cli::format_inline(x, .envir = env)
+        )
+        cli::cli_warn(bullets)
+      } else {
+        cli::cli_warn(fail_msg)
+      }
     }
     # Always return FALSE to indicate the check failed if we get to here
     return(FALSE)
