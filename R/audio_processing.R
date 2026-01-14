@@ -46,6 +46,9 @@ extract_audio_segment <- function(
 ) {
   on_error <- match.arg(on_error)
 
+  # Validate and trim the output path since this function creates files.
+  output_file <- check_path(output_file)
+
   if (verbose) {
     cli::cli_alert("Outputting audio segment: {.file {basename(output_file)}}")
   }
@@ -128,19 +131,23 @@ split_audio <- function(
   output_folder = file.path(dirname(audio_file), "recording_parts"),
   parallel = getOption("minutemaker_split_audio_parallel", FALSE)
 ) {
-  if (!rlang::is_string(audio_file) || audio_file == "") {
-    cli::cli_abort(
-      c(
-        "No valid audio file provided to {.fn split_audio}.",
-        "x" = "Received {.val {audio_file}}.",
-        "i" = "Provide a path to an existing audio file (e.g., .wav, .mp3, .mp4).",
-        "i" = "If you are starting from an existing transcript, bypass audio splitting by supplying {.code external_transcript} to {.fn speech_to_summary_workflow}."
-      )
+  audio_file <- path_exists(
+    audio_file,
+    fail_msg = c(
+      "No valid audio file provided to {.fn split_audio}.",
+      "x" = "Received {.val {path}}.",
+      "i" = "Provide a path to an existing audio file (e.g., .wav, .mp3, .mp4).",
+      "i" = "If you are starting from an existing transcript, bypass audio splitting by supplying {.code external_transcript} to {.fn speech_to_summary_workflow}."
     )
-  }
+  )
 
   # Check if the av package is installed and ask to install it if not
   rlang::check_installed("av")
+
+  # Recompute default output folder after validation so it uses the trimmed path.
+  if (missing(output_folder)) {
+    output_folder <- file.path(dirname(audio_file), "recording_parts")
+  }
 
   # Use absolute paths so workers don't depend on their working directory
   audio_file <- normalizePath(audio_file, mustWork = FALSE)
@@ -166,6 +173,9 @@ split_audio <- function(
 
   # Calculate the number of segments
   num_segments <- ceiling(total_duration_sec / segment_length_sec)
+
+  # Validate the output path since this function creates directories.
+  output_folder <- check_path(output_folder)
 
   # Ensure the output folder exists
   if (!dir.exists(output_folder)) {
@@ -224,7 +234,10 @@ split_audio <- function(
           # daemon.
           extract_audio_segment_bound <- extract_audio_segment_func
           environment(extract_audio_segment_bound) <- list2env(
-            list(is_audio_file_sane = is_audio_file_sane),
+            list(
+              is_audio_file_sane = is_audio_file_sane,
+              check_path = check_path
+            ),
             parent = environment(extract_audio_segment_func)
           )
 
@@ -238,6 +251,7 @@ split_audio <- function(
         },
         extract_audio_segment_func = extract_audio_segment,
         is_audio_file_sane = is_audio_file_sane,
+        check_path = check_path,
         audio_file = audio_file,
         output_file = output_file,
         start_time = start_time,
@@ -300,6 +314,7 @@ split_audio <- function(
           "Falling back to sequential processing for remaining segments."
         )
 
+        fallback_used <- TRUE
         pending_idxs <- which(!processed_flags)
         for (i in pending_idxs) {
           # Compute the segment bounds for this index.
@@ -332,7 +347,6 @@ split_audio <- function(
           processed_flags[i] <- TRUE
         }
 
-        fallback_used <- TRUE
         break
       }
 
@@ -391,6 +405,12 @@ split_audio <- function(
         # Mark this segment as completed
         processed_flags[i] <- TRUE
       }
+    }
+
+    if (isTRUE(fallback_used) && !isTRUE(fail_fast_triggered)) {
+      cli::cli_alert_info(
+        "Fallback to sequential processing was used for one or more segments."
+      )
     }
 
     if (fail_fast_triggered) {
