@@ -763,14 +763,6 @@ use_transcript_input <- function(
     cli::cli_abort("`lines_per_json` must be a positive integer.")
   }
 
-  file <- path_exists(
-    file,
-    fail_msg = c(
-      "Transcript file not found.",
-      "x" = "No file exists at {.path {path}}."
-    )
-  )
-
   # Import the transcript data
   transcript_df <- import_transcript_from_file(
     transcript_file = file,
