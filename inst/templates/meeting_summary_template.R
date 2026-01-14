@@ -40,10 +40,7 @@ options(
 llmR::set_llmr_model("your_summary_model")
 
 # Resolve the working directory based on the script location
-work_dir <- funr::get_script_path()
-if (is.null(work_dir)) {
-  work_dir <- getwd()
-}
+work_dir <- funr::get_script_path() |> fs::path_dir()
 
 cli::cli_alert_info("Working directory: {work_dir}")
 

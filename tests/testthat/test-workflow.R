@@ -127,51 +127,21 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
   })
 })
 
-test_that("workflow accepts a file path as target_dir when a transcript is present", {
+test_that("workflow errors on file path target_dir", {
   withr::with_tempdir({
     script_path <- file.path(getwd(), "script.R")
     file.create(script_path)
 
-    vtt_path <- file.path(getwd(), "transcript.vtt")
-    writeLines(
-      c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello from VTT"),
-      vtt_path
-    )
-
-    testthat::local_mocked_bindings(
-      perform_speech_to_text = function(...) {
-        stop("STT should be bypassed when transcript is available")
-      },
-      apply_llm_correction = function(...) {
-        stop("LLM correction should not run in this test")
-      },
-      summarise_transcript = function(...) {
-        "Mock summary from transcript-only path"
-      },
-      get_prompts = function(...) "Mock prompt"
-    )
-
-    result <- withr::with_options(
-      list(
-        llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL
-      ),
+    expect_error(
       speech_to_summary_workflow(
         target_dir = script_path,
         use_agenda = "no",
         generate_context = FALSE,
-        llm_provider = "mock_provider",
-        formatted_output_file = "summary.txt",
-        enable_llm_correction = FALSE
-      )
+        enable_llm_correction = FALSE,
+        llm_provider = NULL
+      ),
+      regexp = "Invalid `target_dir`"
     )
-
-    expect_named(result, c("transcript_data", "formatted_summary"))
-    expect_identical(
-      result$formatted_summary,
-      "Mock summary from transcript-only path"
-    )
-    expect_true(file.exists("transcription_output_data/segment_1.json"))
   })
 })
 
@@ -485,7 +455,8 @@ test_that("workflow sets generate_initial_prompt correctly based on external tra
           llm_provider = "mock_provider",
           formatted_output_file = file.path(target_dir, "event_summary.txt"),
           overwrite_formatted_output = TRUE
-        )
+        ) |>
+          expect_warning("Overwriting the existing summary output.")
 
         expect_length(generate_context_calls, 1)
         expect_false(generate_context_calls[[1]]$generate_initial_prompt)

@@ -14,9 +14,9 @@
 #' @param split_audio A boolean indicating whether the audio file should be
 #'   split into multiple files. Some models, like "Whisper" based ones, can
 #'   process files only up to 25 MB. See `split_audio` for more details.
-#' @param split_audio_duration The duration of each split audio file in
-#'   minutes. 20 minutes equate to more or less 7-8 MB. See `split_audio` for
-#'   more details.
+#' @param split_audio_duration The duration of each split audio file in minutes.
+#'   20 minutes equate to more or less 7-8 MB. See `split_audio` for more
+#'   details.
 #' @param stt_audio_dir A string with the path to the folder where the audio
 #'   files to transcribe will be stored. See `split_audio` and
 #'   `perform_speech_to_text` for more details. The files in this folder will be
@@ -56,8 +56,8 @@
 #'   automatically if a .vtt, .srt or .docx file is available in the target
 #'   directory. Pass NULL or NA to disable the automatic importation of
 #'   transcript files. See `import_transcript_from_file` for more details.
-#' @param import_diarization A boolean indicating whether the
-#'   speaker should be imported from the external transcript, if present. See
+#' @param import_diarization A boolean indicating whether the speaker should be
+#'   imported from the external transcript, if present. See
 #'   `import_transcript_from_file` for more details.
 #' @param chat_file A string with the path to a file containing the chat data.
 #'   It will be picked up automatically if a file with "Chat" in its name is
@@ -69,11 +69,13 @@
 #' @param generate_context A logical value indicating whether to generate
 #'   meeting context from documentation materials and transcripts before running
 #'   the workflow. When TRUE, analyzes materials in the 'documentation' folder
-#'   to automatically extract: expected agenda, event description, audience info,
-#'   domain vocabulary, and STT initial prompts. This significantly improves
-#'   summarization quality by providing domain-specific context to the LLMs.
-#'   Generated context takes precedence over manually provided parameters.
-#' @param use_agenda Controls whether to use an agenda for summarization.
+#'   to automatically extract: expected agenda, event description, audience
+#'   info, domain vocabulary, and STT initial prompts. This significantly
+#'   improves summarization quality by providing domain-specific context to the
+#'   LLMs. Generated context takes precedence over manually provided parameters
+#' @param use_agenda A string indicating whether to use an agenda for
+#'   summarization. Possible values are "ask" (interactive prompting), "yes"
+#'   (use or generate agenda), or "no" (don't use an agenda).
 #'   Possible values are "ask" (interactive prompting), "yes" (use or generate
 #'   agenda), or "no" (don't use an agenda).
 #' @param agenda_file The path to an agenda file. If use_agenda="yes" and this
@@ -215,16 +217,16 @@ speech_to_summary_workflow <- function(
   formatted_output_file = file.path(target_dir, "event_summary.txt"),
   overwrite_formatted_output = FALSE
 ) {
-  if (!rlang::is_string(target_dir) || !nzchar(target_dir)) {
-    cli::cli_abort(
-      c(
-        "Invalid {.code target_dir} provided.",
-        "x" = "Received {.val {target_dir}}.",
-        "i" = "Pass a folder containing your meeting files (audio and/or transcript).",
-        "i" = "If calling from a script, prefer {.code dirname(funr::get_script_path())} rather than the script file path."
-      )
+  target_dir <- path_exists(
+    target_dir,
+    type = "dir",
+    fail_msg = c(
+      "Invalid {.code target_dir} provided.",
+      "x" = "Received {.val {`_path`}}.",
+      "i" = "Pass a folder containing your meeting files (audio and/or transcript).",
+      "i" = "If calling from a script, prefer {.code dirname(funr::get_script_path())} rather than the script file path."
     )
-  }
+  )
 
   if (lifecycle::is_present(stt_output_dir)) {
     lifecycle::deprecate_warn(
@@ -238,24 +240,6 @@ speech_to_summary_workflow <- function(
     }
   }
 
-  target_dir <- fs::path_norm(target_dir)
-  if (fs::file_exists(target_dir) && !fs::dir_exists(target_dir)) {
-    cli::cli_alert_warning(
-      "The provided {.path {target_dir}} points to a file. Using its parent directory: {.path {fs::path_dir(target_dir)}}"
-    )
-    target_dir <- fs::path_dir(target_dir)
-  }
-
-  if (!fs::dir_exists(target_dir)) {
-    cli::cli_abort(
-      c(
-        "Target directory not found.",
-        "x" = "The path supplied to {.path target_dir} does not exist: {.path {target_dir}}",
-        "i" = "Point {.path target_dir} to the folder containing your audio or transcript files."
-      )
-    )
-  }
-
   summarization_method <- match.arg(summarization_method)
   use_agenda <- match.arg(use_agenda)
 
@@ -263,10 +247,12 @@ speech_to_summary_workflow <- function(
   agenda <- NULL
 
   ## Context Generation ----
-  # Generate meeting context from documentation materials to improve summarization quality.
-  # This extracts meeting-specific information that helps LLMs produce more accurate and
-  # contextually appropriate summaries by providing domain knowledge, vocabulary, and
-  # structural information about the meeting.
+
+  # Generate meeting context from documentation materials to improve
+  # summarization quality.
+  # This extracts meeting-specific information that helps LLMs produce more
+  # accurate and contextually appropriate summaries by providing domain
+  # knowledge, vocabulary, and structural information about the meeting.
 
   if (isTRUE(generate_context)) {
     cli::cli_h2("Context Generation")
@@ -346,20 +332,18 @@ speech_to_summary_workflow <- function(
 
   # Decide whether to perform STT or use external transcript
   perform_stt <- TRUE
-  ext_path <- path_exists(
-    external_transcript,
-    stop_on_error = FALSE,
-    fail_msg = if (
-      rlang::is_string(external_transcript) && !is.na(external_transcript)
-    ) {
-      c(
+  # Only check when a real path was supplied to avoid warnings on NULL/NA.
+  ext_path <- FALSE
+  if (rlang::is_string(external_transcript)) {
+    ext_path <- path_exists(
+      external_transcript,
+      stop_on_error = FALSE,
+      fail_msg = c(
         "External transcript file not found.",
-        "x" = "No file exists at {.path {path}}."
+        "x" = "No file exists at {.path {`_path`}}."
       )
-    } else {
-      FALSE
-    }
-  )
+    )
+  }
   if (!isFALSE(ext_path)) {
     cli::cli_alert_info(
       "External transcript found: {.file {basename(ext_path)}}.
@@ -381,7 +365,7 @@ speech_to_summary_workflow <- function(
         source_audio,
         fail_msg = c(
           "No audio found for speech-to-text.",
-          "x" = "Expected a valid source audio file but received: {.path {path}}",
+          "x" = "Expected a valid source audio file but received: {.path {`_path`}}",
           "i" = "Place an audio file in the folder specified by {.arg stt_audio_dir} or pass it explicitly via {.code source_audio}.",
           "i" = "If you want to start from an existing transcript, supply it via {.code external_transcript} (e.g., a .vtt/.srt/.docx file in your target directory)."
         )
