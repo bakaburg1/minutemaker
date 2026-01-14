@@ -684,6 +684,18 @@ generate_context <- function(
     normalize_text(value)
   }
 
+  # Helper to prepare LLM arguments consistently across strategies
+  prepare_llm_args <- function(provider, force_json = FALSE, ...) {
+    args <- rlang::list2(...)
+    if (!"provider" %in% names(args) && !is.null(provider)) {
+      args$provider <- provider
+    }
+    if (force_json && !"force_json" %in% names(args)) {
+      args$force_json <- TRUE
+    }
+    args
+  }
+
   # Strategy execution ----
   # Execute the selected generation strategy (one_pass or agentic).
 
@@ -695,10 +707,7 @@ generate_context <- function(
   # Benefits: Better handling of long transcripts, intermediate caching, error isolation.
   if (strategy == "agentic") {
     # Prepare LLM arguments for all agentic calls.
-    llm_args <- rlang::list2(...)
-    if (!"provider" %in% names(llm_args) && !is.null(llm_provider)) {
-      llm_args$provider <- llm_provider
-    }
+    llm_args <- prepare_llm_args(..., provider = llm_provider)
 
     # Create hidden directory for intermediate state and caching.
     state_dir <- file.path(target_dir, ".context_gen", "context_generation")
@@ -1264,14 +1273,7 @@ generate_context <- function(
   )
 
   # Prepare LLM arguments for single-call execution.
-  llm_args <- rlang::list2(...)
-  if (!"provider" %in% names(llm_args) && !is.null(llm_provider)) {
-    llm_args$provider <- llm_provider
-  }
-  # Force JSON response for structured single-call output.
-  if (!"force_json" %in% names(llm_args)) {
-    llm_args$force_json <- TRUE
-  }
+  llm_args <- prepare_llm_args(..., provider = llm_provider, force_json = TRUE)
 
   result <- do.call(
     safe_prompt_llm,
