@@ -27,7 +27,17 @@ minutemaker::set_prompts()
 options(
   minutemaker_stt_model = "your_stt_provider",
   minutemaker_correction_llm_model = "your_correction_model",
-  minutemaker_split_audio_parallel = TRUE
+  minutemaker_split_audio_parallel = TRUE,
+
+  # Context generation options:
+  # Folder containing meeting materials
+  minutemaker_context_material_dir = "material",
+  # Generation strategy
+  minutemaker_context_gen_strategy = "agentic",
+  # Model for context generation
+  minutemaker_context_gen_llm_model = "your_context_model",
+  # Don't overwrite existing context
+  minutemaker_overwrite_context = FALSE
 )
 
 # Select the LLM used for summarization
@@ -130,6 +140,7 @@ if (!file.exists(multipart_r_path) || !file.exists(multipart_md_path)) {
     extra_diarization_instructions = diarization_instructions,
     extra_output_instructions = extra_output_instructions,
     chat_file = chat_log,
+    generate_context = TRUE, # Enable automatic context generation
     summarization_output_file = multipart_r_path,
     formatted_output_file = multipart_md_path
   )
@@ -158,6 +169,7 @@ if (!file.exists(single_md_path)) {
     vocabulary = vocabulary,
     extra_diarization_instructions = diarization_instructions,
     extra_output_instructions = extra_output_instructions,
+    generate_context = TRUE, # Enable automatic context generation
     formatted_output_file = single_md_path
   )
 } else {
@@ -185,6 +197,7 @@ if (!file.exists(rolling_md_path)) {
     extra_output_instructions = extra_output_instructions,
     chat_file = chat_log,
     summarization_method = "rolling",
+    generate_context = TRUE, # Enable automatic context generation
     formatted_output_file = rolling_md_path
   )
 } else {

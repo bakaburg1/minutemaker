@@ -166,6 +166,29 @@ speech_to_summary_workflow(
 GPT-5.2 and the `agentic` strategy for best results. The `one_pass`
 strategy is suitable for a cost-effective solution.
 
+**Configuration Options:** Several global options control context
+generation behavior:
+
+- `minutemaker_context_material_dir`: Directory name for documentation
+  materials (default: `"documentation"`)
+- `minutemaker_context_gen_strategy`: Generation strategy - `"agentic"`
+  (recommended) or `"one_pass"` (default: `"agentic"`)
+- `minutemaker_context_gen_llm_model`: Specific llmR model label for
+  context generation (optional, uses active model if unset)
+- `minutemaker_overwrite_context`: Whether to overwrite existing context
+  files (default: `FALSE`)
+
+Set these options globally to customize context generation:
+
+``` r
+options(
+  minutemaker_context_material_dir = "materials",  # Custom materials folder
+  minutemaker_context_gen_strategy = "one_pass",   # Cost-effective strategy
+  minutemaker_context_gen_llm_model = "gpt-4",     # Specific model for context generation
+  minutemaker_overwrite_context = TRUE             # Always regenerate context
+)
+```
+
 ### Transcript-First Workflow
 
 If you already have a transcript from your meeting platform (such as
