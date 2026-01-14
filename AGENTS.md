@@ -72,6 +72,18 @@ current_project:
   - name: helper usage preference
     description: Avoid trivial global helpers; keep globals only for logic that needs tests or reuse, and add preamble comments to in-body helpers.
     scope: code structure
+  - name: path validation with check_path
+    description: Use check_path() for consistent validation of paths intended for creating/writing files or directories. It trims whitespace and returns the trimmed path on success; rejects NULL/NA/empty strings; validates against reserved names and dangerous characters; and (for relative paths) tests whether the directory structure can be created in a temp location. Use stop_on_error = TRUE to abort on failure and stop_on_error = FALSE to warn and return FALSE.
+    scope: validation
+  - name: existence checks with path_exists
+    description: Use path_exists() for existence checks only (wraps check_path() then fs::file_exists()/dir_exists()). It returns the trimmed path when it exists with the requested type, otherwise returns FALSE (or aborts if stop_on_error = TRUE). Default type is "file"; pass type = "dir" or type = "any" only when needed.
+    scope: validation
+  - name: fail_msg contract for path validators
+    description: check_path() and path_exists() accept fail_msg to centralize messaging. If missing, default in-function messages are used. If a string or cli-style bullet vector, it is used for cli_abort/cli_warn and can interpolate {path} (full path) and {basepath} (basename). If fail_msg is FALSE or NA, messaging is suppressed and the function returns FALSE when stop_on_error = FALSE; when stop_on_error = TRUE, fail_msg = FALSE/NA is treated as missing (defaults are used). Do not use a separate silent argument.
+    scope: validation
+  - name: avoid is_scalar_character for path checks
+    description: Avoid rlang::is_scalar_character() for path validation because it can allow NA values; prefer check_path()/path_exists() to handle NULL/NA/whitespace consistently.
+    scope: validation
 general:
   - name: cli alert level conventions
     description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
