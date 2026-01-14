@@ -486,14 +486,8 @@ import_transcript_from_file <- function(
         as.numeric()
 
       if (length(times) < 2 || any(!is.finite(times))) {
-        warning(
-          sprintf(
-            "Skipping malformed time cue in '%s'. Line %d: \"%s\"",
-            basename(transcript_file),
-            time_pos,
-            cue_line_content
-          ),
-          call. = FALSE
+        cli::cli_warn(
+          "Skipping malformed time cue in '{.path {basename(transcript_file)}}'. Line {time_pos}: \"{cue_line_content}\""
         )
         return(NULL)
       }
