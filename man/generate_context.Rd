@@ -8,7 +8,7 @@ generate_context(
   target_dir = getwd(),
   material_dir = getOption("minutemaker_context_material_dir", "documentation"),
   overwrite = getOption("minutemaker_overwrite_context", FALSE),
-  strategy = getOption("minutemaker_context_gen_strategy", "one_pass"),
+  strategy = getOption("minutemaker_context_gen_strategy", "agentic"),
   generate_expected_agenda = TRUE,
   generate_event_description = TRUE,
   generate_audience = TRUE,
