@@ -170,9 +170,9 @@ strategy is suitable for a cost-effective solution.
 generation behavior:
 
 - `minutemaker_context_material_dir`: Directory name for documentation
-  materials (default: `"documentation"`)
-- `minutemaker_context_gen_strategy`: Generation strategy - `"agentic"`
-  (recommended) or `"one_pass"` (default: `"agentic"`)
+  materials (default: `documentation`)
+- `minutemaker_context_gen_strategy`: Generation strategy - `agentic`
+  (recommended) or `one_pass` (default: `agentic`)
 - `minutemaker_context_gen_llm_model`: Specific llmR model label for
   context generation (optional, uses active model if unset)
 - `minutemaker_overwrite_context`: Whether to overwrite existing context
@@ -182,10 +182,10 @@ Set these options globally to customize context generation:
 
 ``` r
 options(
-  minutemaker_context_material_dir = "materials",  # Custom materials folder
-  minutemaker_context_gen_strategy = "one_pass",   # Cost-effective strategy
-  minutemaker_context_gen_llm_model = "gpt-4",     # Specific model for context generation
-  minutemaker_overwrite_context = TRUE             # Always regenerate context
+  minutemaker_context_material_dir = "documentation",
+  minutemaker_context_gen_strategy = "agentic",
+  minutemaker_context_gen_llm_model = "your_context_model",
+  minutemaker_overwrite_context = FALSE
 )
 ```
 
