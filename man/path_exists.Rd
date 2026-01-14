@@ -27,8 +27,9 @@ as a warning. If \code{FALSE} or \code{NA}, messaging is suppressed and the
 function simply returns \code{FALSE}. When \code{stop_on_error = TRUE},
 \code{fail_msg = FALSE} or \code{NA} is treated as if \code{fail_msg} was
 missing (default error messages are used). Within \code{fail_msg},
-\code{path} expands to the full path string and \code{basepath} to its
-basename.}
+use glue-style interpolation with \code{{path}} for the full path string
+and \code{{basepath}} for its basename. For example,
+\code{"File {basepath} not found at {path}"}.}
 }
 \value{
 The trimmed path if it exists with the requested \code{type}, or

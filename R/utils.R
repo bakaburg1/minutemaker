@@ -308,8 +308,9 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #'   function simply returns \code{FALSE}. When \code{stop_on_error = TRUE},
 #'   \code{fail_msg = FALSE} or \code{NA} is treated as if \code{fail_msg} was
 #'   missing (default error messages are used). Within \code{fail_msg},
-#'   \code{path} expands to the full path string and \code{basepath} to its
-#'   basename.
+#'   use glue-style interpolation with \code{{path}} for the full path string
+#'   and \code{{basepath}} for its basename. For example,
+#'   \code{"File {basepath} not found at {path}"}.
 #'
 #' @return The trimmed path if it exists with the requested \code{type}, or
 #'   \code{FALSE} otherwise.
