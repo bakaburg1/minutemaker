@@ -620,7 +620,7 @@ test_that("split_audio creates the expected number of segments", {
   dummy_info <- list(duration = 120) # 2 minutes total
 
   withr::with_tempdir({
-    file.create("dummy.wav")
+    write_dummy_wav("dummy.wav")
 
     local_mocked_bindings(
       av_media_info = function(file) dummy_info,
