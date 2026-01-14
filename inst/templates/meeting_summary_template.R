@@ -13,10 +13,6 @@
 #   package = "minutemaker"
 # )
 
-# install.packages("funr")
-# install.packages("minutemaker")
-# install.packages("llmR")
-
 rlang::check_installed(c("minutemaker", "funr", "llmR", "fs", "cli"))
 
 minutemaker::set_prompts()
@@ -31,7 +27,7 @@ options(
 
   # Context generation options:
   # Folder containing meeting materials
-  minutemaker_context_material_dir = "material",
+  minutemaker_context_material_dir = "documentation",
   # Generation strategy
   minutemaker_context_gen_strategy = "agentic",
   # Model for context generation
@@ -51,8 +47,6 @@ if (is.null(work_dir)) {
 
 cli::cli_alert_info("Working directory: {work_dir}")
 
-# File references from the meeting material bundle
-material_dir <- file.path(work_dir, "material")
 chat_log <- NULL
 
 output_dir <- file.path(work_dir, "outputs")
