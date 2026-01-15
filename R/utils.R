@@ -331,6 +331,28 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
   path
 }
 
+#' Build interpolation environment for path_exists messages
+#'
+#' @param path A character string with the path for interpolation.
+#' @param caller_env The calling environment for interpolation.
+#' @param type A character string indicating the path type.
+#'
+#' @keywords internal
+#'
+#' @return An environment with `_path`, `_basename`, and `type` values.
+#'
+.make_interpolation_env <- function(path, caller_env, type) {
+  env <- new.env(parent = caller_env)
+  env$`_path` <- path
+  env$`_basename` <- if (rlang::is_string(path) && !is.na(path)) {
+    basename(path)
+  } else {
+    NA_character_
+  }
+  env$type <- type
+  env
+}
+
 #' Check whether a path exists
 #'
 #' Wraps `fs::file_exists()` and `fs::dir_exists()` with a `check_path()`
@@ -428,14 +450,11 @@ path_exists <- function(
       } else {
         path
       }
-      basepath <- if (rlang::is_string(path_trimmed) && !is.na(path_trimmed)) {
-        basename(path_trimmed)
-      } else {
-        NA_character_
-      }
-      env <- new.env(parent = caller_env)
-      env$`_path` <- path_trimmed
-      env$`_basename` <- basepath
+      env <- .make_interpolation_env(
+        path = path_trimmed,
+        caller_env = caller_env,
+        type = type
+      )
       # Format each element of fail_msg (supports both single strings and
       # bullet vectors)
       purrr::map_chr(
@@ -486,22 +505,22 @@ path_exists <- function(
     if (isTRUE(stop_on_error)) {
       bullets <- if (fail_msg_missing_for_error) {
         # Default message - needs interpolation
-        basepath <- basename(checked_path)
-        env <- new.env(parent = caller_env)
-        env$`_path` <- checked_path
-        env$`_basename` <- basepath
-        env$type <- type
+        env <- .make_interpolation_env(
+          path = checked_path,
+          caller_env = caller_env,
+          type = type
+        )
         c(
           "Path does not exist.",
           "x" = "No {type} exists at {.path {`_path`}}."
         )
       } else if (is.character(fail_msg)) {
         # Pre-format fail_msg using caller environment + _path/_basename/type
-        basepath <- basename(checked_path)
-        env <- new.env(parent = caller_env)
-        env$`_path` <- checked_path
-        env$`_basename` <- basepath
-        env$type <- type
+        env <- .make_interpolation_env(
+          path = checked_path,
+          caller_env = caller_env,
+          type = type
+        )
         purrr::map_chr(
           fail_msg,
           \(x) cli::format_inline(x, .envir = env)
@@ -512,11 +531,11 @@ path_exists <- function(
       # For pre-formatted strings, .envir doesn't matter (no {} left)
       # For default message, .envir is needed
       if (fail_msg_missing_for_error) {
-        basepath <- basename(checked_path)
-        env_for_cli <- new.env(parent = caller_env)
-        env_for_cli$`_path` <- checked_path
-        env_for_cli$`_basename` <- basepath
-        env_for_cli$type <- type
+        env_for_cli <- .make_interpolation_env(
+          path = checked_path,
+          caller_env = caller_env,
+          type = type
+        )
         cli::cli_abort(bullets, .envir = env_for_cli)
       } else {
         # Pre-formatted string, no .envir needed
@@ -529,11 +548,11 @@ path_exists <- function(
     if (!missing(fail_msg) && !is_msg_suppressed(fail_msg)) {
       if (is.character(fail_msg)) {
         # Pre-format fail_msg
-        basepath <- basename(checked_path)
-        env <- new.env(parent = caller_env)
-        env$`_path` <- checked_path
-        env$`_basename` <- basepath
-        env$type <- type
+        env <- .make_interpolation_env(
+          path = checked_path,
+          caller_env = caller_env,
+          type = type
+        )
         bullets <- purrr::map_chr(
           fail_msg,
           \(x) cli::format_inline(x, .envir = env)
