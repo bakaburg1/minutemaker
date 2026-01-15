@@ -613,7 +613,10 @@ add_chat_transcript <- function(
   if (is.character(chat_transcript)) {
     chat_transcript <- path_exists(
       chat_transcript,
-      fail_msg = "Chat file not found."
+      fail_msg = c(
+        "Chat file not found.",
+        "x" = "No file exists at {.path {`_path`}}."
+      )
     )
 
     file_name <- chat_transcript
