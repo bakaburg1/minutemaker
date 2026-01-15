@@ -134,11 +134,8 @@ test_that("check_path uses unique temp paths for concurrent validation", {
   results <- vapply(
     paths,
     function(p) {
-      result <- tryCatch(
-        check_path(p, stop_on_error = FALSE),
-        error = function(e) FALSE
-      )
-      is.character(result) && result != FALSE
+      result <- check_path(p, stop_on_error = FALSE)
+      is.character(result)
     },
     logical(1)
   )
