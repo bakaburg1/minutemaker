@@ -606,7 +606,29 @@ generate_context <- function(
 
   # safe_prompt_llm: Robust wrapper for llmR::prompt_llm with retry logic.
   # Handles empty responses and transient failures with linear backoff.
-  safe_prompt_llm <- function(messages, max_retries = 3L, ...) {
+  safe_prompt_llm <- function(
+    messages,
+    max_retries = getOption(
+      "minutemaker_context_generation_max_retries",
+      3
+    ),
+    ...
+  ) {
+    default_retries <- 3L
+
+    # Validate max_retries
+    if (
+      !rlang::is_scalar_integerish(max_retries) ||
+        is.na(max_retries) ||
+        max_retries < 1
+    ) {
+      cli::cli_warn(
+        "Option `minutemaker_context_generation_max_retries` must be a positive integer; using default {default_retries}."
+      )
+      max_retries <- default_retries
+    }
+    max_retries <- as.integer(max_retries)
+
     for (attempt in seq_len(max_retries)) {
       result <- tryCatch(
         {

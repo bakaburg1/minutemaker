@@ -233,6 +233,50 @@ test_that("generate_context aborts on retry loop with null output", {
   })
 })
 
+test_that("generate_context respects max retries option", {
+  withr::with_tempdir({
+    material_dir <- file.path(getwd(), "documentation")
+    dir.create(material_dir)
+    writeLines("Materials only", file.path(material_dir, "notes.txt"))
+
+    call_count <- 0L
+    testthat::local_mocked_bindings(
+      prompt_llm = function(...) {
+        call_count <<- call_count + 1L
+        NULL
+      },
+      .package = "llmR"
+    )
+
+    withr::with_options(
+      list(minutemaker_context_generation_max_retries = 1),
+      {
+        generate_context(
+          target_dir = getwd(),
+          material_dir = "documentation",
+          strategy = "one_pass",
+          generate_expected_agenda = FALSE,
+          generate_event_description = TRUE,
+          generate_audience = FALSE,
+          generate_vocabulary = FALSE,
+          generate_initial_prompt = FALSE,
+          overwrite = TRUE
+        ) |>
+          expect_warning(
+            "LLM retry loop exited without result or error",
+            fixed = TRUE
+          ) |>
+          expect_error(
+            "LLM retry loop exited without result or error",
+            fixed = TRUE
+          )
+      }
+    )
+
+    expect_identical(call_count, 1L)
+  })
+})
+
 test_that("parse_json handles fenced arrays for vocabulary", {
   json_text <- "```json\n[\"ECDC\", \"MRSA: methicillin-resistant Staphylococcus aureus\"]\n```"
   parsed <- minutemaker:::.gen_cntx_parse_json(
