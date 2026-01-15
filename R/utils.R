@@ -360,19 +360,27 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
 #'
 #' @examples
 #' # Default behavior - check if a file exists (will abort on invalid input)
-#' minutemaker:::path_exists("some_file.txt")
+#' temp_file <- fs::file_temp()
+#' writeLines("test", temp_file)
+#' minutemaker:::path_exists(temp_file, type = "file")
 #'
 #' # Check directory existence
 #' temp_dir <- tempdir()
-#' minutemaker:::path_exists(temp_dir, type = "dir")  # TRUE
+#' minutemaker:::path_exists(temp_dir, type = "dir")
+#'
+#' # Allow either file or directory
+#' minutemaker:::path_exists(temp_dir, type = "any")
 #'
 #' # Check with custom fail message using interpolation
-#' temp_file <- fs::file_temp()
-#' writeLines("test", temp_file)
 #' minutemaker:::path_exists(
 #'   temp_file,
 #'   fail_msg = "Required file {`_basename`} not found at {`_path`}"
 #' )
+#'
+#' # Default error behavior (example only)
+#' \dontrun{
+#' minutemaker:::path_exists("nonexistent.txt")
+#' }
 #'
 #' # Suppress messaging and return FALSE on failure
 #' minutemaker:::path_exists(
@@ -482,6 +490,7 @@ path_exists <- function(
         env <- new.env(parent = caller_env)
         env$`_path` <- checked_path
         env$`_basename` <- basepath
+        env$type <- type
         c(
           "Path does not exist.",
           "x" = "No {type} exists at {.path {`_path`}}."
@@ -507,6 +516,7 @@ path_exists <- function(
         env_for_cli <- new.env(parent = caller_env)
         env_for_cli$`_path` <- checked_path
         env_for_cli$`_basename` <- basepath
+        env_for_cli$type <- type
         cli::cli_abort(bullets, .envir = env_for_cli)
       } else {
         # Pre-formatted string, no .envir needed

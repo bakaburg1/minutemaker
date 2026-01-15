@@ -205,6 +205,23 @@ test_that("returns FALSE for missing paths", {
   })
 })
 
+test_that("path_exists defaults interpolate type in error messages", {
+  withr::with_tempdir({
+    missing_path <- file.path(getwd(), "missing.txt")
+
+    expect_error(
+      path_exists(missing_path),
+      "No file exists at",
+      fixed = TRUE
+    )
+    expect_error(
+      path_exists(missing_path, type = "dir"),
+      "No dir exists at",
+      fixed = TRUE
+    )
+  })
+})
+
 test_that("errors on invalid inputs by default", {
   expect_error(path_exists(NULL), "Invalid path provided")
   expect_error(path_exists(NA_character_), "Invalid path provided")
