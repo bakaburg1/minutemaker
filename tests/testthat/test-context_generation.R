@@ -1,11 +1,3 @@
-# Helper functions ---
-
-.ensure_pkg <- function(pkg) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    utils::install.packages(pkg)
-  }
-}
-
 # Tests for generate_context() ------------------------------------------------
 
 test_that("plain text detection reads custom extensions", {
@@ -48,7 +40,7 @@ test_that("plain text detection reads custom extensions", {
 })
 
 test_that("docx tables are preserved as markdown-like blocks", {
-  .ensure_pkg("officer")
+  testthat::skip_if_not_installed("officer")
 
   withr::with_tempdir({
     material_dir <- file.path(getwd(), "documentation")
