@@ -72,7 +72,7 @@
 #'   to automatically extract: expected agenda, event description, audience
 #'   info, domain vocabulary, and STT initial prompts. This significantly
 #'   improves summarization quality by providing domain-specific context to the
-#'   LLMs. Generated context takes precedence over manually provided parameters
+#'   LLMs. Generated context takes precedence over manually provided parameters.
 #' @param use_agenda A string indicating whether to use an agenda for
 #'   summarization. Possible values are "ask" (interactive prompting), "yes"
 #'   (use or generate agenda), or "no" (don't use an agenda).
