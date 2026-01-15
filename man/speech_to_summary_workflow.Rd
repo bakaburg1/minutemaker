@@ -148,9 +148,7 @@ LLMs. Generated context takes precedence over manually provided parameters}
 
 \item{use_agenda}{A string indicating whether to use an agenda for
 summarization. Possible values are "ask" (interactive prompting), "yes"
-(use or generate agenda), or "no" (don't use an agenda).
-Possible values are "ask" (interactive prompting), "yes" (use or generate
-agenda), or "no" (don't use an agenda).}
+(use or generate agenda), or "no" (don't use an agenda).}
 
 \item{agenda_file}{The path to an agenda file. If use_agenda="yes" and this
 file exists, it will be used; otherwise a new agenda will be generated and
