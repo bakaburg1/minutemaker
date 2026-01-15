@@ -168,35 +168,18 @@ test_that("returns FALSE for missing paths", {
   withr::with_tempdir({
     missing_path <- file.path(getwd(), "missing.txt")
 
-    expect_error(
-      {
-        res_any <- path_exists(
-          missing_path,
-          type = "any",
-          stop_on_error = FALSE
-        )
-      },
-      NA
+    res_any <- testthat::expect_no_error(
+      path_exists(missing_path, type = "any", stop_on_error = FALSE)
     )
     expect_false(res_any)
 
-    expect_error(
-      {
-        res_file <- path_exists(missing_path, stop_on_error = FALSE)
-      },
-      NA
+    res_file <- testthat::expect_no_error(
+      path_exists(missing_path, stop_on_error = FALSE)
     )
     expect_false(res_file)
 
-    expect_error(
-      {
-        res_dir <- path_exists(
-          missing_path,
-          type = "dir",
-          stop_on_error = FALSE
-        )
-      },
-      NA
+    res_dir <- testthat::expect_no_error(
+      path_exists(missing_path, type = "dir", stop_on_error = FALSE)
     )
     expect_false(res_dir)
   })
