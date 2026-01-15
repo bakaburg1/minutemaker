@@ -77,7 +77,9 @@ generate_context <- function(
   # Input validation ----
   # Ensure target_dir exists and points to a directory (not a file).
   # Normalize path to handle relative paths consistently throughout.
-  # rlang::is_string(NA_character_) is FALSE, so NA inputs are rejected here.
+
+  # rlang::is_string(NA_character_) is FALSE (verified), so NA inputs are
+  # rejected here.
   if (!rlang::is_string(target_dir) || !nzchar(target_dir)) {
     cli::cli_abort(
       c(
