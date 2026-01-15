@@ -202,7 +202,7 @@ validate_agenda_element <- function(
 #'
 #' @description When the agenda is non-empty, the event_start_time is NULL, and
 #'   all agenda items have numeric 'from' values, this function emits a
-#'   {cli::cli_alert_warning} stating that "00:00:00" will be used as the
+#'   `cli::cli_alert_warning()` stating that "00:00:00" will be used as the
 #'   default.
 warn_missing_event_start_time <- function(agenda, event_start_time) {
   if (
@@ -294,16 +294,18 @@ validate_agenda <- function(
 
   # Check if the agenda is a file path
   if (!purrr::is_empty(agenda) && is.character(agenda)) {
-    if (!file.exists(agenda)) {
-      cli::cli_warn(
-        c(
-          general_warn,
-          "x" = "The agenda file path does not exist."
-        )
+    agenda_path <- path_exists(
+      agenda,
+      stop_on_error = FALSE,
+      fail_msg = c(
+        general_warn,
+        "x" = "The agenda file path does not exist."
       )
-
+    )
+    if (isFALSE(agenda_path)) {
       return(FALSE)
     }
+    agenda <- agenda_path
 
     agenda_from_file <- load_serialized(
       agenda,

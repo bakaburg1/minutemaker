@@ -1,7 +1,5 @@
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
-# minutemaker
+minutemaker
+================
 
 <!-- badges: start -->
 
@@ -32,8 +30,9 @@ transcripts from the major meeting platforms (WebEx, Zoom, MS Teams,
 etc.) to bypass speech-to-text entirely.
 
 The package supports the Whisper API from OpenAI or Azure, or local
-models via <https://github.com/Softcatala/whisper-ctranslate2> (install
-separately) for speech transcription.
+models via
+[whisper-ctranslate2](https://github.com/Softcatala/whisper-ctranslate2)
+(install separately) for speech transcription.
 
 For the transcript summarization, the package can use the chat endpoint
 from either OpenAI, Azure or a local model with an OpenAI compatible
@@ -49,6 +48,25 @@ In general, we suggest to use an LLM with a \>32K long context window,
 to avoid loss of information.
 
 Here is an example workflow.
+
+### Template workflow script
+
+You can start from the packaged workflow template and customize it for
+your meeting. The helper below writes a copy to the target directory.
+
+``` r
+generate_workflow_template("path/to/meeting/folder")
+```
+
+If you prefer to inspect the template without copying it:
+
+``` r
+system.file(
+  "templates",
+  "meeting_summary_template.R",
+  package = "minutemaker"
+)
+```
 
 ### Setting up the package
 
@@ -118,6 +136,57 @@ These settings can also be passed manually to the various functions, but
 the option system is more convenient. You only need to set the options
 for the APIs you want to use (e.g., you don’t need the speech-to-text
 API options if you already have a transcript).
+
+### Automated Context Generation
+
+For enhanced summarization quality, you can automatically generate
+meeting context from documentation materials using the
+`generate_context()` function. This extracts expected agendas, event
+descriptions, audience information, vocabulary lists, and speech-to-text
+prompts from meeting materials (PDFs, DOCX, PPTX, Excel files).
+
+``` r
+# Generate context from documentation in a materials folder
+generate_context(
+  target_dir = "meeting_folder",
+  material_dir = "documentation",  # Folder with meeting materials
+  strategy = "agentic"  # Multi-pass context generation (recommended)
+)
+
+# Context is automatically used by speech_to_summary_workflow() when generate_context = TRUE
+speech_to_summary_workflow(
+  target_dir = "meeting_folder",
+  generate_context = TRUE,  # Enable automatic context generation
+  # ... other arguments
+)
+```
+
+**Model recommendations:** Use large, state-of-the-art models like
+GPT-5.2 and the `agentic` strategy for best results. The `one_pass`
+strategy is suitable for a cost-effective solution.
+
+**Configuration Options:** Several global options control context
+generation behavior:
+
+- `minutemaker_context_material_dir`: Directory name for documentation
+  materials (default: `documentation`)
+- `minutemaker_context_gen_strategy`: Generation strategy - `agentic`
+  (recommended) or `one_pass` (default: `agentic`)
+- `minutemaker_context_gen_llm_model`: Specific llmR model label for
+  context generation (optional, uses active model if unset)
+- `minutemaker_overwrite_context`: Whether to overwrite existing context
+  files (default: `FALSE`)
+
+Set these options globally to customize context generation:
+
+``` r
+options(
+  minutemaker_context_material_dir = "documentation",
+  minutemaker_context_gen_strategy = "agentic",
+  minutemaker_context_gen_llm_model = "your_context_model",
+  minutemaker_overwrite_context = FALSE
+)
+```
 
 ### Transcript-First Workflow
 
@@ -738,3 +807,80 @@ the first is an expert option since it can break the prompt generation.
 
 Use `set_promts(force = TRUE)` to restore all prompts to their default
 values.
+
+### Package options
+
+This section lists every `minutemaker_*` option defined in the package
+code. You can set any of them with `options(...)` in your R session.
+
+#### Core workflow and formatting
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_event_start_time` | `NULL` | Clock-time string `HH:MM[:SS][ AM/PM]` (e.g., `"09:00"` or `"03:30 PM"`) | Converts clock times to seconds to align transcripts and agendas. |
+| `minutemaker_stt_model` | `NULL` (functions default to `"whisper_local"`) | String model label: `"openai_whisper"`, `"azure_whisper"`, `"whisper_local"`, `"mlx_whisper_local"`, or `"whisper_ctranslate2"` | Default STT backend used by workflow helpers and `perform_speech_to_text()`. |
+
+#### Speech-to-text (STT)
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_openai_api_key` | `NULL` | Non-empty string API key | Used by OpenAI Whisper requests. |
+| `minutemaker_azure_resource_whisper` | `NULL` | String resource name (not a URL) | Used to build the Azure Whisper endpoint. |
+| `minutemaker_azure_deployment_whisper` | `NULL` | String deployment ID | Selects the Azure Whisper deployment. |
+| `minutemaker_azure_api_key_whisper` | `NULL` | Non-empty string API key | Used for Azure Whisper authentication. |
+| `minutemaker_azure_api_version` | `NULL` | String version (e.g., `"2024-06-01"`) | Passed as the Azure `api-version`. |
+| `minutemaker_whisper_package` | `"openai-whisper"` or `"mlx_whisper"` | String python package name: `"openai-whisper"` or `"mlx_whisper"` | Selects the local Whisper python backend package. |
+| `minutemaker_split_audio_parallel` | `FALSE` | Logical `TRUE`/`FALSE` | Enables `mirai` workers for `split_audio()`. |
+| `minutemaker_split_audio_parallel_timeout` | `120` | Positive integer seconds | Timeout for parallel audio splitting before aborting. |
+
+#### Transcript correction
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_correction_llm_model` | `NULL` (falls back to `llmr_current_model`) | String llmR model label | Model used by `apply_llm_correction()`; falls back to `llmr_current_model`. |
+| `minutemaker_include_llm_reasoning` | `TRUE` | Logical `TRUE`/`FALSE` | Requests explicit reasoning before JSON corrections. |
+
+#### Context generation
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_context_material_dir` | `"documentation"` | String directory name or relative path | Folder (relative to `target_dir`) containing meeting materials for `generate_context()`. |
+| `minutemaker_context_gen_strategy` | `"agentic"` | String `"agentic"` or `"one_pass"` | Selects multi-pass vs single-call context generation. |
+| `minutemaker_context_gen_llm_model` | `NULL` | String llmR model label | Overrides the active model only for context generation. |
+| `minutemaker_overwrite_context` | `FALSE` | Logical `TRUE`/`FALSE` | Overwrite existing `context/` files when `TRUE`. |
+| `minutemaker_context_generation_max_retries` | `3` | Positive integer | Max retry attempts per generated context field. |
+
+#### Prompt customization (`set_prompts()` / `get_prompts()`)
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_prompt_persona` | Built-in prompt text | Character string | Persona block that sets overall voice/role. |
+| `minutemaker_prompt_base_task` | Built-in prompt text | Character string | Base task instruction for summarization. |
+| `minutemaker_prompt_aggregate_task_rolling` | Built-in prompt text | Character string | Task for rolling-window aggregation. |
+| `minutemaker_prompt_agenda_inference_task` | Built-in prompt text | Character string | Task used when inferring agenda structure. |
+| `minutemaker_prompt_event_description_template` | Built-in prompt text | Character string template with `{event_description}` | Wraps event description content. |
+| `minutemaker_prompt_recording_details_template` | Built-in prompt text | Character string template with `{recording_details}` | Wraps recording details content. |
+| `minutemaker_prompt_transcript_template` | Built-in prompt text | Character string template with `{transcript}` | Wraps transcript segment text. |
+| `minutemaker_prompt_aggregate_template_rolling` | Built-in prompt text | Character string | Intro wrapper before rolling summaries. |
+| `minutemaker_prompt_agenda_inference_template` | Built-in prompt text | Character string template | Frames transcript text for agenda inference. |
+| `minutemaker_prompt_vocabulary_template` | Built-in prompt text | Character string template with `{vocabulary}` | Injects vocabulary and term guidance. |
+| `minutemaker_prompt_diarization_template` | Built-in prompt text | Character string template with `{extra_diarization_instructions}` | Wraps diarization instructions and extra hints. |
+| `minutemaker_prompt_audience_template` | Built-in prompt text | Character string template with `{audience}` | Injects audience focus guidance. |
+| `minutemaker_prompt_summarisation_template` | Built-in prompt text | Character string template with `{summary_structure}` | Wraps summary structure instructions. |
+| `minutemaker_prompt_summary_structure` | Built-in prompt text | Character string or vector of bullet lines | Default summary sections when none are supplied. |
+| `minutemaker_prompt_output_template` | Built-in prompt text | Character string template with `{output_instructions}` and `{output_length}` | Wraps output rules and length requirement. |
+| `minutemaker_prompt_output_summarisation` | Built-in prompt text | Character vector of instruction lines | Default output rules for summarization. |
+| `minutemaker_prompt_output_rolling_aggregation` | Built-in prompt text | Character vector of instruction lines | Default output rules for rolling aggregation. |
+
+For the full default prompt texts, run `get_prompts()` in R (or inspect
+`set_prompts()` in the source).
+
+#### Internal cache/state (advanced)
+
+| Option | Default | Format | Description |
+|----|----|----|----|
+| `minutemaker_temp_agenda` | `NULL` | List of numeric seconds | In-session cache of inferred agenda breakpoints. |
+| `minutemaker_temp_agenda_last_bp` | `NULL` | Integer index | Last processed breakpoint index for resume. |
+| `minutemaker_temp_agenda_hash` | `NULL` | String hash | Cache key used to invalidate agenda inference results. |
+| `minutemaker_data_merge_hash` | `NULL` | String hash | Cache key for deprecated GloVe utilities. |
+| `minutemaker_data_merge_model` | `NULL` | Numeric matrix | Cached GloVe embeddings for deprecated functions. |

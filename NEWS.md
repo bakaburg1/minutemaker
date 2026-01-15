@@ -1,3 +1,23 @@
+# minutemaker 0.16.0
+
+**Automated Context Generation for Meeting Summaries**
+
+## Enhancements
+- Context Generation Implementation: Add comprehensive `generate_context` function to automatically extract meeting context from documentation materials including expected agenda, event description, audience, vocabulary, and STT prompts (Commit: afe455a965a8bd62ac0223306a61825714b3b559).
+- Workflow Template Helper: Introduce `generate_workflow_template` function to create packaged workflow scripts with STT and external transcript support (Commit: d8897b3ddf924d9564fd3c9d600127b818658b2b).
+- Workflow Integration: Automatically generate meeting context in `speech_to_summary_workflow` with `generate_context` parameter (default TRUE), taking precedence over manual parameters (Commit: 6fd151e493024fbe5e6b5ee3fb3ed43ddf4274b9).
+
+## Fixes
+- CMD Check Compliance: Address R CMD check notes by using string column names and fixing roxygen markup for CLI alerts (Commit: 6463a4b111409da7ff46851a67e5c73edfcc846e).
+- Workflow Template Path: Return absolute path from `generate_workflow_template` function (Commit: 6a16ae2ae2d65e7220232f67779365208487f265).
+
+## Documentation
+- Context Generation Documentation: Add comprehensive documentation for automated context generation feature with usage examples and model recommendations (Commit: b0d2f95a3fb33190c72e9de9db669cf9034691c9).
+- Agents Documentation Updates: Add learning points for context generation cache, strategy control, helper usage preferences, and Rscript dollar expansion (Commits: c828a99a2d77f48b45ce201b37edc2ac669eb27e, ff9af167f827ed15d35c1de9f75887bc29922868, 333e0452c05231cebd30eed1481a1204c69faa1d, d4247195ae0f296f0e28223af01e4ce8).
+
+## Summary
+This PR introduces automated context generation functionality that revolutionizes the meeting summarization workflow by automatically extracting relevant context from documentation materials. The new `generate_context` function supports multiple document formats (PDF, Excel, Word, RTF, plain text) and uses an agentic strategy by default for higher quality outputs. Context generation is seamlessly integrated into the main workflow function, with caching support and comprehensive documentation. This enhancement significantly improves the accuracy and automation of meeting minutes generation by providing rich contextual information to the summarization models.
+
 # minutemaker 0.15.0
 
 **Transcript-first workflow and external transcript support**

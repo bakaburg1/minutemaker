@@ -14,9 +14,9 @@
 #' @param split_audio A boolean indicating whether the audio file should be
 #'   split into multiple files. Some models, like "Whisper" based ones, can
 #'   process files only up to 25 MB. See `split_audio` for more details.
-#' @param split_audio_duration The duration of each split audio file in
-#'   minutes. 20 minutes equate to more or less 7-8 MB. See `split_audio` for
-#'   more details.
+#' @param split_audio_duration The duration of each split audio file in minutes.
+#'   20 minutes equate to more or less 7-8 MB. See `split_audio` for more
+#'   details.
 #' @param stt_audio_dir A string with the path to the folder where the audio
 #'   files to transcribe will be stored. See `split_audio` and
 #'   `perform_speech_to_text` for more details. The files in this folder will be
@@ -56,8 +56,8 @@
 #'   automatically if a .vtt, .srt or .docx file is available in the target
 #'   directory. Pass NULL or NA to disable the automatic importation of
 #'   transcript files. See `import_transcript_from_file` for more details.
-#' @param import_diarization A boolean indicating whether the
-#'   speaker should be imported from the external transcript, if present. See
+#' @param import_diarization A boolean indicating whether the speaker should be
+#'   imported from the external transcript, if present. See
 #'   `import_transcript_from_file` for more details.
 #' @param chat_file A string with the path to a file containing the chat data.
 #'   It will be picked up automatically if a file with "Chat" in its name is
@@ -66,9 +66,16 @@
 #'   that `event_start_time` must be set if `chat_file` is not NULL.
 #' @param chat_format A string indicating the online meeting platform used to
 #'   generate the chat file. See `add_chat_transcript` for more details.
-#' @param use_agenda Controls whether to use an agenda for summarization.
-#'   Possible values are "ask" (interactive prompting), "yes" (use or generate
-#'   agenda), or "no" (don't use an agenda).
+#' @param generate_context A logical value indicating whether to generate
+#'   meeting context from documentation materials and transcripts before running
+#'   the workflow. When TRUE, analyzes materials in the 'documentation' folder
+#'   to automatically extract: expected agenda, event description, audience
+#'   info, domain vocabulary, and STT initial prompts. This significantly
+#'   improves summarization quality by providing domain-specific context to the
+#'   LLMs. Generated context takes precedence over manually provided parameters.
+#' @param use_agenda A string indicating whether to use an agenda for
+#'   summarization. Possible values are "ask" (interactive prompting), "yes"
+#'   (use or generate agenda), or "no" (don't use an agenda).
 #' @param agenda_file The path to an agenda file. If use_agenda="yes" and this
 #'   file exists, it will be used; otherwise a new agenda will be generated and
 #'   saved to this path.
@@ -177,6 +184,7 @@ speech_to_summary_workflow <- function(
     full.names = TRUE
   )[1],
   chat_format = "webex",
+  generate_context = TRUE,
 
   # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
   use_agenda = c("ask", "yes", "no"),
@@ -207,16 +215,16 @@ speech_to_summary_workflow <- function(
   formatted_output_file = file.path(target_dir, "event_summary.txt"),
   overwrite_formatted_output = FALSE
 ) {
-  if (!rlang::is_string(target_dir) || is.na(target_dir) || target_dir == "") {
-    cli::cli_abort(
-      c(
-        "Invalid {.code target_dir} provided.",
-        "x" = "Received {.val {target_dir}}.",
-        "i" = "Pass a folder containing your meeting files (audio and/or transcript).",
-        "i" = "If calling from a script, prefer {.code dirname(funr::get_script_path())} rather than the script file path."
-      )
+  target_dir <- path_exists(
+    target_dir,
+    type = "dir",
+    fail_msg = c(
+      "Invalid {.code target_dir} provided.",
+      "x" = "Received {.val {`_path`}}.",
+      "i" = "Pass a folder containing your meeting files (audio and/or transcript).",
+      "i" = "If calling from a script, prefer {.code dirname(funr::get_script_path())} rather than the script file path."
     )
-  }
+  )
 
   if (lifecycle::is_present(stt_output_dir)) {
     lifecycle::deprecate_warn(
@@ -230,68 +238,136 @@ speech_to_summary_workflow <- function(
     }
   }
 
-  target_dir <- fs::path_norm(target_dir)
-  if (fs::file_exists(target_dir) && !fs::dir_exists(target_dir)) {
-    cli::cli_alert_warning(
-      "The provided {.path {target_dir}} points to a file. Using its parent directory: {.path {fs::path_dir(target_dir)}}"
-    )
-    target_dir <- fs::path_dir(target_dir)
-  }
-
-  if (!fs::dir_exists(target_dir)) {
-    cli::cli_abort(
-      c(
-        "Target directory not found.",
-        "x" = "The path supplied to {.path target_dir} does not exist: {.path {target_dir}}",
-        "i" = "Point {.path target_dir} to the folder containing your audio or transcript files."
-      )
-    )
-  }
-
   summarization_method <- match.arg(summarization_method)
   use_agenda <- match.arg(use_agenda)
 
   # Initialize agenda variable to track the actual agenda content
   agenda <- NULL
 
+  ## Context Generation ----
+
+  # Generate meeting context from documentation materials to improve
+  # summarization quality.
+  # This extracts meeting-specific information that helps LLMs produce more
+  # accurate and contextually appropriate summaries by providing domain
+  # knowledge, vocabulary, and structural information about the meeting.
+
+  if (isTRUE(generate_context)) {
+    cli::cli_h2("Context Generation")
+
+    # Determine if we have an external transcript available for context
+    # generation. The STT initial prompt is only generated when no external
+    # transcript exists, as external transcripts are typically already
+    # high-quality and don't need STT hints.
+    external_transcript_path <- path_exists(
+      external_transcript,
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    )
+    if (!isFALSE(external_transcript_path)) {
+      cli::cli_alert_info(
+        "External transcript available for context generation: {.file {basename(external_transcript_path)}}"
+      )
+    }
+
+    # Generate context using the specified strategy (one_pass or agentic).
+    # This analyzes documentation materials in the 'documentation' folder and
+    # optionally uses transcript content to create meeting-specific context.
+    cli::cli_alert("Generating meeting context from documentation materials...")
+    context_values <- generate_context(
+      target_dir = target_dir,
+      material_dir = getOption(
+        "minutemaker_context_material_dir",
+        "documentation"
+      ),
+      overwrite = getOption("minutemaker_overwrite_context", FALSE),
+      generate_expected_agenda = use_agenda != "no", # Only generate agenda if it will be used
+      generate_event_description = TRUE, # Meeting purpose and goals
+      generate_audience = TRUE, # Who the meeting is for and focus areas
+      generate_vocabulary = TRUE, # Domain-specific terms and abbreviations
+      generate_initial_prompt = isFALSE(external_transcript_path), # STT hints only when needed
+      expected_agenda = expected_agenda, # User-provided agenda guidance
+      event_description = event_description, # User-provided meeting description
+      audience = audience, # User-provided audience info
+      vocabulary = vocabulary, # User-provided vocabulary terms
+      stt_initial_prompt = stt_initial_prompt, # User-provided STT hints
+      external_transcript = external_transcript_path, # Transcript for context (optional)
+      llm_provider = llm_provider
+    )
+
+    # Integrate generated context into workflow parameters.
+    # Generated context takes precedence over user-provided values, with informative alerts.
+    if (!is.null(context_values$expected_agenda)) {
+      cli::cli_alert_success(
+        "Using generated expected agenda for summarization"
+      )
+      expected_agenda <- context_values$expected_agenda
+    }
+    if (!is.null(context_values$event_description)) {
+      cli::cli_alert_success("Using generated event description")
+      event_description <- context_values$event_description
+    }
+    if (!is.null(context_values$audience)) {
+      cli::cli_alert_success("Using generated audience information")
+      audience <- context_values$audience
+    }
+    if (!is.null(context_values$vocabulary)) {
+      cli::cli_alert_success(
+        "Using generated vocabulary ({length(context_values$vocabulary)} terms)"
+      )
+      vocabulary <- context_values$vocabulary
+    }
+    if (!is.null(context_values$stt_initial_prompt)) {
+      cli::cli_alert_success("Using generated STT initial prompt")
+      stt_initial_prompt <- context_values$stt_initial_prompt
+    }
+
+    cli::cli_alert_success("Context generation completed")
+  }
+
   cli::cli_h1("Audio Preprocessing")
   ## Perform audio splitting ##
 
   # Decide whether to perform STT or use external transcript
   perform_stt <- TRUE
+  # Only check when a real path was supplied to avoid warnings on NULL/NA.
+  ext_path <- FALSE
   if (rlang::is_string(external_transcript)) {
-    if (fs::file_exists(external_transcript)) {
-      cli::cli_alert_info(
-        "External transcript found: {.file {basename(external_transcript)}}.
-        Bypassing speech-to-text transcription."
+    ext_path <- path_exists(
+      external_transcript,
+      stop_on_error = FALSE,
+      fail_msg = c(
+        "External transcript file not found.",
+        "x" = "No file exists at {.path {`_path`}}."
       )
-      use_transcript_input(
-        file = external_transcript,
-        target_dir = target_dir,
-        import_diarization = import_diarization,
-        overwrite = overwrite_transcription_files
-      )
-      perform_stt <- FALSE
-    } else {
-      cli::cli_warn(
-        "External transcript file not found at {.path {external_transcript}}."
-      )
-    }
+    )
+  }
+  if (!isFALSE(ext_path)) {
+    cli::cli_alert_info(
+      "External transcript found: {.file {basename(ext_path)}}.
+      Bypassing speech-to-text transcription."
+    )
+    use_transcript_input(
+      file = ext_path,
+      target_dir = target_dir,
+      import_diarization = import_diarization,
+      overwrite = overwrite_transcription_files
+    )
+    perform_stt <- FALSE
   }
 
   if (perform_stt) {
     # Check if the stt audio dir is empty or overwrite is TRUE
     if (overwrite_stt_audio || purrr::is_empty(list.files(stt_audio_dir))) {
-      if (!rlang::is_string(source_audio) || !fs::file_exists(source_audio)) {
-        cli::cli_abort(
-          c(
-            "No audio found for speech-to-text.",
-            "x" = "Expected a valid source audio file but received: {.path {source_audio}}",
-            "i" = "Place an audio file in {.path {stt_audio_dir}} or pass it explicitly via {.code source_audio}.",
-            "i" = "If you want to start from an existing transcript, supply it via {.code external_transcript} (e.g., a .vtt/.srt/.docx file in {.path {target_dir}})."
-          )
+      source_audio <- path_exists(
+        source_audio,
+        fail_msg = c(
+          "No audio found for speech-to-text.",
+          "x" = "Expected a valid source audio file but received: {.path {`_path`}}",
+          "i" = "Place an audio file in the folder specified by {.arg stt_audio_dir} or pass it explicitly via {.code source_audio}.",
+          "i" = "If you want to start from an existing transcript, supply it via {.code external_transcript} (e.g., a .vtt/.srt/.docx file in your target directory)."
         )
-      }
+      )
 
       if (isFALSE(split_audio)) {
         # If `split_audio` is FALSE, the audio file will be just copied to the
@@ -504,8 +580,10 @@ speech_to_summary_workflow <- function(
     multipart_summary <- FALSE
   } else {
     # Check if agenda file exists
-    agenda_file_exists <- rlang::is_string(agenda_file) &&
-      fs::file_exists(agenda_file)
+    agenda_file_exists <- !isFALSE(path_exists(
+      agenda_file,
+      stop_on_error = FALSE
+    ))
 
     # If use_agenda is "ask" but we're not in interactive mode, treat as "yes"
     if (use_agenda == "ask" && !interactive()) {
@@ -757,4 +835,63 @@ speech_to_summary_workflow <- function(
   cli::cli_rule()
 
   return(mget(return_vec))
+}
+
+#' Generate a workflow template script
+#'
+#' Copy the meeting summary template script from the package to a target path.
+#' This template provides a starting point for running the full workflow.
+#'
+#' @param path A file path or directory where the template should be written.
+#'   If a directory is supplied, the file will be named
+#'   `meeting_summary_template.R`.
+#' @param overwrite A logical value indicating whether to overwrite an existing
+#'   file at the target path.
+#'
+#' @return The path to the generated template, invisibly.
+#' @export
+#'
+generate_workflow_template <- function(path = ".", overwrite = FALSE) {
+  path <- check_path(path)
+
+  template_path <- system.file(
+    "templates",
+    "meeting_summary_template.R",
+    package = "minutemaker"
+  )
+
+  if (template_path == "") {
+    cli::cli_abort(
+      c(
+        "Template file not found in the package.",
+        "x" = "Expected the template at {.path inst/templates}."
+      )
+    )
+  }
+
+  if (fs::dir_exists(path)) {
+    dest_path <- file.path(path, "meeting_summary_template.R")
+  } else {
+    dest_path <- path
+    dest_dir <- dirname(dest_path)
+    if (!fs::dir_exists(dest_dir)) {
+      fs::dir_create(dest_dir, recurse = TRUE)
+    }
+  }
+
+  dest_path <- fs::path_abs(dest_path)
+
+  if (file.exists(dest_path) && !isTRUE(overwrite)) {
+    cli::cli_abort(
+      c(
+        "Template already exists at {.path {dest_path}}.",
+        "i" = "Set {.arg overwrite} to TRUE to replace it."
+      )
+    )
+  }
+
+  fs::file_copy(template_path, dest_path, overwrite = overwrite)
+  cli::cli_alert_success("Template written to {.path {dest_path}}.")
+
+  invisible(dest_path)
 }

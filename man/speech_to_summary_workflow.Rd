@@ -29,6 +29,7 @@ speech_to_summary_workflow(
   chat_file = list.files(target_dir, pattern = "Chat.*\\\\.txt$", ignore.case = TRUE,
     full.names = TRUE)[1],
   chat_format = "webex",
+  generate_context = TRUE,
   use_agenda = c("ask", "yes", "no"),
   agenda_file = file.path(target_dir, "agenda.R"),
   expected_agenda = NULL,
@@ -67,9 +68,9 @@ place into the \code{stt_audio_dir} folder. See \code{split_audio} for more deta
 split into multiple files. Some models, like "Whisper" based ones, can
 process files only up to 25 MB. See \code{split_audio} for more details.}
 
-\item{split_audio_duration}{The duration of each split audio file in
-minutes. 20 minutes equate to more or less 7-8 MB. See \code{split_audio} for
-more details.}
+\item{split_audio_duration}{The duration of each split audio file in minutes.
+20 minutes equate to more or less 7-8 MB. See \code{split_audio} for more
+details.}
 
 \item{stt_audio_dir}{A string with the path to the folder where the audio
 files to transcribe will be stored. See \code{split_audio} and
@@ -124,8 +125,8 @@ automatically if a .vtt, .srt or .docx file is available in the target
 directory. Pass NULL or NA to disable the automatic importation of
 transcript files. See \code{import_transcript_from_file} for more details.}
 
-\item{import_diarization}{A boolean indicating whether the
-speaker should be imported from the external transcript, if present. See
+\item{import_diarization}{A boolean indicating whether the speaker should be
+imported from the external transcript, if present. See
 \code{import_transcript_from_file} for more details.}
 
 \item{chat_file}{A string with the path to a file containing the chat data.
@@ -137,9 +138,17 @@ that \code{event_start_time} must be set if \code{chat_file} is not NULL.}
 \item{chat_format}{A string indicating the online meeting platform used to
 generate the chat file. See \code{add_chat_transcript} for more details.}
 
-\item{use_agenda}{Controls whether to use an agenda for summarization.
-Possible values are "ask" (interactive prompting), "yes" (use or generate
-agenda), or "no" (don't use an agenda).}
+\item{generate_context}{A logical value indicating whether to generate
+meeting context from documentation materials and transcripts before running
+the workflow. When TRUE, analyzes materials in the 'documentation' folder
+to automatically extract: expected agenda, event description, audience
+info, domain vocabulary, and STT initial prompts. This significantly
+improves summarization quality by providing domain-specific context to the
+LLMs. Generated context takes precedence over manually provided parameters.}
+
+\item{use_agenda}{A string indicating whether to use an agenda for
+summarization. Possible values are "ask" (interactive prompting), "yes"
+(use or generate agenda), or "no" (don't use an agenda).}
 
 \item{agenda_file}{The path to an agenda file. If use_agenda="yes" and this
 file exists, it will be used; otherwise a new agenda will be generated and

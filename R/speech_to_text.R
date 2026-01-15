@@ -44,9 +44,20 @@ perform_speech_to_text <- function(
     initial_prompt <- ""
   }
 
-  # Check if file_path is a folder
-  if (dir.exists(audio_path)) {
+  audio_dir <- path_exists(
+    audio_path,
+    type = "dir",
+    stop_on_error = FALSE
+  )
+  audio_file <- path_exists(
+    audio_path,
+    stop_on_error = FALSE
+  )
+
+  # Check if audio_path is a folder
+  if (!isFALSE(audio_dir)) {
     # Get all audio files in the folder
+    audio_path <- audio_dir
     audio_files <- list.files(audio_path, pattern = "\\.(m\\da|mp\\d|wav)$")
 
     # Reorder the files by the number in the file name, otherwise they will be
@@ -54,8 +65,9 @@ perform_speech_to_text <- function(
     file_order <- stringr::str_order(audio_files, numeric = TRUE)
 
     audio_files <- file.path(audio_path, audio_files[file_order])
-  } else if (file.exists(audio_path)) {
-    # User the provided file path
+  } else if (!isFALSE(audio_file)) {
+    # Use the provided file path
+    audio_path <- audio_file
     audio_files <- audio_path
   } else {
     cli::cli_abort(
@@ -69,6 +81,15 @@ perform_speech_to_text <- function(
       "No audio files found in the specified path: {.path {audio_path}}"
     )
   }
+
+  # Recompute default output directory after validation so it uses the trimmed
+  # path.
+  if (missing(output_dir)) {
+    output_dir <- file.path(dirname(audio_path), "transcription_output_data")
+  }
+
+  # Validate output directory path since this function creates directories.
+  output_dir <- check_path(output_dir)
 
   # Create the output directory if it doesn't exist
   if (!dir.exists(output_dir)) {

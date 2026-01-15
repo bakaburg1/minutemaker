@@ -16,55 +16,124 @@ Do not blindly interpret and enact changes if:
 
 **Always ask to confirm the course of action before proceeding.** When in doubt, ask.
 
-### R guidelines
+### Structured communication and referencing
 
-Read and follow these guidelines:
-https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/R-rules.md
-https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/unit-testing.md
+When presenting headings, plans, questions, or lists, always use ordered numbering or lettering (e.g., 1, 2, 3; a, b, c; I, II, III) and nest them hierarchically when necessary. This allows easy reference when the user replies or comments on specific points.
+
+Examples:
+
+- Use numbered lists for main points: 1. First point, 2. Second point, 3. Third point
+- Use lettered sub-points when needed: a. Sub-point, b. Another sub-point
+- Use nested numbering for hierarchical structures: 1. Main item, 1.1. Sub-item, 1.2. Another sub-item
+- Apply this to all structured content: plans of action, questions, lists of options, step-by-step instructions, etc.
+
+### Agent skills and guidelines
+
+Read and follow these guidelines when appropriate:
+- Writing R code: <https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/R-rules.md>
+- Writing R unit tests: <https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/unit-testing.md>
+- Writing and performing git commits: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/commit.md>
+- Assess and apply code review recommendations: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/verify.md>
+- Write git Pull Request descriptions: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/pr.md>
+
+Do not read these guidelines if not relevant to the task at hand.
 
 ### Track learning points
 
-Update progressively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, corrections and remarks from the user, etc.
+Update progressively this document when you learn something about how to better perform your tasks related to this project. This could be coding best practices, implementation details, overall design decisions, etc. and especially, corrections and remarks from the user.
 
-Update the list below with the new learning points:
+Any learning point that refers to functions, datasets, or concepts of this package is **project-specific** by definition and must be recorded under `current_project`, not `general`.
+
+Update the list below with the new learning points, filing each memory into the correct group:
 
 ```yaml
-- name: cli alert level conventions
-  description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
-  scope: logging/messages
-- name: agenda inference start times validation
-  description: Warn and skip when LLM agenda start_times are empty; abort when non-numeric or coercion introduces NA values.
-  scope: agenda inference
-- name: external transcript overwrite control
-  description: use_transcript_input skips writing when existing JSON segments are present unless overwrite is TRUE, and workflow passes overwrite_transcription_files through.
-  scope: transcript import/workflow
-- name: cli alert capture
-  description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
-  scope: testing
-- name: agenda cleaning for empty slices
-  description: clean_agenda() drops or aborts agenda items with empty transcript slices to keep agenda and summary tree aligned.
-  scope: agenda/workflow
-- name: roxygen generation only
-  description: Never write .Rd or NAMESPACE manually; always run devtools::document() to update documentation and exports.
-  scope: documentation
-- name: git write confirmation
-  description: Always ask for explicit user confirmation before performing any write operation to the git repository, such as commit, push, or other actions that modify git history.
-  scope: git operations
-- name: dependency additions via usethis
-  description: Always add packages with usethis::use_package using min_version = TRUE when updating dependencies.
-  scope: dependencies
-- name: cli alert bullet handling
-  description: cli_alert* functions do not support named bullet vectors; emit one cli_alert* call per bullet message instead of passing a named vector.
-  scope: logging/messages
-- name: devtools test filter usage
-  description: Run tests with Rscript -e 'devtools::test(filter = \"...\")' (no testthat::test_file); use devtools::load_all() only for small console repros, not test runs.
-  scope: testing
-- name: base r null coalesce operator
-  description: `%||%` is available in base R in this project environment; prefer base `%||%` where appropriate instead of importing from rlang.
-  scope: language/base
-- name: missing argument detection with defaults
-  description: `rlang::is_missing()` returns FALSE for arguments that were not supplied but have defaults; use base `missing()` when you need to detect that case.
-  scope: language/base
+current_project:
+  - name: agenda inference start times validation
+    description: Warn and skip when LLM agenda start_times are empty; abort when non-numeric or coercion introduces NA values.
+    scope: agenda inference
+  - name: external transcript overwrite control
+    description: use_transcript_input skips writing when existing JSON segments are present unless overwrite is TRUE, and workflow passes overwrite_transcription_files through.
+    scope: transcript import/workflow
+  - name: agenda cleaning for empty slices
+    description: clean_agenda() drops or aborts agenda items with empty transcript slices to keep agenda and summary tree aligned.
+    scope: agenda/workflow
+  - name: meeting summary template location
+    description: Store the meeting summary generation template under `inst/templates/meeting_summary_template.R` so users can copy it via `system.file()`.
+    scope: documentation
+  - name: readme generation workflow
+    description: Update only `README.Rmd` and regenerate `README.md` via `devtools::build_readme()`.
+    scope: documentation
+  - name: context generation cache
+    description: generate_context caches per-field context in `context/`, uses `minutemaker_context_material_dir` and `minutemaker_overwrite_context` options, and existing files override manual inputs with info alerts.
+    scope: context generation
+  - name: context generation strategy control
+    description: generate_context uses only `strategy` parameter ("one_pass" or "agentic") to control generation method. The legacy `mode` parameter (single/per_field) was removed; "one_pass" now always uses single-call JSON generation.
+    scope: context generation
+  - name: helper usage preference
+    description: Avoid trivial global helpers; keep globals only for logic that needs tests or reuse, and add preamble comments to in-body helpers.
+    scope: code structure
+  - name: path validation with check_path
+    description: Use check_path() for consistent validation of paths intended for creating/writing files or directories. It trims whitespace and returns the trimmed path on success; rejects NULL/NA/empty strings; validates against reserved names and dangerous characters; and (for relative paths) tests whether the directory structure can be created in a temp location. Use stop_on_error = TRUE to abort on failure and stop_on_error = FALSE to warn and return FALSE.
+    scope: validation
+  - name: existence checks with path_exists
+    description: Use path_exists() for existence checks only (wraps check_path() then fs::file_exists()/dir_exists()). It returns the trimmed path when it exists with the requested type, otherwise returns FALSE (or aborts if stop_on_error = TRUE). Default type is "file"; pass type = "dir" or type = "any" only when needed.
+    scope: validation
+  - name: fail_msg contract for path validators
+    description: check_path() and path_exists() accept fail_msg to centralize messaging. If missing, default in-function messages are used. If a string or cli-style bullet vector, it is used for cli_abort/cli_warn and can interpolate `{`_path`}` (full path) and `{`_basename`}` (basename). If fail_msg is FALSE or NA, messaging is suppressed and the function returns FALSE when stop_on_error = FALSE; when stop_on_error = TRUE, fail_msg = FALSE/NA is treated as missing (defaults are used). Do not use a separate silent argument.
+    scope: validation
+  - name: avoid is_scalar_character for path checks
+    description: Avoid rlang::is_scalar_character() for path validation because it can allow NA values; prefer check_path()/path_exists() to handle NULL/NA/whitespace consistently.
+    scope: validation
+general:
+  - name: cli alert level conventions
+    description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
+    scope: logging/messages
+  - name: cli alert capture
+    description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
+    scope: testing
+  - name: roxygen generation only
+    description: Never write .Rd or NAMESPACE manually; always run devtools::document() to update documentation and exports.
+    scope: documentation
+  - name: git write confirmation
+    description: Always ask for explicit user confirmation before performing any write operation to the git repository, such as commit, push, or other actions that modify git history.
+    scope: git operations
+  - name: dependency additions via usethis
+    description: Always add packages with usethis::use_package using min_version = TRUE when updating dependencies.
+    scope: dependencies
+  - name: cli alert bullet handling
+    description: cli_alert* functions do not support named bullet vectors; emit one cli_alert* call per bullet message instead of passing a named vector.
+    scope: logging/messages
+  - name: devtools test filter usage
+    description: Run tests with Rscript -e 'devtools::test(filter = \"...\")' (no testthat::test_file); use devtools::load_all() only for small console repros, not test runs.
+    scope: testing
+  - name: base r null coalesce operator
+    description: `%||%` is available in base R in this project environment; prefer base `%||%` where appropriate instead of importing from rlang.
+    scope: language/base
+  - name: missing argument detection with defaults
+    description: `rlang::is_missing()` returns FALSE for arguments that were not supplied but have defaults; use base `missing()` when you need to detect that case.
+    scope: language/base
+  - name: renv autoloading in script runs
+    description: Set `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE` when running `Rscript` to avoid renv autoload/lock issues during local checks.
+    scope: tooling/renv
+  - name: rscript dollar expansion
+    description: When running `Rscript -e` in the shell, escape `$` or use single quotes otherwise shell expansion will transform e.g. `Rscript -e "a <- list(); a$b <- 3"` into `a <- list(); a <- 3`.
+    scope: shell
+  - name: roxygen backticks for inline code
+    description: Use backticks (`code`) instead of \code{code} for inline code formatting in Roxygen documentation to follow modern R documentation conventions.
+    scope: documentation
+```
+
+### Tested assumptions
+
+Record every time an assumption was tested and found to be wrong, to avoid
+repeating the same errors or beliefs. If you are unsure which group applies,
+ask the user before recording the memory.
+
+Any tested assumption that refers to functions, datasets, or concepts of this package is **project-specific** by definition and must be recorded under `current_project`, not `general`.
+
+```yaml
+current_project: []
+general: []
 ```
 
 ### Dependency Management (`renv`)

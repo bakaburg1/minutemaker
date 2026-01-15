@@ -1,6 +1,6 @@
 Package: minutemaker
 Title: GenAI-based meeting and conferences minutes generator
-Version: 0.15.0
+Version: 0.16.0
 Authors@R:
     person("Angelo", "D'Ambrosio", , "a.dambrosioMD@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2045-5155"))
@@ -40,4 +40,7 @@ Suggests:
     usethis (>= 2.2.3),
     withr (>= 3.0.2),
     mirai (>= 2.5.3),
-    officer (>= 0.7.2)
+    officer (>= 0.7.2),
+    readxl (>= 1.4.5),
+    pdftools (>= 3.6.0),
+    striprtf (>= 0.6.0)

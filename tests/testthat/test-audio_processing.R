@@ -241,6 +241,8 @@ test_that("parallel timeout shuts down started daemons once", {
       list(minutemaker_split_audio_parallel_timeout = 0)
     )
 
+    file.create("fake.wav")
+
     call_log <- list(start = 0L, stop = 0L)
     sequential_calls <- 0L
 
@@ -289,6 +291,8 @@ test_that("parallel workers receive helper bindings", {
   skip_on_cran()
 
   withr::with_tempdir({
+    file.create("dummy.wav")
+
     # Ensure we start and stop with a clean pool of daemons
     withr::defer({
       if (mirai::status(.compute = "minutemaker")$daemons > 0) {
@@ -616,6 +620,8 @@ test_that("split_audio creates the expected number of segments", {
   dummy_info <- list(duration = 120) # 2 minutes total
 
   withr::with_tempdir({
+    write_dummy_wav("dummy.wav")
+
     local_mocked_bindings(
       av_media_info = function(file) dummy_info,
       av_audio_convert = function(input, output, ...) {
@@ -829,6 +835,8 @@ test_that("extract_audio_segment fails after max retries", {
 test_that("split_audio sequential mode calls worker function correctly", {
   skip_if_not_installed("av")
   withr::with_tempdir({
+    file.create("dummy.mp3")
+
     worker_calls <- 0
     # Mock the dependencies of split_audio
     local_mocked_bindings(
@@ -854,6 +862,8 @@ test_that("split_audio sequential mode calls worker function correctly", {
 test_that("split_audio parallel mode fail-fast works as expected", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
+    file.create("dummy.mp3")
+
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
     cli::cli_alert_info(
       "Expect worker failure messages below; this test simulates a crash."
@@ -907,6 +917,8 @@ test_that("split_audio parallel mode fail-fast works as expected", {
 test_that("split_audio parallel mode checks for corrupted source on failure", {
   skip_if_not_installed(c("av", "mirai"))
   withr::with_tempdir({
+    file.create("dummy.mp3")
+
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
     withr::local_options(minutemaker_split_audio_parallel_timeout = 120)
     cli::cli_alert_info(
@@ -962,6 +974,8 @@ test_that("split_audio marks processed flags after timeout fallback", {
   skip_on_cran()
 
   withr::with_tempdir({
+    file.create("dummy.wav")
+
     # Force a very short timeout so the loop falls back to sequential processing
     withr::local_options(minutemaker_split_audio_parallel_timeout = 0.01)
 

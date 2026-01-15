@@ -17,6 +17,6 @@ invisible NULL.
 \description{
 When the agenda is non-empty, the event_start_time is NULL, and
 all agenda items have numeric 'from' values, this function emits a
-{cli::cli_alert_warning} stating that "00:00:00" will be used as the
+\code{cli::cli_alert_warning()} stating that "00:00:00" will be used as the
 default.
 }

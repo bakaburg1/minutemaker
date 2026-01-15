@@ -23,8 +23,7 @@ the LLM should pay special attention to. Can be NULL.}
 \item{include_reasoning}{Logical, if \code{TRUE}, the LLM will be asked to
 provide its reasoning before the JSON output. This approach improves
 quality with non-reasoning models. This reasoning will be messaged to the
-console. Defaults to \code{getOption("minutemaker_include_llm_reasoning",
-  TRUE)}.}
+console. Defaults to \code{getOption("minutemaker_include_llm_reasoning", TRUE)}.}
 
 \item{overwrite}{Logical, if \code{TRUE}, existing files will be overwritten
 with the corrected transcript. Defaults to \code{FALSE}.}
