@@ -2115,6 +2115,8 @@ generate_context <- function(
 
   estimate_tokens <- function(text) {
     # Crude approximation: ~4 characters per token in English-like text.
+    # This is intentionally approximate; tokenization varies by model and
+    # language, and chunking tolerates minor over/under-estimation.
     ceiling(nchar(text, type = "chars") / 4)
   }
 
