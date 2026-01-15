@@ -77,6 +77,7 @@ generate_context <- function(
   # Input validation ----
   # Ensure target_dir exists and points to a directory (not a file).
   # Normalize path to handle relative paths consistently throughout.
+  # rlang::is_string(NA_character_) is FALSE, so NA inputs are rejected here.
   if (!rlang::is_string(target_dir) || !nzchar(target_dir)) {
     cli::cli_abort(
       c(
@@ -107,6 +108,7 @@ generate_context <- function(
   }
 
   # Validate material_dir is a non-empty string (absolute or relative path).
+  # rlang::is_string(NA_character_) is FALSE, so NA inputs are rejected here.
   if (!rlang::is_string(material_dir) || !nzchar(material_dir)) {
     cli::cli_abort("The {.arg material_dir} must be a non-empty string.")
   }
@@ -942,6 +944,14 @@ generate_context <- function(
         )
       )
 
+      # Abort early when the retry loop yielded no output.
+      if (is.null(pass1_raw)) {
+        cli::cli_abort(
+          "Pass 1 LLM retry loop exited without result or error.",
+          call = NULL
+        )
+      }
+
       readr::write_lines(pass1_raw, pass1_raw_path)
     } else {
       pass1_raw <- readr::read_file(pass1_raw_path)
@@ -1065,6 +1075,14 @@ generate_context <- function(
               llm_args
             )
           )
+
+          # Abort early when the retry loop yielded no output.
+          if (is.null(raw)) {
+            cli::cli_abort(
+              "Pass 2 LLM retry loop exited without result or error.",
+              call = NULL
+            )
+          }
 
           readr::write_lines(raw, raw_path)
         } else {
@@ -1201,6 +1219,14 @@ generate_context <- function(
           llm_args
         )
       )
+
+      # Abort early when the retry loop yielded no output.
+      if (is.null(pass3_raw)) {
+        cli::cli_abort(
+          "Pass 3 LLM retry loop exited without result or error.",
+          call = NULL
+        )
+      }
 
       readr::write_lines(pass3_raw, pass3_raw_path)
     } else {
