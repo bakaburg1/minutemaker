@@ -647,7 +647,7 @@ generate_context <- function(
               next
             } else {
               cli::cli_alert_warning(
-                "LLM returned very short response after {max_retries} attempts. Using empty result."
+                "LLM returned very short response after {max_retries} attempts. Using short response."
               )
             }
           }
