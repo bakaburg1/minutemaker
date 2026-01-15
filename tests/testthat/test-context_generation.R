@@ -67,6 +67,86 @@ test_that("docx tables are preserved as markdown-like blocks", {
   })
 })
 
+# Tests for .gen_cntx_read_officer() ------------------------------------------
+
+test_that("reconstructs merged docx table rows", {
+  testthat::skip_if_not_installed("officer")
+
+  summary <- data.frame(
+    doc_index = c(1, 1, 1, 1),
+    content_type = rep("table cell", 4),
+    text = c("A", "B", "C", "D"),
+    table_index = rep(1, 4),
+    row_id = c(1, 1, 2, 2),
+    cell_id = c(1, 2, 1, 2),
+    col_span = c(2, 1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  testthat::local_mocked_bindings(
+    read_docx = function(path) "doc",
+    docx_summary = function(doc) summary,
+    .package = "officer"
+  )
+
+  text <- minutemaker:::.gen_cntx_read_officer("mock.docx", "docx")
+
+  expect_match(text, "| A B |  |", fixed = TRUE)
+  expect_match(text, "| C | D |", fixed = TRUE)
+})
+
+test_that("fills missing docx table cells when rows are sparse", {
+  testthat::skip_if_not_installed("officer")
+
+  summary <- data.frame(
+    doc_index = c(1, 1, 1),
+    content_type = rep("table cell", 3),
+    text = c("Left", "Right", "Solo"),
+    table_index = rep(1, 3),
+    row_id = c(1, 1, 2),
+    cell_id = c(1, 2, 1),
+    col_span = rep(1, 3),
+    stringsAsFactors = FALSE
+  )
+
+  testthat::local_mocked_bindings(
+    read_docx = function(path) "doc",
+    docx_summary = function(doc) summary,
+    .package = "officer"
+  )
+
+  text <- minutemaker:::.gen_cntx_read_officer("mock.docx", "docx")
+
+  expect_match(text, "| Left | Right |", fixed = TRUE)
+  expect_match(text, "| Solo |  |", fixed = TRUE)
+})
+
+test_that("handles variable column counts across docx table rows", {
+  testthat::skip_if_not_installed("officer")
+
+  summary <- data.frame(
+    doc_index = c(1, 1, 1, 1, 1),
+    content_type = rep("table cell", 5),
+    text = c("A", "B", "C", "D", "E"),
+    table_index = rep(1, 5),
+    row_id = c(1, 1, 1, 2, 2),
+    cell_id = c(1, 2, 3, 1, 2),
+    col_span = rep(1, 5),
+    stringsAsFactors = FALSE
+  )
+
+  testthat::local_mocked_bindings(
+    read_docx = function(path) "doc",
+    docx_summary = function(doc) summary,
+    .package = "officer"
+  )
+
+  text <- minutemaker:::.gen_cntx_read_officer("mock.docx", "docx")
+
+  expect_match(text, "| A | B | C |", fixed = TRUE)
+  expect_match(text, "| D | E |  |", fixed = TRUE)
+})
+
 test_that("generate_context writes files from a single LLM response", {
   withr::with_tempdir({
     material_dir <- file.path(getwd(), "documentation")
