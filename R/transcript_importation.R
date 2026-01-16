@@ -229,13 +229,13 @@ parse_transcript_json <- function(
   full_transcript <- clean_transcript(full_transcript)
 
   if (!is.null(event_start_time)) {
+    event_start_time_raw <- event_start_time
     event_start_time <- parse_event_time(event_start_time)
 
     if (is.na(event_start_time)) {
       cli::cli_abort(
         c(
-          "Event start time
-          {.val {getOption(\"minutemaker_event_start_time\", \"NULL\")}}
+          "Event start time {.val {event_start_time_raw}}
           is not interpretable.",
           "x" = "Failed to parse the start time.",
           "i" = "Please use the HH:MM(:SS) or HH:MM(:SS) AM/PM format

@@ -333,6 +333,18 @@ test_that("parse_transcript_json uses metadata unless event_start_time is NA", {
   )
 })
 
+test_that("parse_transcript_json handles date-time metadata start time", {
+  dir_path <- testthat::test_path(
+    "material",
+    "teams_json_out",
+    "transcription_output_data"
+  )
+  skip_if_not(dir.exists(dir_path))
+
+  parsed <- parse_transcript_json(dir_path)
+  expect_true(all(c("start_clock", "end_clock") %in% names(parsed)))
+})
+
 test_that("handles JSON file missing 'segments' field", {
   temp_dir_for_test_single_file <- withr::local_tempdir()
   json_content_no_segments <- list(some_other_field = "data")

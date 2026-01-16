@@ -42,6 +42,16 @@ test_that("parse_event_time parses valid time strings", {
   )
 })
 
+test_that("parse_event_time strips date when parsing date-time strings", {
+  parsed <- parse_event_time("March 12, 2125, 09:17AM")
+  expect_s3_class(parsed, "POSIXct")
+  expect_identical(format(parsed, "%H:%M:%S"), "09:17:00")
+
+  parsed_iso <- parse_event_time("2024-01-16 18:05:45")
+  expect_s3_class(parsed_iso, "POSIXct")
+  expect_identical(format(parsed_iso, "%H:%M:%S"), "18:05:45")
+})
+
 test_that("parse_event_time handles unparseable time strings gracefully", {
   expect_warning(time_na <- parse_event_time("invalid_time"))
   expect_true(is.na(time_na))
@@ -163,4 +173,3 @@ test_that("time_to_numeric handles unparseable time strings via parse_event_time
   )
   expect_true(is.na(res4))
 })
-

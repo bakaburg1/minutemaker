@@ -39,7 +39,54 @@ parse_event_time <- function(time, format = c("R", "T")) {
   if (inherits(time, "POSIXct")) {
     time
   } else {
-    lubridate::parse_date_time(time, format)
+    parsed <- suppressWarnings(lubridate::parse_date_time(time, format))
+    if (all(is.na(parsed))) {
+      extra_orders <- c(
+        "B d Y IMp",
+        "B d Y IMS p",
+        "B d Y HM",
+        "B d Y HMS",
+        "b d Y IMp",
+        "b d Y IMS p",
+        "b d Y HM",
+        "b d Y HMS",
+        "ymd IMp",
+        "ymd IMS p",
+        "ymd HM",
+        "ymd HMS",
+        "mdy IMp",
+        "mdy IMS p",
+        "mdy HM",
+        "mdy HMS",
+        "dmy IMp",
+        "dmy IMS p",
+        "dmy HM",
+        "dmy HMS"
+      )
+      parsed <- lubridate::parse_date_time(
+        time,
+        orders = unique(c(format, extra_orders))
+      )
+    }
+
+    date_pattern <- paste0(
+      "(?i)(",
+      "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|",
+      "\\d{4}|\\d{1,2}[-/]\\d{1,2}",
+      ")"
+    )
+    has_date <- stringr::str_detect(time, date_pattern)
+
+    if (any(has_date, na.rm = TRUE) && !all(is.na(parsed))) {
+      normalized <- parsed
+      normalized[has_date] <- lubridate::parse_date_time(
+        format(parsed[has_date], "%H:%M:%S"),
+        orders = "HMS"
+      )
+      parsed <- normalized
+    }
+
+    parsed
   }
 }
 
