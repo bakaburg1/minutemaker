@@ -378,6 +378,25 @@ check_path <- function(path, stop_on_error = TRUE, fail_msg) {
   path
 }
 
+#' Validate and create a directory
+#'
+#' @param path A directory path to validate and create if missing.
+#' @param fail_msg Optional error message passed to `check_path()`.
+#'
+#' @keywords internal
+#'
+#' @return The validated directory path.
+#'
+create_dir <- function(path, fail_msg) {
+  if (!missing(fail_msg)) {
+    path <- check_path(path, fail_msg = fail_msg)
+  } else {
+    path <- check_path(path)
+  }
+
+  fs::dir_create(path)
+}
+
 #' Build interpolation environment for path_exists messages
 #'
 #' @param path A character string with the path for interpolation.

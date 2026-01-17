@@ -17,7 +17,14 @@ test_that("use_transcript_input standardizes VTT correctly", {
 
   target_dir <- withr::local_tempdir()
 
-  result_files <- use_transcript_input(vtt_path, target_dir = target_dir)
+  result_files <- use_transcript_input(
+    vtt_path,
+    target_dir = target_dir,
+    transcription_output_dir = file.path(
+      target_dir,
+      "transcription_output_data"
+    )
+  )
 
   expect_true(all(file.exists(result_files)))
 
@@ -54,7 +61,14 @@ test_that("use_transcript_input standardizes DOCX correctly", {
 
   target_dir <- withr::local_tempdir()
 
-  result_files <- use_transcript_input(docx_path, target_dir = target_dir)
+  result_files <- use_transcript_input(
+    docx_path,
+    target_dir = target_dir,
+    transcription_output_dir = file.path(
+      target_dir,
+      "transcription_output_data"
+    )
+  )
 
   expect_true(all(file.exists(result_files)))
   expected_dir <- testthat::test_path(
@@ -104,10 +118,17 @@ test_that("use_transcript_input skips existing output when overwrite is FALSE", 
     result_files <- use_transcript_input(
       vtt_path,
       target_dir = target_dir,
+      transcription_output_dir = file.path(
+        target_dir,
+        "transcription_output_data"
+      ),
       overwrite = FALSE
     )
 
-    expect_identical(result_files, existing_file)
+    expect_identical(
+      normalizePath(result_files, mustWork = TRUE),
+      normalizePath(existing_file, mustWork = TRUE)
+    )
     expect_identical(
       jsonlite::read_json(existing_file),
       existing_json
@@ -139,14 +160,47 @@ test_that("use_transcript_input overwrites output when overwrite is TRUE", {
     result_files <- use_transcript_input(
       vtt_path,
       target_dir = target_dir,
+      transcription_output_dir = file.path(
+        target_dir,
+        "transcription_output_data"
+      ),
       overwrite = TRUE
     )
 
-    expect_identical(result_files, existing_file)
+    expect_identical(
+      normalizePath(result_files, mustWork = TRUE),
+      normalizePath(existing_file, mustWork = TRUE)
+    )
 
     updated_json <- jsonlite::read_json(existing_file)
     expect_identical(updated_json$text, "Hello world")
   })
+})
+
+test_that("use_transcript_input writes to transcription_output_dir", {
+  vtt_path <- testthat::test_path("material", "webex.vtt")
+  skip_if_not(file.exists(vtt_path))
+
+  target_dir <- withr::local_tempdir()
+  custom_dir <- "custom_transcription_dir"
+
+  result_files <- use_transcript_input(
+    vtt_path,
+    target_dir = target_dir,
+    transcription_output_dir = custom_dir
+  )
+
+  expected_dir <- testthat::test_path(
+    "material",
+    "webex_json_out",
+    "transcription_output_data"
+  )
+  expected_files <- segment_files(expected_dir)
+
+  expect_true(all(file.exists(result_files)))
+  expect_length(result_files, length(expected_files))
+  expect_identical(basename(result_files), basename(expected_files))
+  expect_true(fs::dir_exists(file.path(target_dir, custom_dir)))
 })
 
 test_that("import_transcript_from_file aborts on invalid DOCX", {
@@ -187,7 +241,8 @@ test_that("workflow bypasses STT when external_transcript is provided", {
     result <- withr::with_options(
       list(
         llmr_llm_provider = "mock",
-        minutemaker_event_start_time = NULL
+        minutemaker_event_start_time = NULL,
+        minutemaker_transcription_output_dir = "transcription_output_data"
       ),
       {
         speech_to_summary_workflow(
@@ -205,7 +260,7 @@ test_that("workflow bypasses STT when external_transcript is provided", {
     expect_named(result, c("transcript_data", "formatted_summary"))
     expect_identical(result$formatted_summary, "Mock summary")
     expect_true(file.exists(
-      "transcription_output_data/segment_1.json"
+      file.path(target_dir, "transcription_output_data", "segment_1.json")
     ))
   })
 })

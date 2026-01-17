@@ -95,6 +95,72 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
   })
 })
 
+test_that("workflow passes transcription output dir to external transcript import", {
+  withr::with_tempdir({
+    target_dir <- "."
+    custom_dir <- "custom_transcription_dir"
+    vtt_path <- "test.vtt"
+
+    writeLines(
+      c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
+      vtt_path
+    )
+
+    output_dir_seen <- NULL
+
+    testthat::local_mocked_bindings(
+      use_transcript_input = function(
+        file,
+        target_dir,
+        transcription_output_dir,
+        ...
+      ) {
+        output_dir_seen <<- transcription_output_dir
+        file.create(file.path(transcription_output_dir, "segment_1.json"))
+        invisible(transcription_output_dir)
+      },
+      apply_llm_correction = function(...) invisible(NULL),
+      parse_transcript_json = function(transcription_output_dir, ...) {
+        dplyr::tibble(
+          text = "mocked transcript text",
+          start_time = 0,
+          end_time = 1000,
+          speaker = "SPEAKER_00"
+        )
+      },
+      summarise_transcript = function(...) "mock summary content",
+      get_prompts = function(...) "mock prompt"
+    )
+
+    result <- withr::with_options(
+      list(
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL,
+        minutemaker_transcription_output_dir = custom_dir
+      ),
+      {
+        speech_to_summary_workflow(
+          target_dir = target_dir,
+          external_transcript = vtt_path,
+          generate_context = FALSE,
+          source_audio = NULL,
+          use_agenda = "no",
+          llm_provider = "mock_provider",
+          formatted_output_file = "summary.txt",
+          enable_llm_correction = FALSE,
+          transcription_output_dir = custom_dir
+        )
+      }
+    )
+
+    expect_identical(
+      output_dir_seen,
+      file.path(target_dir, custom_dir)
+    )
+    expect_named(result, c("transcript_data", "formatted_summary"))
+  })
+})
+
 test_that("workflow errors clearly when neither audio nor transcript are available", {
   withr::with_tempdir({
     expect_error(
@@ -331,7 +397,10 @@ test_that("workflow warns when using deprecated stt_output_dir", {
       }
     )
 
-    expect_identical(output_dir_seen, deprecated_output_dir)
+    expect_identical(
+      normalizePath(output_dir_seen, mustWork = TRUE),
+      normalizePath(file.path(target_dir, deprecated_output_dir), mustWork = TRUE)
+    )
   })
 })
 

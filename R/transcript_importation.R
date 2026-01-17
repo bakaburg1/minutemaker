@@ -733,6 +733,10 @@ add_chat_transcript <- function(
 #'
 #' @param file Path to the external transcript file.
 #' @param target_dir Path to the target directory where the workflow is running.
+#' @param transcription_output_dir Path to the directory where transcript
+#'   intermediate files should be written. Defaults to the
+#'   `minutemaker_transcription_output_dir` option. If relative, it is resolved
+#'   from `target_dir`.
 #' @param import_diarization A boolean indicating whether the speaker should be
 #'   imported from the transcript, if present.
 #' @param lines_per_json A positive integer indicating how many transcript rows
@@ -746,6 +750,7 @@ add_chat_transcript <- function(
 use_transcript_input <- function(
   file,
   target_dir = getwd(),
+  transcription_output_dir = getOption("minutemaker_transcription_output_dir"),
   import_diarization = TRUE,
   lines_per_json = 50,
   overwrite = FALSE
@@ -773,10 +778,19 @@ use_transcript_input <- function(
   }
 
   # Create the transcription output directory if it doesn't exist
-  transcription_output_dir <- file.path(target_dir, "transcription_output_data")
-  if (!fs::dir_exists(transcription_output_dir)) {
-    fs::dir_create(transcription_output_dir)
+  if (!fs::is_absolute_path(transcription_output_dir)) {
+    transcription_output_dir <- file.path(
+      target_dir,
+      transcription_output_dir
+    )
   }
+  transcription_output_dir <- create_dir(
+    transcription_output_dir,
+    fail_msg = c(
+      "No transcription output directory provided.",
+      "x" = "Set the {.code minutemaker_transcription_output_dir} option or pass {.arg transcription_output_dir}."
+    )
+  )
 
   existing_files <- list.files(
     transcription_output_dir,
@@ -792,7 +806,7 @@ use_transcript_input <- function(
     existing_files <- existing_files[file_order]
 
     cli::cli_alert_info(
-      "Existing transcript JSON files found in {.path {transcription_output_dir}}.
+      "Existing transcript intermediate files found in {.path {transcription_output_dir}}.
       Skipping overwrite."
     )
 

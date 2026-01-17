@@ -45,26 +45,57 @@ test_that("perform_speech_to_text processes files and handles overwrite", {
     # Create a dummy audio file
     write_dummy_wav("test.wav")
 
-    # First run should call the model once
-    perform_speech_to_text("test.wav", model = "whisper_local")
-    expect_equal(model_calls, 1)
-    expect_true(file.exists("transcription_output_data/test.json"))
+    withr::with_options(
+      list(minutemaker_transcription_output_dir = "transcription_output_data"),
+      {
+        # First run should call the model once
+        perform_speech_to_text("test.wav", model = "whisper_local")
+        expect_equal(model_calls, 1)
+        expect_true(file.exists("transcription_output_data/test.json"))
 
-    # Second run with overwrite=FALSE should NOT call the model
-    perform_speech_to_text(
-      "test.wav",
-      model = "whisper_local",
-      overwrite = FALSE
-    )
-    expect_equal(model_calls, 1)
+        # Second run with overwrite=FALSE should NOT call the model
+        perform_speech_to_text(
+          "test.wav",
+          model = "whisper_local",
+          overwrite = FALSE
+        )
+        expect_equal(model_calls, 1)
 
-    # Third run with overwrite=TRUE SHOULD call the model again
-    perform_speech_to_text(
-      "test.wav",
-      model = "whisper_local",
-      overwrite = TRUE
+        # Third run with overwrite=TRUE SHOULD call the model again
+        perform_speech_to_text(
+          "test.wav",
+          model = "whisper_local",
+          overwrite = TRUE
+        )
+        expect_equal(model_calls, 2)
+      }
     )
-    expect_equal(model_calls, 2)
+  })
+})
+
+test_that("perform_speech_to_text uses option-based output dir", {
+  skip_if_not_installed("jsonlite")
+  dummy_json <- list(text = "test", segments = list())
+
+  local_mocked_bindings(
+    use_whisper_local_stt = function(...) dummy_json,
+    parse_transcript_json = function(...) "parsed",
+    .package = "minutemaker"
+  )
+
+  withr::with_tempdir({
+    write_dummy_wav("test.wav")
+
+    withr::with_options(
+      list(minutemaker_transcription_output_dir = "custom_output_dir"),
+      {
+        perform_speech_to_text("test.wav", model = "whisper_local")
+      }
+    )
+
+    expect_true(
+      file.exists(file.path("custom_output_dir", "test.json"))
+    )
   })
 })
 

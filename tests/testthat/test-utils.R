@@ -130,6 +130,21 @@ test_that("time_to_numeric throws error for incompatible time and origin types",
   )
 })
 
+# Tests for create_dir() ---
+
+test_that("create_dir validates and creates directories", {
+  withr::with_tempdir({
+    nested_path <- file.path("nested", "dir")
+
+    created <- create_dir(nested_path)
+    expect_identical(as.character(created), nested_path)
+    expect_true(fs::dir_exists(nested_path))
+
+    created_again <- create_dir(nested_path)
+    expect_identical(as.character(created_again), nested_path)
+  })
+})
+
 test_that("time_to_numeric throws error for negative time difference", {
   expect_error(
     time_to_numeric("01:00:00", origin = "02:00:00"),

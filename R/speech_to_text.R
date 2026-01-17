@@ -9,8 +9,10 @@
 #'
 #' @param audio_path Path to one or more audio files or to a folder of audio
 #'   files. Tested with .mp3 and .wav files.
-#' @param output_dir Path to output directory. If the directory doesn't exist,
-#'   it will be created in the same directory as the audio file.
+#' @param output_dir Path to output directory. Defaults to the
+#'   `minutemaker_transcription_output_dir` option. If the directory doesn't
+#'   exist, it will be created in the same directory as the audio file when a
+#'   relative path is provided.
 #' @param model Name of the model to use. The models available in the package
 #'   are: "azure_whisper" (online API), "openai_whisper" (online API),
 #'   "whisper_ctranslate2" (offline local model). Users can provide their own
@@ -32,7 +34,7 @@
 #'
 perform_speech_to_text <- function(
   audio_path,
-  output_dir = file.path(dirname(audio_path), "transcription_output_data"),
+  output_dir = getOption("minutemaker_transcription_output_dir"),
   model = getOption("minutemaker_stt_model", "whisper_local"),
   initial_prompt = NULL,
   overwrite = FALSE,
@@ -84,17 +86,18 @@ perform_speech_to_text <- function(
 
   # Recompute default output directory after validation so it uses the trimmed
   # path.
-  if (missing(output_dir)) {
-    output_dir <- file.path(dirname(audio_path), "transcription_output_data")
+  if (!fs::is_absolute_path(output_dir)) {
+    output_dir <- file.path(dirname(audio_path), output_dir)
   }
 
   # Validate output directory path since this function creates directories.
-  output_dir <- check_path(output_dir)
-
-  # Create the output directory if it doesn't exist
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
+  output_dir <- create_dir(
+    output_dir,
+    fail_msg = c(
+      "No transcription output directory provided.",
+      "x" = "Set the {.code minutemaker_transcription_output_dir} option or pass {.arg output_dir}."
+    )
+  )
 
   # Initialize the prompt to link two transcripts
   last_text <- ""

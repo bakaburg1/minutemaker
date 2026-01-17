@@ -792,6 +792,7 @@ You can set any of them with `options(...)` in your R session.
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
 | `minutemaker_event_start_time` | `NULL` | Clock-time string `HH:MM[:SS][ AM/PM]` (e.g., `"09:00"` or `"03:30 PM"`) | Converts clock times to seconds to align transcripts and agendas. |
+| `minutemaker_transcription_output_dir` | `NULL` | String directory name or path | Folder for transcript intermediate files. Relative paths are resolved from `target_dir` (workflow) or the audio directory (STT). |
 | `minutemaker_stt_model` | `NULL` (functions default to `"whisper_local"`) | String model label: `"openai_whisper"`, `"azure_whisper"`, `"whisper_local"`, `"mlx_whisper_local"`, or `"whisper_ctranslate2"` | Default STT backend used by workflow helpers and `perform_speech_to_text()`. |
 
 #### Speech-to-text (STT)
