@@ -1,5 +1,7 @@
 ## General instructions
 
+As the first step in a fresh thread, read `README.md` to understand the project.
+
 For any requested change or task which is not trivial, you should always assess the situation, test your assumptions in the console (e.g., small repros or focused checks), make tests, and then present a detailed plan of action before ANY change to the code. Run relevant unit tests after the edit (not before), unless explicitly requested otherwise.
 You'll enact your plan of action after the plan has been approved by the user.
 
@@ -83,6 +85,12 @@ current_project:
     scope: validation
   - name: avoid is_scalar_character for path checks
     description: Avoid rlang::is_scalar_character() for path validation because it can allow NA values; prefer check_path()/path_exists() to handle NULL/NA/whitespace consistently.
+    scope: validation
+  - name: transcript intermediate files directory option
+    description: Use the `minutemaker_transcription_output_dir` option as the default location for transcript intermediate files across workflow, STT, and external transcript import; allow overrides via arguments and validate/create with create_dir().
+    scope: transcript/workflow
+  - name: file path utilities centralize validation
+    description: Avoid ad hoc string checks for file paths; rely on `check_path()`, `path_exists()`, and `create_dir()` which centralize validation and messaging. Consult their documentation for how to raise file errors via `fail_msg`, `stop_on_error`, and related rules.
     scope: validation
 general:
   - name: cli alert level conventions
