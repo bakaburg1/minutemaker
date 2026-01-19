@@ -18,6 +18,8 @@ Do not blindly interpret and enact changes if:
 
 **Always ask to confirm the course of action before proceeding.** When in doubt, ask.
 
+When asking questions, **always state the best approach you recommend and why**.
+
 ### Structured communication and referencing
 
 When presenting headings, plans, questions, or lists, always use ordered numbering or lettering (e.g., 1, 2, 3; a, b, c; I, II, III) and nest them hierarchically when necessary. This allows easy reference when the user replies or comments on specific points.
@@ -92,10 +94,16 @@ current_project:
   - name: file path utilities centralize validation
     description: Avoid ad hoc string checks for file paths; rely on `check_path()`, `path_exists()`, and `create_dir()` which centralize validation and messaging. Consult their documentation for how to raise file errors via `fail_msg`, `stop_on_error`, and related rules.
     scope: validation
+  - name: working directory path semantics
+    description: Remove `target_dir` from workflows; relative paths are resolved from the working directory, and users should set it with `setwd()` or `withr::with_dir()`.
+    scope: workflow/paths
 general:
   - name: cli alert level conventions
     description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
     scope: logging/messages
+  - name: test comment dash style
+    description: Section comment headers in code and test files should use four dashes (e.g., `# Tests for foo() ----`), not three. Otherwise IDEs will not recognize them as sections.
+    scope: code/documentation
   - name: cli alert capture
     description: cli_alert* emits messages that expect_message() can capture in tests; expect_warning() will not.
     scope: testing
@@ -141,7 +149,10 @@ Any tested assumption that refers to functions, datasets, or concepts of this pa
 
 ```yaml
 current_project: []
-general: []
+general:
+  - name: rlang is_scalar export
+    description: `rlang::is_scalar()` is not exported; use a length check or another exported helper instead.
+    scope: language/base
 ```
 
 ### Dependency Management (`renv`)
