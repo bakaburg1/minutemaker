@@ -188,3 +188,36 @@ test_that("time_to_numeric handles unparseable time strings via parse_event_time
   )
   expect_true(is.na(res4))
 })
+
+# Tests for is_valid() ---
+
+test_that("is_valid reports class mismatches with argument names", {
+  a <- 3
+  expect_error(
+    is_valid(a, "logical"),
+    regexp = "`a` should be a <logical>, received a <numeric>\\."
+  )
+  expect_error(
+    is_valid(a, "bool"),
+    regexp = "`a` should be a <logical> of length 1, received a <numeric>\\."
+  )
+  b <- 1
+  expect_error(
+    is_valid(b, "string"),
+    regexp = "`b` should be a <character> of length 1, received a <numeric>\\."
+  )
+})
+
+test_that("is_valid enforces non-missing values and scalar length", {
+  a <- NA
+  expect_error(
+    is_valid(a, "bool"),
+    regexp = "`a` should be a non-missing <logical> of length 1, received NA\\."
+  )
+
+  a <- 1:2
+  expect_error(
+    is_valid(a, "bool", scalar = TRUE),
+    regexp = "`a` should be a <logical> of length 1, received <integer> of length 2\\."
+  )
+})

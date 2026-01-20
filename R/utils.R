@@ -175,6 +175,153 @@ time_to_numeric <- function(time, origin = NULL) {
   diff
 }
 
+#' Validate a value against expected classes
+#'
+#' @param var A value to validate.
+#' @param classes A character vector of acceptable classes.
+#' @param stop_on_error If `TRUE`, raises an error when validation fails. If
+#'   `FALSE`, returns `FALSE`.
+#' @param allow_na If `TRUE`, allow `NA` values for atomic vectors. Defaults to
+#'   `FALSE`.
+#' @param fail_msg Optional error/warning message to use when validation fails.
+#'   If missing, default messages are used. If `stop_on_error = FALSE` and
+#'   `fail_msg` is provided, it is emitted as a warning. If `FALSE` or `NA`,
+#'   messaging is suppressed and the function simply returns `FALSE`. When
+#'   `stop_on_error = TRUE`, `fail_msg = FALSE` or `NA` is treated as if
+#'   `fail_msg` was missing (default error messages are used).
+#'
+#' @keywords internal
+#'
+#' @return `TRUE` when valid, or `FALSE` when `stop_on_error = FALSE` and
+#'   validation fails.
+#'
+is_valid <- function(
+  var,
+  classes,
+  stop_on_error = TRUE,
+  allow_na = FALSE,
+  scalar = FALSE,
+  fail_msg
+) {
+  # Helper: Determine if custom messaging for failure is suppressed.
+  is_msg_suppressed <- function(fail_msg) {
+    isFALSE(fail_msg) ||
+      (rlang::is_scalar_logical(fail_msg) && is.na(fail_msg))
+  }
+
+  caller_env <- parent.frame()
+  arg_label <- rlang::as_label(rlang::enexpr(var))
+  fail_msg_missing <- missing(fail_msg)
+  fail_msg_suppressed <- !fail_msg_missing && is_msg_suppressed(fail_msg)
+
+  classes <- as.character(classes)
+  if (length(classes) == 0L) {
+    cli::cli_abort("`classes` must contain at least one class name.")
+  }
+
+  is_bool <- "bool" %in% classes
+  is_string <- "string" %in% classes
+  if (is_bool) {
+    classes <- unique(c(classes[classes != "bool"], "logical"))
+  }
+  if (is_string) {
+    classes <- unique(c(classes[classes != "string"], "character"))
+  }
+  scalar_required <- isTRUE(scalar) || is_bool || is_string
+
+  fail <- function(default_bullets) {
+    env <- new.env(parent = caller_env)
+    env$arg_label <- arg_label
+    env$classes <- classes
+    env$received_class <- received_class
+    env$received_length <- received_length
+    env$var <- var
+
+    fail_msg_missing_for_error <- fail_msg_missing ||
+      (isTRUE(stop_on_error) && fail_msg_suppressed)
+    if (isTRUE(stop_on_error)) {
+      bullets <- if (fail_msg_missing_for_error) {
+        default_bullets
+      } else {
+        fail_msg
+      }
+      cli::cli_abort(bullets, .envir = env)
+    }
+    if (!fail_msg_missing && !fail_msg_suppressed) {
+      cli::cli_warn(fail_msg, .envir = env)
+    }
+    FALSE
+  }
+
+  if (length(classes) == 1L) {
+    expected_phrase <- if (scalar_required) {
+      "a {.cls {classes}} of length 1"
+    } else {
+      "a {.cls {classes}}"
+    }
+    expected_phrase_non_missing <- if (scalar_required) {
+      "a non-missing {.cls {classes}} of length 1"
+    } else {
+      "a non-missing {.cls {classes}}"
+    }
+    expected_phrase_scalar <- "a {.cls {classes}} of length 1"
+  } else {
+    expected_phrase <- if (scalar_required) {
+      "one of {.cls {classes}} of length 1"
+    } else {
+      "one of {.cls {classes}}"
+    }
+    expected_phrase_non_missing <- if (scalar_required) {
+      paste("a non-missing value of one of {.cls {classes}} of length 1")
+    } else {
+      paste("a non-missing value of one of {.cls {classes}}")
+    }
+    expected_phrase_scalar <- "one of {.cls {classes}} of length 1"
+  }
+
+  received_class <- class(var)
+  received_class <- if (length(received_class) == 0L) {
+    "NULL"
+  } else {
+    received_class[[1]]
+  }
+  received_length <- length(var)
+
+  if (scalar_required && received_length != 1L) {
+    return(fail(c(
+      paste0(
+        "`", arg_label, "` should be ",
+        expected_phrase_scalar,
+        ", received {.cls {received_class}} of length ",
+        received_length,
+        "."
+      )
+    )))
+  }
+
+  if (!inherits(var, classes)) {
+    return(fail(c(
+      paste0(
+        "`", arg_label, "` should be ",
+        expected_phrase,
+        ", received a {.cls {received_class}}."
+      )
+    )))
+  }
+
+  if (!allow_na && !is.null(var) && is.atomic(var) && any(is.na(var))) {
+    return(fail(c(
+      paste0(
+        "`", arg_label, "` should be ",
+        expected_phrase_non_missing,
+        ", received {.val {var}}."
+      )
+    )))
+  }
+
+  TRUE
+}
+
 #' Check if a file path is valid
 #'
 #' Performs comprehensive validation on file paths including type checking,
