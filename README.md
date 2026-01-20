@@ -49,10 +49,16 @@ to avoid loss of information.
 
 Here is an example workflow.
 
+All relative paths are resolved from the working directory, and the
+package creates its files and folders there. Use `setwd()` or
+`withr::with_dir()` to set the working directory before running the
+workflow.
+
 ### Template workflow script
 
 You can start from the packaged workflow template and customize it for
-your meeting. The helper below writes a copy to the target directory.
+your meeting. The helper below writes a copy to the current working
+directory.
 
 ``` r
 generate_workflow_template("path/to/meeting/folder")
@@ -148,14 +154,12 @@ prompts from meeting materials (PDFs, DOCX, PPTX, Excel files).
 ``` r
 # Generate context from documentation in a materials folder
 generate_context(
-  target_dir = "meeting_folder",
   material_dir = "documentation",  # Folder with meeting materials
   strategy = "agentic"  # Multi-pass context generation (recommended)
 )
 
 # Context is automatically used by speech_to_summary_workflow() when generate_context = TRUE
 speech_to_summary_workflow(
-  target_dir = "meeting_folder",
   generate_context = TRUE,  # Enable automatic context generation
   # ... other arguments
 )
@@ -206,8 +210,6 @@ summarization.
 ``` r
 # Use an external transcript directly
 speech_to_summary_workflow(
-  target_dir = "path/to/your/project",
-
   # Skip audio processing entirely by providing external transcript
   external_transcript = "path/to/transcript.vtt", # or .srt, or .docx
   source_audio = NULL, # No audio file needed
@@ -218,7 +220,7 @@ speech_to_summary_workflow(
   # All other arguments work the same as with audio input
   use_agenda = "yes",
   llm_provider = "openai",
-  formatted_output_file = "meeting_summary.txt"
+  formatted_output_file = "outputs/event_summary.md"
 )
 ```
 
@@ -274,8 +276,8 @@ transcript <- perform_speech_to_text(
   audio_path = stt_audio_dir,
   
   # A folder where the transcript for each audio file will be saved in JSON
-  # format. Defaults to "transcription_output_data" in the same directory as
-  # `audio_path`.
+  # format. Defaults to "transcription_output_data" (from the
+  # `minutemaker_transcription_output_dir` option) in the working directory.
   output_dir = "transcription_output_data",
   
   # Already transcribed files will be skipped if this is FALSE
@@ -699,75 +701,78 @@ work_dir <- "path/to/your/project"
 # Perform the whole audio files to formatted summary workflow. Most arguments
 # are omitted since the defaults are fine but some (e.g. the output paths and
 # the overwrite arguments) are shown for clarity.
-speech_to_summary_workflow(
-  target_dir = work_dir,
+withr::with_dir(work_dir, {
+  speech_to_summary_workflow(
+    # Arguments for `split_audio`
+    source_audio = "recording.mp3",
+    split_audio = TRUE,
+    split_audio_duration = 40,
+    stt_audio_dir = "audio_to_transcribe",
+    overwrite_stt_audio = FALSE,
 
-  # Arguments for `split_audio`
-  source_audio = file.path(work_dir, "recording.mp3"),
-  split_audio = TRUE,
-  split_audio_duration = 40,
-  stt_audio_dir = file.path(work_dir, "audio_to_transcribe"),
-  overwrite_stt_audio = FALSE,
+    # Arguments for `perform_speech_to_text`
+    transcription_output_dir = "transcription_output_data",
+    stt_model = getOption("minutemaker_stt_model"),
+    stt_initial_prompt = initial_prompt,
+    stt_language = "en",
+    overwrite_transcription_files = FALSE,
 
-  # Arguments for `perform_speech_to_text`
-  stt_output_dir = file.path(work_dir, "transcription_output_data"),
-  stt_model = getOption("minutemaker_stt_model"),
-  stt_initial_prompt = initial_prompt,
-  stt_language = "en",
-  overwrite_transcription_files = FALSE,
+    # Arguments for LLM-based transcript correction (runs after STT)
+    enable_llm_correction = TRUE, # Defaults to TRUE
+    # `vocabulary` is also used for `terms` in `apply_llm_correction`
 
-  # Arguments for LLM-based transcript correction (runs after STT)
-  enable_llm_correction = TRUE, # Defaults to TRUE
-  # `vocabulary` is also used for `terms` in `apply_llm_correction`
+    # Arguments for `parse_transcript_json`
+    transcript_file = "transcript.csv",
+    event_start_time = "09:00 AM",
+    overwrite_transcript = FALSE,
 
-  # Arguments for `parse_transcript_json`
-  transcript_file = file.path(work_dir, "transcript.csv"),
-  event_start_time = "09:00 AM",
-  overwrite_transcript = FALSE,
+    # Arguments for external transcript input (transcript-first workflow)
+    # Set to NULL to skip external transcripts, or provide a path
+    # Auto-detection example (returns NA if no match, which is treated as NULL):
+    external_transcript = list.files(
+      pattern = "\\.(vtt|srt|docx)$",
+      ignore.case = TRUE,
+      full.names = TRUE
+    )[1], # Auto-detects external transcripts in working directory
+    import_diarization = TRUE, # Include speaker info from transcript
 
-  # Arguments for external transcript input (transcript-first workflow)
-  # Set to NULL to skip external transcripts, or provide a path
-  # Auto-detection example (returns NA if no match, which is treated as NULL):
-  external_transcript = list.files(
-    work_dir,
-    pattern = "\\.(vtt|srt|docx)$",
-    ignore.case = TRUE,
-    full.names = TRUE
-  )[1], # Auto-detects external transcripts in working directory
-  import_diarization = TRUE, # Include speaker info from transcript
+    # Arguments for `add_chat_transcript`
+    chat_file = list.files(
+      pattern = "Chat.*\\.txt$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )[1],
+    chat_format = "webex",
 
-  # Arguments for `add_chat_transcript`
-  chat_file = list.files(work_dir, pattern = "Chat.*\\.txt$", full.names = TRUE, ignore.case = TRUE)[1],
-  chat_format = "webex",
+    # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
+    use_agenda = "yes", # or "ask"/"no"
+    agenda_file = "agenda.R",
+    expected_agenda = NULL,
+    agenda_generation_window_size = 3600,
+    extra_agenda_generation_args = NULL,
 
-  # Arguments for `summarise_full_meeting` and `infer_agenda_from_transcript`
-  use_agenda = "yes", # or "ask"/"no"
-  agenda_file = file.path(work_dir, "agenda.R"),
-  expected_agenda = NULL,
-  agenda_generation_window_size = 3600,
-  extra_agenda_generation_args = NULL,
+    # Arguments for the summarization
+    multipart_summary = TRUE,
+    event_description = event_description,
+    audience = audience,
+    vocabulary = vocabulary, # Used for summarization AND LLM correction
+    consider_diarization = TRUE,
+    summary_structure = summary_structure_with_agenda,
+    extra_diarization_instructions = diarization_instructions,
+    extra_output_instructions = output_instructions,
+    llm_provider = getOption("llmr_llm_provider"),
+    summarization_window_size = 15,
+    summarization_output_length = 1,
+    summarization_method = "simple",
 
-  # Arguments for the summarization
-  multipart_summary = TRUE,
-  event_description = event_description,
-  audience = audience,
-  vocabulary = vocabulary, # Used for summarization AND LLM correction
-  consider_diarization = TRUE,
-  summary_structure = summary_structure_with_agenda,
-  extra_diarization_instructions = diarization_instructions,
-  extra_output_instructions = output_instructions,
-  llm_provider = getOption("llmr_llm_provider"),
-  summarization_window_size = 15,
-  summarization_output_length = 1,
-  summarization_method = "simple",
+    summarization_output_file = "outputs/multipart_summary_structure.R",
+    overwrite_summary_tree = FALSE,
 
-  summarization_output_file = file.path(work_dir, "event_summary.R"),
-  overwrite_summary_tree = FALSE,
-
-  # Arguments for `format_summary_tree`
-  formatted_output_file = file.path(work_dir, "event_summary.txt"),
-  overwrite_formatted_output = FALSE
-)
+    # Arguments for `format_summary_tree`
+    formatted_output_file = "outputs/event_summary.md",
+    overwrite_formatted_output = FALSE
+  )
+})
 ```
 
 ### Changing the default prompts
@@ -818,7 +823,9 @@ code. You can set any of them with `options(...)` in your R session.
 | Option | Default | Format | Description |
 |----|----|----|----|
 | `minutemaker_event_start_time` | `NULL` | Clock-time string `HH:MM[:SS][ AM/PM]` (e.g., `"09:00"` or `"03:30 PM"`) | Converts clock times to seconds to align transcripts and agendas. |
-| `minutemaker_transcription_output_dir` | `NULL` | String directory name or path | Folder for transcript intermediate files. Relative paths are resolved from `target_dir` (workflow) or the audio directory (STT). |
+| `minutemaker_transcription_output_dir` | `"transcription_output_data"` | String directory name or path | Folder for transcript intermediate files. Relative paths are resolved from the working directory. |
+| `minutemaker_formatted_output_file` | `"outputs/event_summary.md"` | File path | Output path for the formatted summary. Relative paths are resolved from the working directory and parent folders are created. |
+| `minutemaker_multipart_summary_str_file` | `"outputs/multipart_summary_structure.R"` | File path | Output path for multipart summary trees. Relative paths are resolved from the working directory and parent folders are created. |
 | `minutemaker_stt_model` | `NULL` (functions default to `"whisper_local"`) | String model label: `"openai_whisper"`, `"azure_whisper"`, `"whisper_local"`, `"mlx_whisper_local"`, or `"whisper_ctranslate2"` | Default STT backend used by workflow helpers and `perform_speech_to_text()`. |
 
 #### Speech-to-text (STT)
@@ -845,7 +852,7 @@ code. You can set any of them with `options(...)` in your R session.
 
 | Option | Default | Format | Description |
 |----|----|----|----|
-| `minutemaker_context_material_dir` | `"documentation"` | String directory name or relative path | Folder (relative to `target_dir`) containing meeting materials for `generate_context()`. |
+| `minutemaker_context_material_dir` | `"documentation"` | String directory name or relative path | Folder (relative to the working directory) containing meeting materials for `generate_context()`. |
 | `minutemaker_context_gen_strategy` | `"agentic"` | String `"agentic"` or `"one_pass"` | Selects multi-pass vs single-call context generation. |
 | `minutemaker_context_gen_llm_model` | `NULL` | String llmR model label | Overrides the active model only for context generation. |
 | `minutemaker_overwrite_context` | `FALSE` | Logical `TRUE`/`FALSE` | Overwrite existing `context/` files when `TRUE`. |

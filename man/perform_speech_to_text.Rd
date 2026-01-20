@@ -20,8 +20,8 @@ files. Tested with .mp3 and .wav files.}
 
 \item{output_dir}{Path to output directory. Defaults to the
 \code{minutemaker_transcription_output_dir} option. If the directory doesn't
-exist, it will be created in the same directory as the audio file when a
-relative path is provided.}
+exist, it will be created in the working directory when a relative path is
+provided.}
 
 \item{model}{Name of the model to use. The models available in the package
 are: "azure_whisper" (online API), "openai_whisper" (online API),

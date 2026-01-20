@@ -4,14 +4,12 @@
 
 test_that("workflow runs end-to-end with extensive mocking and minimal options", {
   withr::with_tempdir({
-    target_dir <- "." # The temp dir is the working dir
-
     # Create necessary subdirectories
-    dir.create(file.path(target_dir, "audio_to_transcribe"))
-    dir.create(file.path(target_dir, "transcription_output_data"))
+    dir.create("audio_to_transcribe")
+    dir.create("transcription_output_data")
 
     # Create a dummy audio file for STT input
-    file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+    file.create(file.path("audio_to_transcribe", "dummy.wav"))
 
     # Mocks for current package functions (no .package needed)
     testthat::local_mocked_bindings(
@@ -54,29 +52,25 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
       {
         expect_no_error({
           speech_to_summary_workflow(
-            target_dir = target_dir,
             source_audio = NULL, # Use pre-existing audio in stt_audio_dir
             split_audio = FALSE,
             # If TRUE and source_audio is NULL, it aborts.
             # If FALSE, it uses existing audio in stt_audio_dir.
             overwrite_stt_audio = FALSE,
-            stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-            transcription_output_dir = file.path(
-              target_dir,
-              "transcription_output_data"
-            ),
+            stt_audio_dir = "audio_to_transcribe",
+            transcription_output_dir = "transcription_output_data",
             stt_model = "mock_stt_model_arg",
             # To ensure perform_speech_to_text mock is called
             overwrite_transcription_files = TRUE,
             enable_llm_correction = FALSE,
-            transcript_file = file.path(target_dir, "transcript.csv"),
+            transcript_file = "transcript.csv",
             overwrite_transcript = TRUE,
             external_transcript = NULL,
             chat_file = NULL,
             generate_context = FALSE,
             use_agenda = "no", # Simplifies flow, avoids agenda generation/use
             llm_provider = "mock_provider_arg",
-            formatted_output_file = file.path(target_dir, "event_summary.txt"),
+            formatted_output_file = file.path("outputs", "event_summary.md"),
             overwrite_formatted_output = TRUE,
             # Ensure other overwrites are true to test those paths
             overwrite_summary_tree = TRUE # Not used if use_agenda="no", but good practice
@@ -95,9 +89,70 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
   })
 })
 
+test_that("workflow creates output directories for formatted output", {
+  withr::with_tempdir({
+    output_path <- file.path("outputs", "event_summary.md")
+
+    dir.create("audio_to_transcribe")
+    dir.create("transcription_output_data")
+    file.create(file.path("audio_to_transcribe", "dummy.wav"))
+
+    testthat::local_mocked_bindings(
+      perform_speech_to_text = function(audio_path, output_dir, model, ...) {
+        file.create(file.path(output_dir, "dummy_stt_output.json"))
+        invisible(NULL)
+      },
+      apply_llm_correction = function(...) invisible(NULL),
+      parse_transcript_json = function(transcription_output_dir, ...) {
+        dplyr::tibble(
+          text = "mocked transcript text",
+          start_time = 0,
+          end_time = 1000,
+          speaker = "SPEAKER_00"
+        )
+      },
+      summarise_transcript = function(...) "mock summary content",
+      get_prompts = function(...) "mock prompt"
+    )
+
+    withr::with_options(
+      list(
+        minutemaker_stt_model = "mock_stt_model",
+        llmr_llm_provider = "mock_provider",
+        minutemaker_event_start_time = NULL,
+        minutemaker_include_llm_reasoning = FALSE
+      ),
+      {
+        speech_to_summary_workflow(
+          source_audio = NULL,
+          split_audio = FALSE,
+          overwrite_stt_audio = FALSE,
+          stt_audio_dir = "audio_to_transcribe",
+          transcription_output_dir = "transcription_output_data",
+          stt_model = "mock_stt_model_arg",
+          overwrite_transcription_files = TRUE,
+          enable_llm_correction = FALSE,
+          transcript_file = "transcript.csv",
+          overwrite_transcript = TRUE,
+          external_transcript = NULL,
+          chat_file = NULL,
+          generate_context = FALSE,
+          use_agenda = "no",
+          llm_provider = "mock_provider_arg",
+          formatted_output_file = output_path,
+          overwrite_formatted_output = TRUE,
+          overwrite_summary_tree = TRUE
+        )
+      }
+    )
+
+    expect_true(fs::dir_exists("outputs"))
+    expect_true(fs::file_exists(output_path))
+  })
+})
+
 test_that("workflow passes transcription output dir to external transcript import", {
   withr::with_tempdir({
-    target_dir <- "."
     custom_dir <- "custom_transcription_dir"
     vtt_path <- "test.vtt"
 
@@ -111,7 +166,6 @@ test_that("workflow passes transcription output dir to external transcript impor
     testthat::local_mocked_bindings(
       use_transcript_input = function(
         file,
-        target_dir,
         transcription_output_dir,
         ...
       ) {
@@ -140,7 +194,6 @@ test_that("workflow passes transcription output dir to external transcript impor
       ),
       {
         speech_to_summary_workflow(
-          target_dir = target_dir,
           external_transcript = vtt_path,
           generate_context = FALSE,
           source_audio = NULL,
@@ -154,8 +207,8 @@ test_that("workflow passes transcription output dir to external transcript impor
     )
 
     expect_identical(
-      output_dir_seen,
-      file.path(target_dir, custom_dir)
+      normalizePath(as.character(output_dir_seen), mustWork = TRUE),
+      normalizePath(custom_dir, mustWork = TRUE)
     )
     expect_named(result, c("transcript_data", "formatted_summary"))
   })
@@ -170,21 +223,17 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
           llmr_llm_provider = "mock_provider"
         ),
         speech_to_summary_workflow(
-          target_dir = ".",
           external_transcript = NULL,
           generate_context = FALSE,
           source_audio = NULL,
           split_audio = FALSE,
           overwrite_stt_audio = TRUE,
-          stt_audio_dir = file.path(".", "audio_to_transcribe"),
-          transcription_output_dir = file.path(
-            ".",
-            "transcription_output_data"
-          ),
+          stt_audio_dir = "audio_to_transcribe",
+          transcription_output_dir = "transcription_output_data",
           stt_model = "mock_stt_model",
           use_agenda = "no",
           llm_provider = "mock_provider",
-          formatted_output_file = file.path(".", "event_summary.txt"),
+          formatted_output_file = file.path("outputs", "event_summary.md"),
           enable_llm_correction = FALSE
         )
       ),
@@ -193,62 +242,26 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
   })
 })
 
-test_that("workflow errors on file path target_dir", {
-  withr::with_tempdir({
-    script_path <- file.path(getwd(), "script.R")
-    file.create(script_path)
-
-    expect_error(
-      speech_to_summary_workflow(
-        target_dir = script_path,
-        use_agenda = "no",
-        generate_context = FALSE,
-        enable_llm_correction = FALSE,
-        llm_provider = NULL
-      ),
-      regexp = "Invalid `target_dir`"
-    )
-  })
-})
-
-test_that("workflow errors clearly on NA target_dir", {
-  expect_error(
-    speech_to_summary_workflow(
-      target_dir = NA_character_,
-      use_agenda = "no",
-      generate_context = FALSE,
-      enable_llm_correction = FALSE,
-      llm_provider = NULL
-    ),
-    regexp = "Invalid `target_dir`"
-  )
-})
-
 test_that("workflow errors when stt_audio_dir is a file", {
   withr::with_tempdir({
-    target_dir <- "."
-    source_audio <- file.path(target_dir, "source.wav")
-    stt_audio_dir <- file.path(target_dir, "audio_to_transcribe")
-    dir.create(file.path(target_dir, "transcription_output_data"))
+    source_audio <- "source.wav"
+    stt_audio_dir <- "audio_to_transcribe"
+    dir.create("transcription_output_data")
     file.create(source_audio)
     writeLines("not a directory", stt_audio_dir)
 
     expect_error(
       speech_to_summary_workflow(
-        target_dir = target_dir,
         source_audio = source_audio,
         split_audio = FALSE,
         overwrite_stt_audio = TRUE,
         stt_audio_dir = stt_audio_dir,
-        transcription_output_dir = file.path(
-          target_dir,
-          "transcription_output_data"
-        ),
+        transcription_output_dir = "transcription_output_data",
         stt_model = "mock_stt_model",
         use_agenda = "no",
         generate_context = FALSE,
         llm_provider = "mock_provider",
-        formatted_output_file = file.path(target_dir, "event_summary.txt"),
+        formatted_output_file = file.path("outputs", "event_summary.md"),
         enable_llm_correction = FALSE
       ),
       regexp = "Destination path for speech-to-text is not a directory"
@@ -258,12 +271,10 @@ test_that("workflow errors when stt_audio_dir is a file", {
 
 test_that("workflow forwards overwrite to LLM correction", {
   withr::with_tempdir({
-    target_dir <- "."
+    dir.create("audio_to_transcribe")
+    dir.create("transcription_output_data")
 
-    dir.create(file.path(target_dir, "audio_to_transcribe"))
-    dir.create(file.path(target_dir, "transcription_output_data"))
-
-    file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+    file.create(file.path("audio_to_transcribe", "dummy.wav"))
 
     overwrite_seen <- NULL
 
@@ -299,26 +310,22 @@ test_that("workflow forwards overwrite to LLM correction", {
       ),
       {
         speech_to_summary_workflow(
-          target_dir = target_dir,
           source_audio = NULL,
           split_audio = FALSE,
           overwrite_stt_audio = FALSE,
-          stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-          transcription_output_dir = file.path(
-            target_dir,
-            "transcription_output_data"
-          ),
+          stt_audio_dir = "audio_to_transcribe",
+          transcription_output_dir = "transcription_output_data",
           stt_model = "mock_stt_model_arg",
           overwrite_transcription_files = TRUE,
           enable_llm_correction = TRUE,
-          transcript_file = file.path(target_dir, "transcript.csv"),
+          transcript_file = "transcript.csv",
           overwrite_transcript = TRUE,
           external_transcript = NULL,
           chat_file = NULL,
           use_agenda = "no",
           generate_context = FALSE,
           llm_provider = "mock_provider_arg",
-          formatted_output_file = file.path(target_dir, "event_summary.txt"),
+          formatted_output_file = file.path("outputs", "event_summary.md"),
           overwrite_formatted_output = TRUE,
           overwrite_summary_tree = TRUE
         )
@@ -331,15 +338,14 @@ test_that("workflow forwards overwrite to LLM correction", {
 
 test_that("workflow warns when using deprecated stt_output_dir", {
   withr::with_tempdir({
-    target_dir <- "."
     deprecated_output_dir <- "deprecated_transcription_output_data"
     output_dir_seen <- NULL
 
-    dir.create(file.path(target_dir, "audio_to_transcribe"))
-    dir.create(file.path(target_dir, "transcription_output_data"))
+    dir.create("audio_to_transcribe")
+    dir.create("transcription_output_data")
     dir.create(deprecated_output_dir)
 
-    file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+    file.create(file.path("audio_to_transcribe", "dummy.wav"))
 
     testthat::local_mocked_bindings(
       perform_speech_to_text = function(audio_path, output_dir, model, ...) {
@@ -372,23 +378,22 @@ test_that("workflow warns when using deprecated stt_output_dir", {
       {
         expect_warning(
           speech_to_summary_workflow(
-            target_dir = target_dir,
             source_audio = NULL,
             split_audio = FALSE,
             overwrite_stt_audio = FALSE,
-            stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
+            stt_audio_dir = "audio_to_transcribe",
             stt_output_dir = "deprecated_transcription_output_data",
             stt_model = "mock_stt_model_arg",
             overwrite_transcription_files = TRUE,
             enable_llm_correction = FALSE,
-            transcript_file = file.path(target_dir, "transcript.csv"),
+            transcript_file = "transcript.csv",
             overwrite_transcript = TRUE,
             external_transcript = NULL,
             chat_file = NULL,
             use_agenda = "no",
             generate_context = FALSE,
             llm_provider = "mock_provider_arg",
-            formatted_output_file = file.path(target_dir, "event_summary.txt"),
+            formatted_output_file = file.path("outputs", "event_summary.md"),
             overwrite_formatted_output = TRUE,
             overwrite_summary_tree = TRUE
           ),
@@ -399,16 +404,15 @@ test_that("workflow warns when using deprecated stt_output_dir", {
 
     expect_identical(
       normalizePath(output_dir_seen, mustWork = TRUE),
-      normalizePath(file.path(target_dir, deprecated_output_dir), mustWork = TRUE)
+      normalizePath(deprecated_output_dir, mustWork = TRUE)
     )
   })
 })
 
 test_that("workflow sets generate_initial_prompt correctly based on external transcript", {
   withr::with_tempdir({
-    target_dir <- "."
-    dir.create(file.path(target_dir, "documentation"))
-    writeLines("Test material", file.path(target_dir, "documentation", "test.txt"))
+    dir.create("documentation")
+    writeLines("Test material", file.path("documentation", "test.txt"))
 
     # Track generate_context calls
     generate_context_calls <- list()
@@ -454,31 +458,27 @@ test_that("workflow sets generate_initial_prompt correctly based on external tra
       ),
       {
         generate_context_calls <- list()
-        dir.create(file.path(target_dir, "audio_to_transcribe"))
-        dir.create(file.path(target_dir, "transcription_output_data"))
-        file.create(file.path(target_dir, "audio_to_transcribe", "dummy.wav"))
+        dir.create("audio_to_transcribe")
+        dir.create("transcription_output_data")
+        file.create(file.path("audio_to_transcribe", "dummy.wav"))
 
         speech_to_summary_workflow(
-          target_dir = target_dir,
           source_audio = NULL,
           split_audio = FALSE,
           overwrite_stt_audio = FALSE,
-          stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-          transcription_output_dir = file.path(
-            target_dir,
-            "transcription_output_data"
-          ),
+          stt_audio_dir = "audio_to_transcribe",
+          transcription_output_dir = "transcription_output_data",
           stt_model = "mock_stt_model",
           overwrite_transcription_files = TRUE,
           enable_llm_correction = FALSE,
-          transcript_file = file.path(target_dir, "transcript.csv"),
+          transcript_file = "transcript.csv",
           overwrite_transcript = TRUE,
           external_transcript = NULL, # No external transcript
           chat_file = NULL,
           generate_context = TRUE,
           use_agenda = "no",
           llm_provider = "mock_provider",
-          formatted_output_file = file.path(target_dir, "event_summary.txt"),
+          formatted_output_file = file.path("outputs", "event_summary.md"),
           overwrite_formatted_output = TRUE
         )
 
@@ -496,33 +496,29 @@ test_that("workflow sets generate_initial_prompt correctly based on external tra
       ),
       {
         generate_context_calls <- list()
-        vtt_path <- file.path(target_dir, "transcript.vtt")
+        vtt_path <- "transcript.vtt"
         writeLines(
           c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
           vtt_path
         )
 
         speech_to_summary_workflow(
-          target_dir = target_dir,
           source_audio = NULL,
           split_audio = FALSE,
           overwrite_stt_audio = FALSE,
-          stt_audio_dir = file.path(target_dir, "audio_to_transcribe"),
-          transcription_output_dir = file.path(
-            target_dir,
-            "transcription_output_data"
-          ),
+          stt_audio_dir = "audio_to_transcribe",
+          transcription_output_dir = "transcription_output_data",
           stt_model = "mock_stt_model",
           overwrite_transcription_files = TRUE,
           enable_llm_correction = FALSE,
-          transcript_file = file.path(target_dir, "transcript.csv"),
+          transcript_file = "transcript.csv",
           overwrite_transcript = TRUE,
           external_transcript = vtt_path, # External transcript exists
           chat_file = NULL,
           generate_context = TRUE,
           use_agenda = "no",
           llm_provider = "mock_provider",
-          formatted_output_file = file.path(target_dir, "event_summary.txt"),
+          formatted_output_file = file.path("outputs", "event_summary.md"),
           overwrite_formatted_output = TRUE
         ) |>
           expect_warning("Overwriting the existing summary output.")

@@ -171,7 +171,6 @@ test_that("generate_context writes files from a single LLM response", {
     )
 
     context <- generate_context(
-      target_dir = getwd(),
       material_dir = "documentation",
       strategy = "one_pass",
       generate_expected_agenda = TRUE,
@@ -220,7 +219,6 @@ test_that("generate_context falls back to provided context on null output", {
     context <- NULL
     expect_message(
       context <- generate_context(
-        target_dir = getwd(),
         material_dir = "documentation",
         strategy = "one_pass",
         generate_expected_agenda = FALSE,
@@ -259,7 +257,6 @@ test_that("generate_context falls back to provided context on empty string outpu
     context <- NULL
     expect_message(
       context <- generate_context(
-        target_dir = getwd(),
         material_dir = "documentation",
         strategy = "one_pass",
         generate_expected_agenda = FALSE,
@@ -292,7 +289,6 @@ test_that("generate_context aborts on retry loop with null output", {
     )
 
     generate_context(
-      target_dir = getwd(),
       material_dir = "documentation",
       strategy = "one_pass",
       generate_expected_agenda = FALSE,
@@ -332,7 +328,6 @@ test_that("generate_context respects max retries option", {
       list(minutemaker_context_generation_max_retries = 1),
       {
         generate_context(
-          target_dir = getwd(),
           material_dir = "documentation",
           strategy = "one_pass",
           generate_expected_agenda = FALSE,
@@ -396,7 +391,6 @@ test_that("generate_context skips generation when context files exist", {
     context <- NULL
     expect_message(
       context <- generate_context(
-        target_dir = getwd(),
         material_dir = "documentation",
         generate_expected_agenda = FALSE,
         generate_event_description = FALSE,
@@ -441,7 +435,6 @@ test_that("generate_context uses minutemaker_context_gen_llm_model and restores 
       ),
       {
         context <- generate_context(
-          target_dir = getwd(),
           material_dir = "documentation",
           strategy = "one_pass",
           generate_expected_agenda = FALSE,
@@ -575,7 +568,6 @@ test_that("generate_context runs agentic strategy and writes final files at the 
     )
 
     context <- generate_context(
-      target_dir = getwd(),
       material_dir = "documentation",
       strategy = "agentic",
       overwrite = TRUE

@@ -5,7 +5,6 @@
 \title{Generate meeting context from documentation materials}
 \usage{
 generate_context(
-  target_dir = getwd(),
   material_dir = getOption("minutemaker_context_material_dir", "documentation"),
   overwrite = getOption("minutemaker_overwrite_context", FALSE),
   strategy = getOption("minutemaker_context_gen_strategy", "agentic"),
@@ -25,23 +24,20 @@ generate_context(
 )
 }
 \arguments{
-\item{target_dir}{A directory containing meeting materials and workflow
-inputs.}
-
-\item{material_dir}{Folder name (relative to \code{target_dir}) containing
-documentation materials. Defaults to the
+\item{material_dir}{Folder name (relative to the working directory)
+containing documentation materials. Defaults to the
 \code{minutemaker_context_material_dir} option or \code{"documentation"}.}
 
 \item{overwrite}{Logical value indicating whether existing context files
-should be overwritten. Defaults to the
-\code{minutemaker_overwrite_context} option or \code{FALSE}.}
+should be overwritten. Defaults to the \code{minutemaker_overwrite_context}
+option or \code{FALSE}.}
 
 \item{strategy}{One of \code{one_pass} or \code{agentic}. \code{one_pass} uses a
 single-agent generation flow that requests all outputs in one LLM call.
 \code{agentic} runs a multi-agent pipeline that first drafts context from
 documentation materials, then proposes transcript-driven edits in batches,
-and finally consolidates everything into final context files written at
-the end.}
+and finally consolidates everything into final context files written at the
+end.}
 
 \item{generate_expected_agenda}{Logical value indicating whether to generate
 the expected agenda.}
@@ -85,14 +81,14 @@ optional speech-to-text prompts. Generated context is cached in per-field
 files under a \code{context} folder.
 }
 \details{
-By default, the active llmR model (option \code{llmr_current_model}) is used.
-To force a specific model for context generation, set the option
-\code{minutemaker_context_gen_llm_model} to a registered llmR model label
-(e.g., \code{"mm_gpt-4.1_azure"}).
+By default, the active llmR model (option \code{llmr_current_model}) is
+used. To force a specific model for context generation, set the option
+\code{minutemaker_context_gen_llm_model} to a registered llmR model label (e.g.,
+\code{"mm_gpt-4.1_azure"}).
 }
 \examples{
 \dontrun{
-generate_context(target_dir = "meeting_folder")
+generate_context()
 }
 
 }

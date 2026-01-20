@@ -11,7 +11,7 @@ test_that("writes template into a directory", {
 
     expect_identical(
       dest_path,
-      fs::path_abs(file.path(getwd(), "meeting_summary_template.R"))
+      "meeting_summary_template.R"
     )
     expect_true(file.exists(dest_path))
     expect_identical(readLines(dest_path), readLines(template_path))

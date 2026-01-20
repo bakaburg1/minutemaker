@@ -6,7 +6,6 @@
 \usage{
 use_transcript_input(
   file,
-  target_dir = getwd(),
   transcription_output_dir = getOption("minutemaker_transcription_output_dir"),
   import_diarization = TRUE,
   lines_per_json = 50,
@@ -16,12 +15,10 @@ use_transcript_input(
 \arguments{
 \item{file}{Path to the external transcript file.}
 
-\item{target_dir}{Path to the target directory where the workflow is running.}
-
 \item{transcription_output_dir}{Path to the directory where transcript
 intermediate files should be written. Defaults to the
-\code{minutemaker_transcription_output_dir} option. If relative, it is resolved
-from \code{target_dir}.}
+\code{minutemaker_transcription_output_dir} option. Relative paths are resolved
+from the working directory.}
 
 \item{import_diarization}{A boolean indicating whether the speaker should be
 imported from the transcript, if present.}

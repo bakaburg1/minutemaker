@@ -41,12 +41,13 @@ llmR::set_llmr_model("your_summary_model")
 
 # Resolve the working directory based on the script location
 work_dir <- funr::get_script_path()
+setwd(work_dir)
 
-cli::cli_alert_info("Working directory: {work_dir}")
+cli::cli_alert_info("Working directory: {getwd()}")
 
 chat_log <- NULL
 
-output_dir <- file.path(work_dir, "outputs")
+output_dir <- "outputs"
 fs::dir_create(output_dir)
 
 # Context inputs -----------------------------------------------------------
@@ -114,7 +115,6 @@ multipart_md_path <- file.path(output_dir, "Summary by agenda items.md")
 if (!file.exists(multipart_r_path) || !file.exists(multipart_md_path)) {
   cli::cli_alert("Running multipart summary with agenda")
   minutemaker::speech_to_summary_workflow(
-    target_dir = work_dir,
     # STT-only inputs (omit if you use an external transcript)
     split_audio_duration = 10,
     stt_initial_prompt = initial_prompt,
@@ -142,7 +142,6 @@ single_md_path <- file.path(output_dir, "Short summary.md")
 if (!file.exists(single_md_path)) {
   cli::cli_alert("Running short summary with agenda")
   minutemaker::speech_to_summary_workflow(
-    target_dir = work_dir,
     use_agenda = use_agenda,
     expected_agenda = expected_agenda,
     multipart_summary = FALSE,
@@ -170,7 +169,6 @@ rolling_md_path <- file.path(output_dir, "Long summary.md")
 if (!file.exists(rolling_md_path)) {
   cli::cli_alert("Running rolling-window summary with agenda")
   minutemaker::speech_to_summary_workflow(
-    target_dir = work_dir,
     use_agenda = use_agenda,
     expected_agenda = expected_agenda,
     multipart_summary = FALSE,

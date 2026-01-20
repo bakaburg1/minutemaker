@@ -14,19 +14,9 @@ segment_files <- function(dir_path) {
 test_that("use_transcript_input standardizes VTT correctly", {
   vtt_path <- testthat::test_path("material", "webex.vtt")
   skip_if_not(file.exists(vtt_path))
+  vtt_path <- normalizePath(vtt_path, mustWork = TRUE)
 
   target_dir <- withr::local_tempdir()
-
-  result_files <- use_transcript_input(
-    vtt_path,
-    target_dir = target_dir,
-    transcription_output_dir = file.path(
-      target_dir,
-      "transcription_output_data"
-    )
-  )
-
-  expect_true(all(file.exists(result_files)))
 
   expected_dir <- testthat::test_path(
     "material",
@@ -34,76 +24,85 @@ test_that("use_transcript_input standardizes VTT correctly", {
     "transcription_output_data"
   )
   expected_files <- segment_files(expected_dir)
+  expected_files <- normalizePath(expected_files, mustWork = TRUE)
 
-  expect_length(result_files, length(expected_files))
-  expect_identical(basename(result_files), basename(expected_files))
+  withr::with_dir(target_dir, {
+    result_files <- use_transcript_input(
+      vtt_path,
+      transcription_output_dir = "transcription_output_data"
+    )
 
-  json_data <- jsonlite::read_json(result_files[[1]])
-  expect_named(json_data, c("text", "segments"))
-  expect_true(length(json_data$segments) > 0)
+    expect_true(all(file.exists(result_files)))
+    expect_length(result_files, length(expected_files))
+    expect_identical(basename(result_files), basename(expected_files))
 
-  # Check segment structure
-  first_seg <- json_data$segments[[1]]
-  expect_named(first_seg, c("start", "end", "speaker", "text"))
+    json_data <- jsonlite::read_json(result_files[[1]])
+    expect_named(json_data, c("text", "segments"))
+    expect_true(length(json_data$segments) > 0)
 
-  for (i in seq_along(result_files)) {
-    actual <- jsonlite::read_json(result_files[[i]])
-    expected <- jsonlite::read_json(expected_files[[i]])
+    # Check segment structure
+    first_seg <- json_data$segments[[1]]
+    expect_named(first_seg, c("start", "end", "speaker", "text"))
 
-    expect_equal(actual, expected)
-  }
+    for (i in seq_along(result_files)) {
+      actual <- jsonlite::read_json(result_files[[i]])
+      expected <- jsonlite::read_json(expected_files[[i]])
+
+      expect_equal(actual, expected)
+    }
+  })
 })
 
 test_that("use_transcript_input standardizes DOCX correctly", {
   docx_path <- testthat::test_path("material", "teams.docx")
   skip_if_not(file.exists(docx_path))
   testthat::skip_if_not_installed("officer")
+  docx_path <- normalizePath(docx_path, mustWork = TRUE)
 
   target_dir <- withr::local_tempdir()
 
-  result_files <- use_transcript_input(
-    docx_path,
-    target_dir = target_dir,
-    transcription_output_dir = file.path(
-      target_dir,
-      "transcription_output_data"
-    )
-  )
-
-  expect_true(all(file.exists(result_files)))
   expected_dir <- testthat::test_path(
     "material",
     "teams_json_out",
     "transcription_output_data"
   )
   expected_files <- segment_files(expected_dir)
-  expect_length(result_files, length(expected_files))
-  expect_identical(basename(result_files), basename(expected_files))
+  expected_files <- normalizePath(expected_files, mustWork = TRUE)
 
-  json_data <- jsonlite::read_json(result_files[[1]])
-  expect_named(
-    json_data,
-    c("text", "segments", "transcript_start_time")
-  )
-
-  for (i in seq_along(result_files)) {
-    expect_equal(
-      jsonlite::read_json(result_files[[i]]),
-      jsonlite::read_json(expected_files[[i]])
+  withr::with_dir(target_dir, {
+    result_files <- use_transcript_input(
+      docx_path,
+      transcription_output_dir = "transcription_output_data"
     )
-  }
+
+    expect_true(all(file.exists(result_files)))
+    expect_length(result_files, length(expected_files))
+    expect_identical(basename(result_files), basename(expected_files))
+
+    json_data <- jsonlite::read_json(result_files[[1]])
+    expect_named(
+      json_data,
+      c("text", "segments", "transcript_start_time")
+    )
+
+    for (i in seq_along(result_files)) {
+      expect_equal(
+        jsonlite::read_json(result_files[[i]]),
+        jsonlite::read_json(expected_files[[i]])
+      )
+    }
+  })
 })
 
 test_that("use_transcript_input skips existing output when overwrite is FALSE", {
   withr::with_tempdir({
-    target_dir <- "."
     vtt_path <- "test.vtt"
     writeLines(
       c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
       vtt_path
     )
 
-    output_dir <- file.path(target_dir, "transcription_output_data")
+    output_dir <- "transcription_output_data"
     dir.create(output_dir)
 
     existing_file <- file.path(output_dir, "segment_1.json")
@@ -117,11 +116,7 @@ test_that("use_transcript_input skips existing output when overwrite is FALSE", 
 
     result_files <- use_transcript_input(
       vtt_path,
-      target_dir = target_dir,
-      transcription_output_dir = file.path(
-        target_dir,
-        "transcription_output_data"
-      ),
+      transcription_output_dir = "transcription_output_data",
       overwrite = FALSE
     )
 
@@ -138,14 +133,13 @@ test_that("use_transcript_input skips existing output when overwrite is FALSE", 
 
 test_that("use_transcript_input overwrites output when overwrite is TRUE", {
   withr::with_tempdir({
-    target_dir <- "."
     vtt_path <- "test.vtt"
     writeLines(
       c("WEBVTT", "", "00:00:01.000 --> 00:00:02.000", "Hello world"),
       vtt_path
     )
 
-    output_dir <- file.path(target_dir, "transcription_output_data")
+    output_dir <- "transcription_output_data"
     dir.create(output_dir)
 
     existing_file <- file.path(output_dir, "segment_1.json")
@@ -159,11 +153,7 @@ test_that("use_transcript_input overwrites output when overwrite is TRUE", {
 
     result_files <- use_transcript_input(
       vtt_path,
-      target_dir = target_dir,
-      transcription_output_dir = file.path(
-        target_dir,
-        "transcription_output_data"
-      ),
+      transcription_output_dir = "transcription_output_data",
       overwrite = TRUE
     )
 
@@ -180,15 +170,10 @@ test_that("use_transcript_input overwrites output when overwrite is TRUE", {
 test_that("use_transcript_input writes to transcription_output_dir", {
   vtt_path <- testthat::test_path("material", "webex.vtt")
   skip_if_not(file.exists(vtt_path))
+  vtt_path <- normalizePath(vtt_path, mustWork = TRUE)
 
   target_dir <- withr::local_tempdir()
   custom_dir <- "custom_transcription_dir"
-
-  result_files <- use_transcript_input(
-    vtt_path,
-    target_dir = target_dir,
-    transcription_output_dir = custom_dir
-  )
 
   expected_dir <- testthat::test_path(
     "material",
@@ -197,10 +182,17 @@ test_that("use_transcript_input writes to transcription_output_dir", {
   )
   expected_files <- segment_files(expected_dir)
 
-  expect_true(all(file.exists(result_files)))
-  expect_length(result_files, length(expected_files))
-  expect_identical(basename(result_files), basename(expected_files))
-  expect_true(fs::dir_exists(file.path(target_dir, custom_dir)))
+  withr::with_dir(target_dir, {
+    result_files <- use_transcript_input(
+      vtt_path,
+      transcription_output_dir = custom_dir
+    )
+
+    expect_true(all(file.exists(result_files)))
+    expect_length(result_files, length(expected_files))
+    expect_identical(basename(result_files), basename(expected_files))
+    expect_true(fs::dir_exists(custom_dir))
+  })
 })
 
 test_that("import_transcript_from_file aborts on invalid DOCX", {
@@ -222,7 +214,6 @@ test_that("import_transcript_from_file aborts on invalid DOCX", {
 
 test_that("workflow bypasses STT when external_transcript is provided", {
   withr::with_tempdir({
-    target_dir <- "."
     vtt_path <- "test.vtt"
     # Create a minimal valid VTT content
     writeLines(
@@ -246,7 +237,6 @@ test_that("workflow bypasses STT when external_transcript is provided", {
       ),
       {
         speech_to_summary_workflow(
-          target_dir = target_dir,
           external_transcript = vtt_path,
           generate_context = FALSE,
           source_audio = NULL,
@@ -260,7 +250,7 @@ test_that("workflow bypasses STT when external_transcript is provided", {
     expect_named(result, c("transcript_data", "formatted_summary"))
     expect_identical(result$formatted_summary, "Mock summary")
     expect_true(file.exists(
-      file.path(target_dir, "transcription_output_data", "segment_1.json")
+      file.path("transcription_output_data", "segment_1.json")
     ))
   })
 })
