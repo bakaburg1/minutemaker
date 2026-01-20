@@ -732,11 +732,10 @@ add_chat_transcript <- function(
 #' models.
 #'
 #' @param file Path to the external transcript file.
-#' @param target_dir Path to the target directory where the workflow is running.
 #' @param transcription_output_dir Path to the directory where transcript
 #'   intermediate files should be written. Defaults to the
-#'   `minutemaker_transcription_output_dir` option. If relative, it is resolved
-#'   from `target_dir`.
+#'   `minutemaker_transcription_output_dir` option. Relative paths are resolved
+#'   from the working directory.
 #' @param import_diarization A boolean indicating whether the speaker should be
 #'   imported from the transcript, if present.
 #' @param lines_per_json A positive integer indicating how many transcript rows
@@ -749,13 +748,14 @@ add_chat_transcript <- function(
 #' @export
 use_transcript_input <- function(
   file,
-  target_dir = getwd(),
   transcription_output_dir = getOption("minutemaker_transcription_output_dir"),
   import_diarization = TRUE,
   lines_per_json = 50,
   overwrite = FALSE
 ) {
   cli::cli_alert("Preparing external transcript: {.file {basename(file)}}")
+
+  is_valid(overwrite, "bool")
 
   # Smaller default chunks keep correction prompts under token limits and
   # reduce the chance of oversized LLM outputs.
@@ -778,12 +778,6 @@ use_transcript_input <- function(
   }
 
   # Create the transcription output directory if it doesn't exist
-  if (!fs::is_absolute_path(transcription_output_dir)) {
-    transcription_output_dir <- file.path(
-      target_dir,
-      transcription_output_dir
-    )
-  }
   transcription_output_dir <- create_dir(
     transcription_output_dir,
     fail_msg = c(

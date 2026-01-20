@@ -442,6 +442,8 @@ summarise_full_meeting <- function(
 ) {
   output_file <- check_path(output_file)
 
+  is_valid(overwrite, "bool")
+
   if (!validate_agenda(agenda)) {
     cli::cli_abort("The agenda is not valid.")
   }

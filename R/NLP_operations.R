@@ -68,6 +68,8 @@ generate_glove_model <- function(
   )
   rlang::check_installed("parallel")
 
+  is_valid(overwrite, "bool")
+
   # Create a hash of the data and the model parameters
   data_hash <- rlang::hash(list(
     text,

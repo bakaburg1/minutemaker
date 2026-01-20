@@ -59,9 +59,7 @@ extract_audio_segment <- function(
     {
       for (attempt in 1:max_attempts) {
         # Ensure the directory exists before writing
-        if (!dir.exists(dirname(output_file))) {
-          dir.create(dirname(output_file), recursive = TRUE)
-        }
+        create_dir(dirname(output_file))
 
         av::av_audio_convert(
           audio_file,
@@ -178,9 +176,7 @@ split_audio <- function(
   output_folder <- check_path(output_folder)
 
   # Ensure the output folder exists
-  if (!dir.exists(output_folder)) {
-    dir.create(output_folder)
-  }
+  output_folder <- create_dir(output_folder)
   output_folder <- normalizePath(output_folder, mustWork = TRUE)
 
   if (parallel) {

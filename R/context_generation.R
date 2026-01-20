@@ -5,20 +5,18 @@
 #' optional speech-to-text prompts. Generated context is cached in per-field
 #' files under a `context` folder.
 #'
-#' @param target_dir A directory containing meeting materials and workflow
-#'   inputs.
-#' @param material_dir Folder name (relative to `target_dir`) containing
-#'   documentation materials. Defaults to the
+#' @param material_dir Folder name (relative to the working directory)
+#'   containing documentation materials. Defaults to the
 #'   `minutemaker_context_material_dir` option or `"documentation"`.
 #' @param overwrite Logical value indicating whether existing context files
-#'   should be overwritten. Defaults to the
-#'   `minutemaker_overwrite_context` option or `FALSE`.
+#'   should be overwritten. Defaults to the `minutemaker_overwrite_context`
+#'   option or `FALSE`.
 #' @param strategy One of `one_pass` or `agentic`. `one_pass` uses a
 #'   single-agent generation flow that requests all outputs in one LLM call.
 #'   `agentic` runs a multi-agent pipeline that first drafts context from
 #'   documentation materials, then proposes transcript-driven edits in batches,
-#'   and finally consolidates everything into final context files written at
-#'   the end.
+#'   and finally consolidates everything into final context files written at the
+#'   end.
 #' @param generate_expected_agenda Logical value indicating whether to generate
 #'   the expected agenda.
 #' @param generate_event_description Logical value indicating whether to
@@ -39,24 +37,22 @@
 #' @param llm_provider Optional provider passed to `llmR::prompt_llm`.
 #' @param ... Additional arguments passed to `llmR::prompt_llm`.
 #'
-#' @details
-#' By default, the active llmR model (option `llmr_current_model`) is used.
-#' To force a specific model for context generation, set the option
-#' `minutemaker_context_gen_llm_model` to a registered llmR model label
-#' (e.g., `"mm_gpt-4.1_azure"`).
+#' @details By default, the active llmR model (option `llmr_current_model`) is
+#'   used. To force a specific model for context generation, set the option
+#'   `minutemaker_context_gen_llm_model` to a registered llmR model label (e.g.,
+#'   `"mm_gpt-4.1_azure"`).
 #'
 #' @return A list containing generated context values.
 #'
 #' @examples
 #' \dontrun{
-#' generate_context(target_dir = "meeting_folder")
+#' generate_context()
 #' }
 #'
 #' @seealso `speech_to_summary_workflow()`
 #'
 #' @export
 generate_context <- function(
-  target_dir = getwd(),
   material_dir = getOption("minutemaker_context_material_dir", "documentation"),
   overwrite = getOption("minutemaker_overwrite_context", FALSE),
   strategy = getOption("minutemaker_context_gen_strategy", "agentic"),
@@ -75,57 +71,23 @@ generate_context <- function(
   ...
 ) {
   # Input validation ----
-  # Ensure target_dir exists and points to a directory (not a file).
-  # Normalize path to handle relative paths consistently throughout.
-
-  # rlang::is_string(NA_character_) is FALSE (verified), so NA inputs are
-  # rejected here.
-  if (!rlang::is_string(target_dir) || !nzchar(target_dir)) {
-    cli::cli_abort(
-      c(
-        "Invalid {.arg target_dir} provided.",
-        "x" = "Expected a non-empty string."
-      )
-    )
-  }
-
-  # Normalize the target path early so downstream checks are consistent.
-  target_dir <- fs::path_norm(target_dir)
-  if (fs::file_exists(target_dir) && !fs::dir_exists(target_dir)) {
-    # If user provides a file path, use its parent directory instead.
-    # This allows flexible input while maintaining directory-based operations.
-    cli::cli_alert_warning(
-      "The provided {.path {target_dir}} points to a file. Using its parent directory: {.path {fs::path_dir(target_dir)}}"
-    )
-    target_dir <- fs::path_dir(target_dir)
-  }
-
-  if (!fs::dir_exists(target_dir)) {
-    cli::cli_abort(
-      c(
-        "Target directory not found.",
-        "x" = "The path supplied to {.path target_dir} does not exist: {.path {target_dir}}"
-      )
-    )
-  }
-
   # Validate material_dir is a non-empty string (absolute or relative path).
-  # rlang::is_string(NA_character_) is FALSE, so NA inputs are rejected here.
-  if (!rlang::is_string(material_dir) || !nzchar(material_dir)) {
-    cli::cli_abort("The {.arg material_dir} must be a non-empty string.")
-  }
+  material_dir <- check_path(
+    material_dir,
+    fail_msg = "The {.arg material_dir} must be a non-empty string. Received {.val {material_dir}}."
+  )
 
   # Ensure overwrite is a logical value for cache control decisions.
-  if (!rlang::is_bool(overwrite)) {
-    cli::cli_abort("The {.arg overwrite} must be TRUE or FALSE.")
-  }
+  is_valid(overwrite, "bool")
 
   # Validate strategy argument against allowed values.
   strategy <- match.arg(strategy, c("one_pass", "agentic"))
 
   # Model override system ----
-  # Allow per-function model override via option, similar to transcript correction.
-  # This enables different models for different pipeline stages without global changes.
+  # Allow per-function model override via option, similar to transcript
+  # correction.
+  # This enables different models for different pipeline stages without global
+  # changes.
   context_model_label <- getOption("minutemaker_context_gen_llm_model")
   if (!is.null(context_model_label)) {
     # Save current model for restoration on exit (cleanup).
@@ -150,13 +112,8 @@ generate_context <- function(
 
   # === PATH SETUP ===
   # Define output directory for context files (cached outputs).
-  context_dir <- file.path(target_dir, "context")
-  # Resolve material directory path (absolute or relative to target_dir).
-  material_path <- if (fs::is_absolute_path(material_dir)) {
-    material_dir
-  } else {
-    file.path(target_dir, material_dir)
-  }
+  context_dir <- getOption("minutemaker_context_dir", "context")
+  material_path <- material_dir
 
   # Context field definitions ----
   # Define the 5 context outputs this function can generate.
@@ -557,7 +514,14 @@ generate_context <- function(
     field_info <- context_fields[[field]]
     context_path <- file.path(context_dir, field_info$file)
 
-    if (!isTRUE(overwrite) && fs::file_exists(context_path)) {
+    if (
+      !overwrite &&
+        !isFALSE(path_exists(
+          context_path,
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
+    ) {
       # Load existing context file instead of regenerating.
       cli::cli_alert_info(
         "Using existing context file for {field_info$label}: {.path {context_path}}"
@@ -736,13 +700,15 @@ generate_context <- function(
     llm_args <- prepare_llm_args(..., provider = llm_provider)
 
     # Create hidden directory for intermediate state and caching.
-    state_dir <- file.path(target_dir, ".context_gen", "context_generation")
-    fs::dir_create(state_dir, recurse = TRUE)
+    state_dir <- file.path(getwd(), ".context_gen", "context_generation")
+    create_dir(state_dir)
 
     ### Agentic helper functions ----
 
-    # prompt_key_to_field: Convert LLM prompt target names to internal field keys.
-    # E.g., "initial_prompt" (used in prompts) -> "stt_initial_prompt" (internal key).
+    # prompt_key_to_field: Convert LLM prompt target names to internal field
+    # keys.
+    # E.g., "initial_prompt" (used in prompts) -> "stt_initial_prompt"
+    # (internal key).
     prompt_key_to_field <- function(prompt_key) {
       match <- purrr::keep(
         names(context_fields),
@@ -797,9 +763,16 @@ generate_context <- function(
     cli::cli_alert("Pass 1: documentation-only draft")
     pass1_raw_path <- file.path(state_dir, "pass1_raw.txt")
     pass1_dir <- file.path(state_dir, "pass1_expanded")
-    fs::dir_create(pass1_dir, recurse = TRUE)
+    create_dir(pass1_dir)
 
-    if (isTRUE(overwrite) || !fs::file_exists(pass1_raw_path)) {
+    if (
+      overwrite ||
+        isFALSE(path_exists(
+          pass1_raw_path,
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
+    ) {
       # Format documentation materials as XML blocks for structured LLM input.
       material_entries <- purrr::imap(materials, \(text, source_id) {
         paste0(
@@ -988,20 +961,21 @@ generate_context <- function(
       )
     }
 
-    ### Pass 2: transcript batch refinement ----
-    # Process transcript in manageable chunks, proposing diffs to improve Pass 1 drafts.
-    # Each chunk proposes context edits based on its specific transcript content.
-    # Chunks are persisted to disk for resumability and parallel processing potential.
+    ### Pass 2: transcript batch refinement ---- # Process transcript in
+    ### manageable chunks, proposing diffs to improve Pass 1 drafts. # Each
+    ### chunk proposes context edits based on its specific transcript content. #
+    ### Chunks are persisted to disk for resumability and parallel processing
+    ### potential.
     chunks_dir <- file.path(state_dir, "transcript_chunks")
     pass2_dir <- file.path(state_dir, "pass2_chunks")
-    fs::dir_create(pass2_dir, recurse = TRUE)
+    create_dir(pass2_dir)
 
     # Split transcript into ~5000-token chunks for LLM processing limits.
     chunk_index <- .gen_cntx_write_transcript_chunks(
       transcript_text = transcript_text,
       chunks_dir = chunks_dir,
       target_tokens = 5000,
-      overwrite = isTRUE(overwrite)
+      overwrite = overwrite
     )
 
     cli::cli_alert("Pass 2: transcript batching ({nrow(chunk_index)} chunks)")
@@ -1014,7 +988,14 @@ generate_context <- function(
         chunk_path <- chunk_index$chunk_path[[idx]]
         raw_path <- file.path(pass2_dir, paste0(chunk_id, "_raw.txt"))
 
-        if (isTRUE(overwrite) || !fs::file_exists(raw_path)) {
+        if (
+          overwrite ||
+            isFALSE(path_exists(
+              raw_path,
+              stop_on_error = FALSE,
+              fail_msg = FALSE
+            ))
+        ) {
           # Process this chunk - either first time or forced overwrite.
           cli::cli_alert(
             "Pass 2: chunk {idx}/{nrow(chunk_index)} (chunk_id={chunk_id}) - calling LLM"
@@ -1117,7 +1098,14 @@ generate_context <- function(
     # This is where conflicts are resolved and final outputs are produced.
     cli::cli_alert("Pass 3: consolidation")
     pass3_raw_path <- file.path(state_dir, "pass3_raw.txt")
-    if (isTRUE(overwrite) || !fs::file_exists(pass3_raw_path)) {
+    if (
+      overwrite ||
+        isFALSE(path_exists(
+          pass3_raw_path,
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
+    ) {
       # Reformat Pass 1 drafts for the consolidation LLM.
       current_blocks <- purrr::imap(prompt_targets, \(target, ...) {
         draft <- pass1_expanded[[target]]
@@ -1241,10 +1229,9 @@ generate_context <- function(
 
     ### Final output writing ----
     # Write context files only after all agentic processing is complete.
-    # This ensures atomic updates - either all outputs succeed or none are written.
-    if (!fs::dir_exists(context_dir)) {
-      fs::dir_create(context_dir, recurse = TRUE)
-    }
+    # This ensures atomic updates - either all outputs succeed or none are
+    # written.
+    create_dir(context_dir)
 
     for (target in prompt_targets) {
       field <- prompt_key_to_field(target)
@@ -1304,9 +1291,7 @@ generate_context <- function(
   # Single-pass approach: generate all fields in one LLM call.
 
   # Ensure output directory exists before writing files.
-  if (!fs::dir_exists(context_dir)) {
-    fs::dir_create(context_dir, recurse = TRUE)
-  }
+  create_dir(context_dir)
 
   cli::cli_alert(
     "Generating context with a single LLM call ({length(fields_to_generate)} outputs)."
@@ -1482,7 +1467,14 @@ generate_context <- function(
 #'
 #' @keywords internal
 .gen_cntx_read_materials <- function(material_dir) {
-  if (!fs::dir_exists(material_dir)) {
+  if (
+    isFALSE(path_exists(
+      material_dir,
+      type = "dir",
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    ))
+  ) {
     return(list())
   }
 
@@ -1739,14 +1731,25 @@ generate_context <- function(
 #'
 #' @keywords internal
 .gen_cntx_read_external_transcript <- function(path) {
-  if (!rlang::is_string(path) || !nzchar(path)) {
+  if (is.null(path)) {
     return(NULL)
   }
 
-  if (!fs::file_exists(path)) {
-    cli::cli_warn(
-      "External transcript not found at {.path {path}}."
-    )
+  path <- check_path(
+    path,
+    stop_on_error = FALSE,
+    fail_msg = "External transcript path is invalid: {.path {`_path`}}."
+  )
+  if (isFALSE(path)) {
+    return(NULL)
+  }
+
+  path <- path_exists(
+    path,
+    stop_on_error = FALSE,
+    fail_msg = "External transcript not found at {.path {`_path`}}."
+  )
+  if (isFALSE(path)) {
     return(NULL)
   }
 
@@ -2103,10 +2106,19 @@ generate_context <- function(
   target_tokens = 5000,
   overwrite = FALSE
 ) {
-  fs::dir_create(chunks_dir, recurse = TRUE)
+  is_valid(overwrite, "bool")
+
+  create_dir(chunks_dir)
   index_path <- file.path(chunks_dir, "chunks_index.csv")
 
-  if (!isTRUE(overwrite) && fs::file_exists(index_path)) {
+  if (
+    !overwrite &&
+      !isFALSE(path_exists(
+        index_path,
+        stop_on_error = FALSE,
+        fail_msg = FALSE
+      ))
+  ) {
     return(
       readr::read_csv(
         index_path,

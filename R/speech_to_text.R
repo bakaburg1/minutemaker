@@ -11,8 +11,8 @@
 #'   files. Tested with .mp3 and .wav files.
 #' @param output_dir Path to output directory. Defaults to the
 #'   `minutemaker_transcription_output_dir` option. If the directory doesn't
-#'   exist, it will be created in the same directory as the audio file when a
-#'   relative path is provided.
+#'   exist, it will be created in the working directory when a relative path is
+#'   provided.
 #' @param model Name of the model to use. The models available in the package
 #'   are: "azure_whisper" (online API), "openai_whisper" (online API),
 #'   "whisper_ctranslate2" (offline local model). Users can provide their own
@@ -41,6 +41,8 @@ perform_speech_to_text <- function(
   language = "en",
   ...
 ) {
+  is_valid(overwrite, "bool")
+
   audio_files <- character()
   if (is.null(initial_prompt)) {
     initial_prompt <- ""
@@ -84,12 +86,6 @@ perform_speech_to_text <- function(
     )
   }
 
-  # Recompute default output directory after validation so it uses the trimmed
-  # path.
-  if (!fs::is_absolute_path(output_dir)) {
-    output_dir <- file.path(dirname(audio_path), output_dir)
-  }
-
   # Validate output directory path since this function creates directories.
   output_dir <- create_dir(
     output_dir,
@@ -123,7 +119,14 @@ perform_speech_to_text <- function(
     output_file_name <- file.path(output_dir, output_file_name)
 
     # Skip the file if it already exists and overwrite is FALSE
-    if (!overwrite && file.exists(output_file_name)) {
+    if (
+      !overwrite &&
+        !isFALSE(path_exists(
+          output_file_name,
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
+    ) {
       cli::cli_alert(
         "Skipping existing file: {.file {basename(current_file)}}"
       )
@@ -131,7 +134,13 @@ perform_speech_to_text <- function(
       transcript_json <- jsonlite::read_json(output_file_name)
     } else {
       # Remove the output file if it already exists
-      if (file.exists(output_file_name)) {
+      if (
+        !isFALSE(path_exists(
+          output_file_name,
+          stop_on_error = FALSE,
+          fail_msg = FALSE
+        ))
+      ) {
         file.remove(output_file_name)
       }
 
@@ -315,7 +324,13 @@ use_whisper_ctranslate2_stt <- function(
 
   run_in_terminal("whisper-ctranslate2", args)
 
-  while (!file.exists(output_file_path)) {
+  while (
+    isFALSE(path_exists(
+      output_file_path,
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    ))
+  ) {
     Sys.sleep(1)
   }
 
@@ -830,7 +845,7 @@ use_parakeet_mlx_stt <- function(
 
   # 2. Prepare temporary output directory and files for stdout/stderr
   temp_output_dir <- tempfile(pattern = "parakeet_json_")
-  dir.create(temp_output_dir)
+  create_dir(temp_output_dir)
 
   stdout_file_path <- tempfile(pattern = "parakeet_stdout_")
   stderr_file_path <- tempfile(pattern = "parakeet_stderr_")
@@ -884,8 +899,14 @@ use_parakeet_mlx_stt <- function(
   )
   output_json_path <- file.path(temp_output_dir, output_json_filename)
 
+  output_json_exists <- !isFALSE(path_exists(
+    output_json_path,
+    stop_on_error = FALSE,
+    fail_msg = FALSE
+  ))
+
   # Check for command execution errors or missing output file
-  if (exit_status != 0 || !file.exists(output_json_path)) {
+  if (exit_status != 0 || !output_json_exists) {
     error_intro <- paste0(
       "parakeet-mlx command failed or did not produce the expected output JSON file.\n",
       "Command: ",
@@ -899,7 +920,7 @@ use_parakeet_mlx_stt <- function(
       "Expected JSON path: ",
       shQuote(output_json_path),
       " (exists: ",
-      file.exists(output_json_path),
+      output_json_exists,
       ")\n"
     )
     if (interactive()) {
@@ -910,16 +931,22 @@ use_parakeet_mlx_stt <- function(
       )
     } else {
       # In non-interactive mode, read from captured files
-      stdout_content <- if (
-        file.exists(stdout_file_path) && file.size(stdout_file_path) > 0
-      ) {
+      stdout_exists <- !isFALSE(path_exists(
+        stdout_file_path,
+        stop_on_error = FALSE,
+        fail_msg = FALSE
+      ))
+      stdout_content <- if (stdout_exists && file.size(stdout_file_path) > 0) {
         paste(readLines(stdout_file_path), collapse = "\n")
       } else {
         "(stdout empty or not found)"
       }
-      stderr_content <- if (
-        file.exists(stderr_file_path) && file.size(stderr_file_path) > 0
-      ) {
+      stderr_exists <- !isFALSE(path_exists(
+        stderr_file_path,
+        stop_on_error = FALSE,
+        fail_msg = FALSE
+      ))
+      stderr_content <- if (stderr_exists && file.size(stderr_file_path) > 0) {
         paste(readLines(stderr_file_path), collapse = "\n")
       } else {
         "(stderr empty or not found)"
@@ -974,19 +1001,23 @@ use_parakeet_mlx_stt <- function(
     } else if (!interactive() && exit_status == 0) {
       # If non-interactive and CLI succeeded but JSON is bad, captured
       # stdout/stderr might be informative
-      stdout_content <- if (
-        file.exists(stdout_file_path) &&
-          file.size(stdout_file_path) > 0
-      ) {
+      stdout_exists <- !isFALSE(path_exists(
+        stdout_file_path,
+        stop_on_error = FALSE,
+        fail_msg = FALSE
+      ))
+      stdout_content <- if (stdout_exists && file.size(stdout_file_path) > 0) {
         paste(readLines(stdout_file_path), collapse = "\n")
       } else {
         "(stdout empty or not found)"
       }
 
-      stderr_content <- if (
-        file.exists(stderr_file_path) &&
-          file.size(stderr_file_path) > 0
-      ) {
+      stderr_exists <- !isFALSE(path_exists(
+        stderr_file_path,
+        stop_on_error = FALSE,
+        fail_msg = FALSE
+      ))
+      stderr_content <- if (stderr_exists && file.size(stderr_file_path) > 0) {
         paste(readLines(stderr_file_path), collapse = "\n")
       } else {
         "(stderr empty or not found)"

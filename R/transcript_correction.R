@@ -39,6 +39,8 @@ apply_llm_correction <- function(
   max_retries = 2,
   ...
 ) {
+  is_valid(overwrite, "bool")
+
   input_path <- path_exists(
     input_path,
     type = "any",
@@ -169,7 +171,12 @@ apply_llm_correction <- function(
 
   # Determine which files to process based on input_path
   files_to_process <- character()
-  if (dir.exists(input_path)) {
+  if (!isFALSE(path_exists(
+    input_path,
+    type = "dir",
+    stop_on_error = FALSE,
+    fail_msg = FALSE
+  ))) {
     files_to_process <- list.files(
       input_path,
       pattern = "\\.json$",
