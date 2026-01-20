@@ -232,7 +232,8 @@ split_audio <- function(
           environment(extract_audio_segment_bound) <- list2env(
             list(
               is_audio_file_sane = is_audio_file_sane,
-              check_path = check_path
+              check_path = check_path,
+              create_dir = create_dir
             ),
             parent = environment(extract_audio_segment_func)
           )
@@ -248,6 +249,7 @@ split_audio <- function(
         extract_audio_segment_func = extract_audio_segment,
         is_audio_file_sane = is_audio_file_sane,
         check_path = check_path,
+        create_dir = create_dir,
         audio_file = audio_file,
         output_file = output_file,
         start_time = start_time,
