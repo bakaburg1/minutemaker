@@ -129,7 +129,7 @@ general:
     description: `rlang::is_missing()` returns FALSE for arguments that were not supplied but have defaults; use base `missing()` when you need to detect that case.
     scope: language/base
   - name: renv autoloading in script runs
-    description: Set `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE` when running `Rscript` to avoid renv autoload/lock issues during local checks.
+    description: Rerun with `RENV_CONFIG_AUTOLOADER_ENABLED=FALSE` when running `Rscript` if you get renv autoload/lock issues during local checks.
     scope: tooling/renv
   - name: rscript dollar expansion
     description: When running `Rscript -e` in the shell, escape `$` or use single quotes otherwise shell expansion will transform e.g. `Rscript -e "a <- list(); a$b <- 3"` into `a <- list(); a <- 3`.
