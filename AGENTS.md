@@ -89,7 +89,7 @@ current_project:
     description: Avoid rlang::is_scalar_character() for path validation because it can allow NA values; prefer check_path()/path_exists() to handle NULL/NA/whitespace consistently.
     scope: validation
   - name: transcript intermediate files directory option
-    description: Use the `minutemaker_transcription_output_dir` option as the default location for transcript intermediate files across workflow, STT, and external transcript import; allow overrides via arguments and validate/create with create_dir().
+    description: Use the `minutemaker.transcription_output_dir` option as the default location for transcript intermediate files across workflow, STT, and external transcript import; allow overrides via arguments and validate/create with create_dir().
     scope: transcript/workflow
   - name: file path utilities centralize validation
     description: Avoid ad hoc string checks for file paths; rely on `check_path()`, `path_exists()`, and `create_dir()` which centralize validation and messaging. Consult their documentation for how to raise file errors via `fail_msg`, `stop_on_error`, and related rules.
