@@ -54,3 +54,5 @@ rsconnect/
 experiments/
 ROADMAP.md
 cran-comments.md
+
+/.quarto/
