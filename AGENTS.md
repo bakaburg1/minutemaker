@@ -31,16 +31,17 @@ Examples:
 - Use nested numbering for hierarchical structures: 1. Main item, 1.1. Sub-item, 1.2. Another sub-item
 - Apply this to all structured content: plans of action, questions, lists of options, step-by-step instructions, etc.
 
-### Agent skills and guidelines
+### ACC memory usage
 
-Read and follow these guidelines when appropriate:
-- Writing R code: <https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/R-rules.md>
-- Writing R unit tests: <https://raw.githubusercontent.com/bakaburg1/my-ai-skills/main/R/unit-testing.md>
-- Writing and performing git commits: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/commit.md>
-- Assess and apply code review recommendations: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/verify.md>
-- Write git Pull Request descriptions: <https://raw.githubusercontent.com/bakaburg1/llm-commands/refs/heads/main/pr.md>
+1. Use the `acc-memory-control` skill in READ mode at the beginning of a discussion when you judge the task as medium-high complexity and likely to benefit from checking ACC memory (e.g. multi-step refactors, workflow changes, behavior changes, or multi-step debugging).
+2. Use the ACC skill in UPDATE/WRITE mode when important changes or milestones are reached (e.g. refactoring a function, adding/removing a function, or when the user corrects the model).
+3. Avoid calling the ACC skill for small refactors, style-only changes, or small documentation updates (especially inline edits).
 
-Do not read these guidelines if not relevant to the task at hand.
+### Initial context discovery
+
+At the start of every conversation: (1) list files in `R/`, (2) list utility function signatures using the `list-r-functions` skill and call `list_r_functions()`. Inspect other R files on demand using `list_r_functions("regex")`.
+
+To inspect a function body in this repo, load the package with `devtools::load_all()` and run `print(function_name)`; the function code will print to the console so reading the file is not required.
 
 ### Track learning points
 
@@ -68,7 +69,7 @@ current_project:
     description: Update only `README.Rmd` and regenerate `README.md` via `devtools::build_readme()`.
     scope: documentation
   - name: context generation cache
-    description: generate_context caches per-field context in `context/`, uses `minutemaker_context_material_dir` and `minutemaker_overwrite_context` options, and existing files override manual inputs with info alerts.
+    description: generate_context caches per-field context in `context/`, uses `minutemaker.context_material_dir` and `minutemaker.overwrite_context` options, and existing files override manual inputs with info alerts.
     scope: context generation
   - name: context generation strategy control
     description: generate_context uses only `strategy` parameter ("one_pass" or "agentic") to control generation method. The legacy `mode` parameter (single/per_field) was removed; "one_pass" now always uses single-call JSON generation.
