@@ -7,7 +7,7 @@
 apply_llm_correction(
   input_path,
   terms = NULL,
-  include_reasoning = getOption("minutemaker_include_llm_reasoning", TRUE),
+  include_reasoning = getOption("minutemaker.include_llm_reasoning"),
   overwrite = FALSE,
   max_retries = 2,
   ...
@@ -23,7 +23,8 @@ the LLM should pay special attention to. Can be NULL.}
 \item{include_reasoning}{Logical, if \code{TRUE}, the LLM will be asked to
 provide its reasoning before the JSON output. This approach improves
 quality with non-reasoning models. This reasoning will be messaged to the
-console. Defaults to \code{getOption("minutemaker_include_llm_reasoning", TRUE)}.}
+console. Defaults to the \code{minutemaker.include_llm_reasoning} option
+(\code{TRUE}).}
 
 \item{overwrite}{Logical, if \code{TRUE}, existing files will be overwritten
 with the corrected transcript. Defaults to \code{FALSE}.}
@@ -48,5 +49,5 @@ specified directory. For each transcript, it uses an LLM to identify and
 correct errors based on provided terms/names and general context. The
 corrected transcript is then written back to the original file path. The LLM
 model used for correction is determined by the R option
-\code{getOption("minutemaker_correction_llm_model")}.
+\code{minutemaker.correction_llm_model}.
 }

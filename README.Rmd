@@ -121,24 +121,24 @@ options(
   # or local models:  "whisper_local", "mlx_whisper_local" (python based),
   # (use "mlx_whisper_local" for Apple Silicon)
   # "whisper_ctranslate2" (cli based, install ctranslate2 separately)
-  minutemaker_stt_model = "whisper_local",
+  minutemaker.stt_model = "whisper_local",
   
   # OpenAI Whisper API Key (for remote OpenAI whisper model)
-  minutemaker_openai_api_key = "your_openai_api_key",
+  minutemaker.openai_api_key = "your_openai_api_key",
   
   # Azure Whisper API credentials (for remote Azure whisper model)
-  minutemaker_azure_resource_whisper = "your_azure_resource_name",
-  minutemaker_azure_deployment_whisper = "your_azure_deployment_id",
-  minutemaker_azure_api_key_whisper = "your_azure_api_key",
-  minutemaker_azure_api_version = "2024-06-01",
+  minutemaker.azure_resource_whisper = "your_azure_resource_name",
+  minutemaker.azure_deployment_whisper = "your_azure_deployment_id",
+  minutemaker.azure_api_key_whisper = "your_azure_api_key",
+  minutemaker.azure_api_version = "2024-06-01",
   
   # LLM for transcript correction
-  minutemaker_correction_llm_model = "your_preferred_correction_llm_label",
+  minutemaker.correction_llm_model = "your_preferred_correction_llm_label",
   
   # Whether to add explicit chain-of-thought reasoning for non-reasoning LLMs;
   # set this TRUE to improve corrections on those models, and FALSE for models
   # that already reason internally (e.g., OpenAI o3 or Google Gemini 2.5)
-  minutemaker_include_llm_reasoning = TRUE 
+  minutemaker.include_llm_reasoning = TRUE 
 )
 ```
 
@@ -173,20 +173,20 @@ The `one_pass` strategy is suitable for a cost-effective solution.
 
 **Configuration Options:** Several global options control context generation behavior:
 
-- `minutemaker_context_material_dir`: Directory name for documentation materials (default: `documentation`)
-- `minutemaker_context_dir`: Directory name for generated context files (default: `context`)
-- `minutemaker_context_gen_strategy`: Generation strategy - `agentic` (recommended) or `one_pass` (default: `agentic`)
-- `minutemaker_context_gen_llm_model`: Specific llmR model label for context generation (optional, uses active model if unset)
-- `minutemaker_overwrite_context`: Whether to overwrite existing context files (default: `FALSE`)
+- `minutemaker.context_material_dir`: Directory name for documentation materials (default: <code>`r minutemaker:::.default_opts()$context_material_dir`</code>)
+- `minutemaker.context_dir`: Directory name for generated context files (default: <code>`r minutemaker:::.default_opts()$context_dir`</code>)
+- `minutemaker.context_gen_strategy`: Generation strategy - `agentic` (recommended) or `one_pass` (default: <code>`r minutemaker:::.default_opts()$context_gen_strategy`</code>)
+- `minutemaker.context_gen_llm_model`: Specific llmR model label for context generation (optional, uses active model if unset)
+- `minutemaker.overwrite_context`: Whether to overwrite existing context files (default: <code>`r minutemaker:::.default_opts()$overwrite_context`</code>)
 
 Set these options globally to customize context generation:
 
 ```{r, eval = FALSE}
 options(
-  minutemaker_context_material_dir = "documentation",
-  minutemaker_context_gen_strategy = "agentic",
-  minutemaker_context_gen_llm_model = "your_context_model",
-  minutemaker_overwrite_context = FALSE
+  minutemaker.context_material_dir = "documentation",
+  minutemaker.context_gen_strategy = "agentic",
+  minutemaker.context_gen_llm_model = "your_context_model",
+  minutemaker.overwrite_context = FALSE
 )
 ```
 
@@ -265,7 +265,7 @@ transcript <- perform_speech_to_text(
   
   # A folder where the transcript for each audio file will be saved in JSON
   # format. Defaults to "transcription_output_data" (from the
-  # `minutemaker_transcription_output_dir` option) in the working directory.
+  # `minutemaker.transcription_output_dir` option) in the working directory.
   output_dir = "transcription_output_data",
   
   # Already transcribed files will be skipped if this is FALSE
@@ -287,7 +287,7 @@ transcript <- parse_transcript_json("transcription_output_data")
 # the HH:MM(:SS)( AM/PM) format which allows to compute the timing of the speech
 # segment in real clock time.
 # The event start time can be set globally using the
-# minutemaker_event_start_time option
+# minutemaker.event_start_time option
 transcript_with_clocktime <- parse_transcript_json(
   "transcription_output_data",
   event_start_time = "10:00" # or 10:30:12, or 15:30, or 03:30 PM, etc...
@@ -342,8 +342,8 @@ Key features:
 
 - **Selective Processing**: It can skip files already marked as corrected if `overwrite = FALSE`.
 - **Term Guidance**: You can provide a list of important `terms` (names, acronyms, etc.) to guide the LLM.
-- **Model Choice**: The LLM used for correction is determined by the R option `minutemaker_correction_llm_model`.
-- **Reasoning Output**: If `minutemaker_include_llm_reasoning` is `TRUE` (or passed directly as an argument), the LLM's reasoning for corrections can be included in the output, which is useful for debugging.
+- **Model Choice**: The LLM used for correction is determined by the R option `minutemaker.correction_llm_model`.
+- **Reasoning Output**: If `minutemaker.include_llm_reasoning` is `TRUE` (or passed directly as an argument), the LLM's reasoning for corrections can be included in the output, which is useful for debugging.
 
 ```{r, eval = FALSE}
 # Example: Correcting transcripts in a directory
@@ -685,7 +685,7 @@ withr::with_dir(work_dir, {
 
     # Arguments for `perform_speech_to_text`
     transcription_output_dir = "transcription_output_data",
-    stt_model = getOption("minutemaker_stt_model"),
+    stt_model = getOption("minutemaker.stt_model"),
     stt_initial_prompt = initial_prompt,
     stt_language = "en",
     overwrite_transcription_files = FALSE,
@@ -788,70 +788,77 @@ Use `set_promts(force = TRUE)` to restore all prompts to their default values.
 
 ### Package options
 
-This section lists every `minutemaker_*` option defined in the package code.
+This section lists every `minutemaker.*` option defined in the package code.
 You can set any of them with `options(...)` in your R session.
 
 #### Core workflow and formatting
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_event_start_time` | `NULL` | Clock-time string `HH:MM[:SS][ AM/PM]` (e.g., `"09:00"` or `"03:30 PM"`) | Converts clock times to seconds to align transcripts and agendas. |
-| `minutemaker_transcription_output_dir` | `"transcription_output_data"` | String directory name or path | Folder for transcript intermediate files. Relative paths are resolved from the working directory. |
-| `minutemaker_formatted_output_file` | `"outputs/event_summary.md"` | File path | Output path for the formatted summary. Relative paths are resolved from the working directory and parent folders are created. |
-| `minutemaker_multipart_summary_str_file` | `"outputs/multipart_summary_structure.R"` | File path | Output path for multipart summary trees. Relative paths are resolved from the working directory and parent folders are created. |
-| `minutemaker_stt_model` | `NULL` (functions default to `"whisper_local"`) | String model label: `"openai_whisper"`, `"azure_whisper"`, `"whisper_local"`, `"mlx_whisper_local"`, or `"whisper_ctranslate2"` | Default STT backend used by workflow helpers and `perform_speech_to_text()`. |
+| `minutemaker.event_start_time` | <code>`r minutemaker:::.default_opts()$event_start_time`</code> | Clock-time string `HH:MM[:SS][ AM/PM]` (e.g., `"09:00"` or `"03:30 PM"`) | Converts clock times to seconds to align transcripts and agendas. |
+| `minutemaker.transcription_output_dir` | <code>`r minutemaker:::.default_opts()$transcription_output_dir`</code> | String directory name or path | Folder for transcript intermediate files. Relative paths are resolved from the working directory. |
+| `minutemaker.stt_audio_dir` | <code>`r minutemaker:::.default_opts()$stt_audio_dir`</code> | String directory name or path | Folder containing audio files to transcribe. Relative paths are resolved from the working directory. |
+| `minutemaker.transcript_file` | <code>`r minutemaker:::.default_opts()$transcript_file`</code> | File path | Output path for the parsed transcript CSV. Relative paths are resolved from the working directory. |
+| `minutemaker.agenda_file` | <code>`r minutemaker:::.default_opts()$agenda_file`</code> | File path | Path to the agenda file used or generated by the workflow. Relative paths are resolved from the working directory. |
+| `minutemaker.formatted_output_file` | <code>`r minutemaker:::.default_opts()$formatted_output_file`</code> | File path | Output path for the formatted summary. Relative paths are resolved from the working directory and parent folders are created. |
+| `minutemaker.multipart_summary_str_file` | <code>`r minutemaker:::.default_opts()$multipart_summary_str_file`</code> | File path | Output path for multipart summary trees. Relative paths are resolved from the working directory and parent folders are created. |
+| `minutemaker.summary_tree_output_file` | <code>`r minutemaker:::.default_opts()$summary_tree_output_file`</code> | File path | Output path for `summarise_full_meeting()` when used directly. Relative paths are resolved from the working directory. |
+| `minutemaker.stt_model` | <code>`r minutemaker:::.default_opts()$stt_model`</code> | String model label: `"openai_whisper"`, `"azure_whisper"`, `"whisper_local"`, `"mlx_whisper_local"`, or `"whisper_ctranslate2"` | Default STT backend used by workflow helpers and `perform_speech_to_text()`. |
 
 #### Speech-to-text (STT)
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_openai_api_key` | `NULL` | Non-empty string API key | Used by OpenAI Whisper requests. |
-| `minutemaker_azure_resource_whisper` | `NULL` | String resource name (not a URL) | Used to build the Azure Whisper endpoint. |
-| `minutemaker_azure_deployment_whisper` | `NULL` | String deployment ID | Selects the Azure Whisper deployment. |
-| `minutemaker_azure_api_key_whisper` | `NULL` | Non-empty string API key | Used for Azure Whisper authentication. |
-| `minutemaker_azure_api_version` | `NULL` | String version (e.g., `"2024-06-01"`) | Passed as the Azure `api-version`. |
-| `minutemaker_whisper_package` | `"openai-whisper"` or `"mlx_whisper"` | String python package name: `"openai-whisper"` or `"mlx_whisper"` | Selects the local Whisper python backend package. |
-| `minutemaker_split_audio_parallel` | `FALSE` | Logical `TRUE`/`FALSE` | Enables `mirai` workers for `split_audio()`. |
-| `minutemaker_split_audio_parallel_timeout` | `120` | Positive integer seconds | Timeout for parallel audio splitting before aborting. |
+| `minutemaker.openai_api_key` | <code>`r minutemaker:::.default_opts()$openai_api_key`</code> | Non-empty string API key | Used by OpenAI Whisper requests. |
+| `minutemaker.azure_resource_whisper` | <code>`r minutemaker:::.default_opts()$azure_resource_whisper`</code> | String resource name (not a URL) | Used to build the Azure Whisper endpoint. |
+| `minutemaker.azure_deployment_whisper` | <code>`r minutemaker:::.default_opts()$azure_deployment_whisper`</code> | String deployment ID | Selects the Azure Whisper deployment. |
+| `minutemaker.azure_api_key_whisper` | <code>`r minutemaker:::.default_opts()$azure_api_key_whisper`</code> | Non-empty string API key | Used for Azure Whisper authentication. |
+| `minutemaker.azure_api_version` | <code>`r minutemaker:::.default_opts()$azure_api_version`</code> | String version (e.g., `"2024-06-01"`) | Passed as the Azure `api-version`. |
+| `minutemaker.whisper_package` | <code>`r minutemaker:::.default_opts()$whisper_package`</code> | String python package name: `"openai-whisper"` | Selects the local Whisper python backend package. |
+| `minutemaker.mlx_whisper_package` | <code>`r minutemaker:::.default_opts()$mlx_whisper_package`</code> | String python package name: `"mlx_whisper"` | Selects the local MLX Whisper python backend package. |
+| `minutemaker.split_audio_parallel` | <code>`r minutemaker:::.default_opts()$split_audio_parallel`</code> | Logical `TRUE`/`FALSE` | Enables `mirai` workers for `split_audio()`. |
+| `minutemaker.split_audio_output_dir` | <code>`r minutemaker:::.default_opts()$split_audio_output_dir`</code> | String directory name | Folder name used under the source audio directory for split segments. |
+| `minutemaker.split_audio_parallel_timeout` | <code>`r minutemaker:::.default_opts()$split_audio_parallel_timeout`</code> | Positive integer seconds | Timeout for parallel audio splitting before aborting. |
 
 #### Transcript correction
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_correction_llm_model` | `NULL` (falls back to `llmr_current_model`) | String llmR model label | Model used by `apply_llm_correction()`; falls back to `llmr_current_model`. |
-| `minutemaker_include_llm_reasoning` | `TRUE` | Logical `TRUE`/`FALSE` | Requests explicit reasoning before JSON corrections. |
+| `minutemaker.correction_llm_model` | <code>`r minutemaker:::.default_opts()$correction_llm_model`</code> (falls back to `llmr_current_model`) | String llmR model label | Model used by `apply_llm_correction()`; falls back to `llmr_current_model`. |
+| `minutemaker.include_llm_reasoning` | <code>`r minutemaker:::.default_opts()$include_llm_reasoning`</code> | Logical `TRUE`/`FALSE` | Requests explicit reasoning before JSON corrections. |
 
 #### Context generation
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_context_material_dir` | `"documentation"` | String directory name or relative path | Folder (relative to the working directory) containing meeting materials for `generate_context()`. |
-| `minutemaker_context_gen_strategy` | `"agentic"` | String `"agentic"` or `"one_pass"` | Selects multi-pass vs single-call context generation. |
-| `minutemaker_context_gen_llm_model` | `NULL` | String llmR model label | Overrides the active model only for context generation. |
-| `minutemaker_overwrite_context` | `FALSE` | Logical `TRUE`/`FALSE` | Overwrite existing `context/` files when `TRUE`. |
-| `minutemaker_context_generation_max_retries` | `3` | Positive integer | Max retry attempts per generated context field. |
+| `minutemaker.context_material_dir` | <code>`r minutemaker:::.default_opts()$context_material_dir`</code> | String directory name or relative path | Folder (relative to the working directory) containing meeting materials for `generate_context()`. |
+| `minutemaker.context_dir` | <code>`r minutemaker:::.default_opts()$context_dir`</code> | String directory name or relative path | Folder (relative to the working directory) storing generated context files. |
+| `minutemaker.context_gen_strategy` | <code>`r minutemaker:::.default_opts()$context_gen_strategy`</code> | String `"agentic"` or `"one_pass"` | Selects multi-pass vs single-call context generation. |
+| `minutemaker.context_gen_llm_model` | <code>`r minutemaker:::.default_opts()$context_gen_llm_model`</code> | String llmR model label | Overrides the active model only for context generation. |
+| `minutemaker.overwrite_context` | <code>`r minutemaker:::.default_opts()$overwrite_context`</code> | Logical `TRUE`/`FALSE` | Overwrite existing `context/` files when `TRUE`. |
+| `minutemaker.context_generation_max_retries` | <code>`r minutemaker:::.default_opts()$context_generation_max_retries`</code> | Positive integer | Max retry attempts per generated context field. |
 
 #### Prompt customization (`set_prompts()` / `get_prompts()`)
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_prompt_persona` | Built-in prompt text | Character string | Persona block that sets overall voice/role. |
-| `minutemaker_prompt_base_task` | Built-in prompt text | Character string | Base task instruction for summarization. |
-| `minutemaker_prompt_aggregate_task_rolling` | Built-in prompt text | Character string | Task for rolling-window aggregation. |
-| `minutemaker_prompt_agenda_inference_task` | Built-in prompt text | Character string | Task used when inferring agenda structure. |
-| `minutemaker_prompt_event_description_template` | Built-in prompt text | Character string template with `{event_description}` | Wraps event description content. |
-| `minutemaker_prompt_recording_details_template` | Built-in prompt text | Character string template with `{recording_details}` | Wraps recording details content. |
-| `minutemaker_prompt_transcript_template` | Built-in prompt text | Character string template with `{transcript}` | Wraps transcript segment text. |
-| `minutemaker_prompt_aggregate_template_rolling` | Built-in prompt text | Character string | Intro wrapper before rolling summaries. |
-| `minutemaker_prompt_agenda_inference_template` | Built-in prompt text | Character string template | Frames transcript text for agenda inference. |
-| `minutemaker_prompt_vocabulary_template` | Built-in prompt text | Character string template with `{vocabulary}` | Injects vocabulary and term guidance. |
-| `minutemaker_prompt_diarization_template` | Built-in prompt text | Character string template with `{extra_diarization_instructions}` | Wraps diarization instructions and extra hints. |
-| `minutemaker_prompt_audience_template` | Built-in prompt text | Character string template with `{audience}` | Injects audience focus guidance. |
-| `minutemaker_prompt_summarisation_template` | Built-in prompt text | Character string template with `{summary_structure}` | Wraps summary structure instructions. |
-| `minutemaker_prompt_summary_structure` | Built-in prompt text | Character string or vector of bullet lines | Default summary sections when none are supplied. |
-| `minutemaker_prompt_output_template` | Built-in prompt text | Character string template with `{output_instructions}` and `{output_length}` | Wraps output rules and length requirement. |
-| `minutemaker_prompt_output_summarisation` | Built-in prompt text | Character vector of instruction lines | Default output rules for summarization. |
-| `minutemaker_prompt_output_rolling_aggregation` | Built-in prompt text | Character vector of instruction lines | Default output rules for rolling aggregation. |
+| `minutemaker.prompt_persona` | Built-in prompt text | Character string | Persona block that sets overall voice/role. |
+| `minutemaker.prompt_base_task` | Built-in prompt text | Character string | Base task instruction for summarization. |
+| `minutemaker.prompt_aggregate_task_rolling` | Built-in prompt text | Character string | Task for rolling-window aggregation. |
+| `minutemaker.prompt_agenda_inference_task` | Built-in prompt text | Character string | Task used when inferring agenda structure. |
+| `minutemaker.prompt_event_description_template` | Built-in prompt text | Character string template with `{event_description}` | Wraps event description content. |
+| `minutemaker.prompt_recording_details_template` | Built-in prompt text | Character string template with `{recording_details}` | Wraps recording details content. |
+| `minutemaker.prompt_transcript_template` | Built-in prompt text | Character string template with `{transcript}` | Wraps transcript segment text. |
+| `minutemaker.prompt_aggregate_template_rolling` | Built-in prompt text | Character string | Intro wrapper before rolling summaries. |
+| `minutemaker.prompt_agenda_inference_template` | Built-in prompt text | Character string template | Frames transcript text for agenda inference. |
+| `minutemaker.prompt_vocabulary_template` | Built-in prompt text | Character string template with `{vocabulary}` | Injects vocabulary and term guidance. |
+| `minutemaker.prompt_diarization_template` | Built-in prompt text | Character string template with `{extra_diarization_instructions}` | Wraps diarization instructions and extra hints. |
+| `minutemaker.prompt_audience_template` | Built-in prompt text | Character string template with `{audience}` | Injects audience focus guidance. |
+| `minutemaker.prompt_summarisation_template` | Built-in prompt text | Character string template with `{summary_structure}` | Wraps summary structure instructions. |
+| `minutemaker.prompt_summary_structure` | Built-in prompt text | Character string or vector of bullet lines | Default summary sections when none are supplied. |
+| `minutemaker.prompt_output_template` | Built-in prompt text | Character string template with `{output_instructions}` and `{output_length}` | Wraps output rules and length requirement. |
+| `minutemaker.prompt_output_summarisation` | Built-in prompt text | Character vector of instruction lines | Default output rules for summarization. |
+| `minutemaker.prompt_output_rolling_aggregation` | Built-in prompt text | Character vector of instruction lines | Default output rules for rolling aggregation. |
 
 For the full default prompt texts, run `get_prompts()` in R (or inspect
 `set_prompts()` in the source).
@@ -860,8 +867,8 @@ For the full default prompt texts, run `get_prompts()` in R (or inspect
 
 | Option | Default | Format | Description |
 | --- | --- | --- | --- |
-| `minutemaker_temp_agenda` | `NULL` | List of numeric seconds | In-session cache of inferred agenda breakpoints. |
-| `minutemaker_temp_agenda_last_bp` | `NULL` | Integer index | Last processed breakpoint index for resume. |
-| `minutemaker_temp_agenda_hash` | `NULL` | String hash | Cache key used to invalidate agenda inference results. |
-| `minutemaker_data_merge_hash` | `NULL` | String hash | Cache key for deprecated GloVe utilities. |
-| `minutemaker_data_merge_model` | `NULL` | Numeric matrix | Cached GloVe embeddings for deprecated functions. |
+| `minutemaker.temp_agenda` | <code>`r minutemaker:::.default_opts()$temp_agenda`</code> | List of numeric seconds | In-session cache of inferred agenda breakpoints. |
+| `minutemaker.temp_agenda_last_bp` | <code>`r minutemaker:::.default_opts()$temp_agenda_last_bp`</code> | Integer index | Last processed breakpoint index for resume. |
+| `minutemaker.temp_agenda_hash` | <code>`r minutemaker:::.default_opts()$temp_agenda_hash`</code> | String hash | Cache key used to invalidate agenda inference results. |
+| `minutemaker.data_merge_hash` | <code>`r minutemaker:::.default_opts()$data_merge_hash`</code> | String hash | Cache key for deprecated GloVe utilities. |
+| `minutemaker.data_merge_model` | <code>`r minutemaker:::.default_opts()$data_merge_model`</code> | Numeric matrix | Cached GloVe embeddings for deprecated functions. |

@@ -9,10 +9,10 @@ use_azure_whisper_stt(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  resource_name = getOption("minutemaker_azure_resource_whisper"),
-  deployment_id = getOption("minutemaker_azure_deployment_whisper"),
-  api_key = getOption("minutemaker_azure_api_key_whisper"),
-  api_version = getOption("minutemaker_azure_api_version")
+  resource_name = getOption("minutemaker.azure_resource_whisper"),
+  deployment_id = getOption("minutemaker.azure_deployment_whisper"),
+  api_key = getOption("minutemaker.azure_api_key_whisper"),
+  api_version = getOption("minutemaker.azure_api_version")
 )
 }
 \arguments{
@@ -29,13 +29,21 @@ segment.}
 \item Defaults to 0.
 }}
 
-\item{resource_name}{The name of the Azure resource to use.}
+\item{resource_name}{The name of the Azure resource to use. Defaults to the
+\code{minutemaker.azure_resource_whisper} option
+(\code{}).}
 
-\item{deployment_id}{The deployment ID of the Azure resource to use.}
+\item{deployment_id}{The deployment ID of the Azure resource to use. Defaults
+to the \code{minutemaker.azure_deployment_whisper} option
+(\code{}).}
 
-\item{api_key}{The API key to use for the Azure resource.}
+\item{api_key}{The API key to use for the Azure resource. Defaults to the
+\code{minutemaker.azure_api_key_whisper} option
+(\code{}).}
 
-\item{api_version}{The API version to use for the Azure resource.}
+\item{api_version}{The API version to use for the Azure resource. Defaults to
+the \code{minutemaker.azure_api_version} option
+(\code{}).}
 }
 \value{
 A list with the full transcript and the transcription by segments.

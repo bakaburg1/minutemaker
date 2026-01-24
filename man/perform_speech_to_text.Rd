@@ -6,8 +6,8 @@
 \usage{
 perform_speech_to_text(
   audio_path,
-  output_dir = getOption("minutemaker_transcription_output_dir"),
-  model = getOption("minutemaker_stt_model", "whisper_local"),
+  output_dir = getOption("minutemaker.transcription_output_dir"),
+  model = getOption("minutemaker.stt_model"),
   initial_prompt = NULL,
   overwrite = FALSE,
   language = "en",
@@ -19,14 +19,16 @@ perform_speech_to_text(
 files. Tested with .mp3 and .wav files.}
 
 \item{output_dir}{Path to output directory. Defaults to the
-\code{minutemaker_transcription_output_dir} option. If the directory doesn't
-exist, it will be created in the working directory when a relative path is
-provided.}
+\code{minutemaker.transcription_output_dir} option
+(\code{transcription_output_data}).
+If the directory doesn't exist, it will be created in the working
+directory when a relative path is provided.}
 
-\item{model}{Name of the model to use. The models available in the package
-are: "azure_whisper" (online API), "openai_whisper" (online API),
-"whisper_ctranslate2" (offline local model). Users can provide their own
-models.}
+\item{model}{Name of the model to use. Defaults to the \code{minutemaker.stt_model}
+option (\code{whisper_local}). The models
+available in the package are: "azure_whisper" (online API),
+"openai_whisper" (online API), "whisper_ctranslate2" (offline local model).
+Users can provide their own models.}
 
 \item{initial_prompt}{Text to prepend to the beginning of each transcript.
 This is useful for adding hard to parse words like acronyms.}

@@ -9,7 +9,7 @@ use_mlx_whisper_local_stt(
   language = "en",
   initial_prompt = "",
   model = "mlx-community/distil-whisper-large-v3",
-  whisper_package = getOption("minutemaker_whisper_package", "mlx_whisper")
+  whisper_package = getOption("minutemaker.mlx_whisper_package")
 )
 }
 \arguments{
@@ -24,8 +24,9 @@ segment.}
 \item{model}{The MLX Whisper model to use. Default is
 "mlx-community/whisper-large-v3-turbo".}
 
-\item{whisper_package}{The Python package to use for MLX Whisper (default:
-"mlx_whisper").}
+\item{whisper_package}{The Python package to use for MLX Whisper. Defaults to
+the \code{minutemaker.mlx_whisper_package} option
+(\code{mlx_whisper}).}
 }
 \value{
 A list with the full transcript and the transcription by segments.

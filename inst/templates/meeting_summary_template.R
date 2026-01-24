@@ -21,19 +21,19 @@ minutemaker::set_prompts()
 # These are only needed when performing speech-to-text (STT).
 # If you are using an external transcript, you can omit STT options.
 options(
-  minutemaker_stt_model = "your_stt_provider",
-  minutemaker_correction_llm_model = "your_correction_model",
-  minutemaker_split_audio_parallel = TRUE,
+  minutemaker.stt_model = "your_stt_provider",
+  minutemaker.correction_llm_model = "your_correction_model",
+  minutemaker.split_audio_parallel = TRUE,
 
   # Context generation options:
   # Folder containing meeting materials
-  minutemaker_context_material_dir = "documentation",
+  minutemaker.context_material_dir = "documentation",
   # Generation strategy
-  minutemaker_context_gen_strategy = "agentic",
+  minutemaker.context_gen_strategy = "agentic",
   # Model for context generation
-  minutemaker_context_gen_llm_model = "your_context_model",
+  minutemaker.context_gen_llm_model = "your_context_model",
   # Don't overwrite existing context
-  minutemaker_overwrite_context = FALSE
+  minutemaker.overwrite_context = FALSE
 )
 
 # Select the LLM used for summarization

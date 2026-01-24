@@ -7,8 +7,9 @@
 split_audio(
   audio_file,
   segment_duration = 40,
-  output_folder = file.path(dirname(audio_file), "recording_parts"),
-  parallel = getOption("minutemaker_split_audio_parallel", FALSE)
+  output_folder = file.path(dirname(audio_file),
+    getOption("minutemaker.split_audio_output_dir")),
+  parallel = getOption("minutemaker.split_audio_parallel")
 )
 }
 \arguments{
@@ -17,10 +18,15 @@ split_audio(
 \item{segment_duration}{The duration of each splitted audio file in minutes.
 20 minutes equate to more or less 7-8 MB.}
 
-\item{output_folder}{The path to the folder where to save the segments in.}
+\item{output_folder}{The path to the folder where to save the segments in.
+Defaults to the \code{minutemaker.split_audio_output_dir} option
+(\code{recording_parts}) within the
+directory of \code{audio_file}.}
 
 \item{parallel}{A logical value indicating whether to process segments in
-parallel. Defaults to \code{getOption("minutemaker_split_audio_parallel", FALSE)}. Parallel processing requires the \code{mirai} package.}
+parallel. Defaults to the \code{minutemaker.split_audio_parallel} option
+(\code{FALSE}). Parallel
+processing requires the \code{mirai} package.}
 }
 \value{
 Nothing, but saves the segments to files.

@@ -5,9 +5,9 @@
 \title{Generate meeting context from documentation materials}
 \usage{
 generate_context(
-  material_dir = getOption("minutemaker_context_material_dir", "documentation"),
-  overwrite = getOption("minutemaker_overwrite_context", FALSE),
-  strategy = getOption("minutemaker_context_gen_strategy", "agentic"),
+  material_dir = getOption("minutemaker.context_material_dir"),
+  overwrite = getOption("minutemaker.overwrite_context"),
+  strategy = getOption("minutemaker.context_gen_strategy"),
   generate_expected_agenda = TRUE,
   generate_event_description = TRUE,
   generate_audience = TRUE,
@@ -26,18 +26,21 @@ generate_context(
 \arguments{
 \item{material_dir}{Folder name (relative to the working directory)
 containing documentation materials. Defaults to the
-\code{minutemaker_context_material_dir} option or \code{"documentation"}.}
+\code{minutemaker.context_material_dir} option
+(\code{documentation}).}
 
 \item{overwrite}{Logical value indicating whether existing context files
-should be overwritten. Defaults to the \code{minutemaker_overwrite_context}
-option or \code{FALSE}.}
+should be overwritten. Defaults to the \code{minutemaker.overwrite_context}
+option (\code{FALSE}).}
 
-\item{strategy}{One of \code{one_pass} or \code{agentic}. \code{one_pass} uses a
-single-agent generation flow that requests all outputs in one LLM call.
-\code{agentic} runs a multi-agent pipeline that first drafts context from
-documentation materials, then proposes transcript-driven edits in batches,
-and finally consolidates everything into final context files written at the
-end.}
+\item{strategy}{One of \code{one_pass} or \code{agentic}. Defaults to the
+\code{minutemaker.context_gen_strategy} option
+(\code{agentic}).
+\code{one_pass} uses a single-agent generation flow that requests all outputs in
+one LLM call. \code{agentic} runs a multi-agent pipeline that first drafts
+context from documentation materials, then proposes transcript-driven edits
+in batches, and finally consolidates everything into final context files
+written at the end.}
 
 \item{generate_expected_agenda}{Logical value indicating whether to generate
 the expected agenda.}
@@ -83,7 +86,7 @@ files under a \code{context} folder.
 \details{
 By default, the active llmR model (option \code{llmr_current_model}) is
 used. To force a specific model for context generation, set the option
-\code{minutemaker_context_gen_llm_model} to a registered llmR model label (e.g.,
+\code{minutemaker.context_gen_llm_model} to a registered llmR model label (e.g.,
 \code{"mm_gpt-4.1_azure"}).
 }
 \examples{

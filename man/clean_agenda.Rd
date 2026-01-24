@@ -7,7 +7,7 @@
 clean_agenda(
   agenda,
   transcript_data,
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   min_rows = 1,
   on_empty = c("drop", "abort")
 )
@@ -19,7 +19,9 @@ clean_agenda(
 numeric \code{start} and \code{end} columns in seconds.}
 
 \item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
-format. Used when agenda times are clock-based and need conversion.}
+format. Defaults to the \code{minutemaker.event_start_time} option
+(\code{}). Used when
+agenda times are clock-based and need conversion.}
 
 \item{min_rows}{Minimum number of transcript rows required to keep an agenda
 item. Must be a positive integer.}

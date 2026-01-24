@@ -6,7 +6,7 @@
 \usage{
 use_transcript_input(
   file,
-  transcription_output_dir = getOption("minutemaker_transcription_output_dir"),
+  transcription_output_dir = getOption("minutemaker.transcription_output_dir"),
   import_diarization = TRUE,
   lines_per_json = 50,
   overwrite = FALSE
@@ -17,8 +17,9 @@ use_transcript_input(
 
 \item{transcription_output_dir}{Path to the directory where transcript
 intermediate files should be written. Defaults to the
-\code{minutemaker_transcription_output_dir} option. Relative paths are resolved
-from the working directory.}
+\code{minutemaker.transcription_output_dir} option
+(\code{transcription_output_data}).
+Relative paths are resolved from the working directory.}
 
 \item{import_diarization}{A boolean indicating whether the speaker should be
 imported from the transcript, if present.}

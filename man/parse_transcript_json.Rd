@@ -7,7 +7,7 @@
 parse_transcript_json(
   transcript_json,
   pretty_times = TRUE,
-  event_start_time = getOption("minutemaker_event_start_time")
+  event_start_time = getOption("minutemaker.event_start_time")
 )
 }
 \arguments{
@@ -21,9 +21,11 @@ should be also formatted as hours-seconds-minutes instead of cumulative
 seconds.}
 
 \item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
-format. Will be used to add the actual clock time to the transcript
-segments. If NULL, the clock time will not be added. If NA, metadata from
-transcript JSON files will be ignored.}
+format. Defaults to the \code{minutemaker.event_start_time} option
+(\code{}). Will be used to
+add the actual clock time to the transcript segments. If NULL, the clock
+time will not be added. If NA, metadata from transcript JSON files will be
+ignored.}
 }
 \value{
 A data frame with the text and start and end time of each segment.

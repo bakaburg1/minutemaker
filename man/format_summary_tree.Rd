@@ -7,7 +7,7 @@
 format_summary_tree(
   summary_tree,
   agenda,
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   output_file = NULL
 )
 }
@@ -21,8 +21,10 @@ speakers, moderators, start and ending times. Agenda sessions/titles must
 be consistent with those in the \code{summary_tree} object.}
 
 \item{event_start_time}{If agenda timings are in seconds, the starting time
-is needed to convert them to actual clock time. If \code{NULL} it will use the
-timing as reported in the agenda.}
+is needed to convert them to actual clock time. Defaults to the
+\code{minutemaker.event_start_time} option
+(\code{}). If \code{NULL} it
+will use the timing as reported in the agenda.}
 
 \item{output_file}{A string with the path to the output file. If NULL, the
 output is returned invisibly and not written to a file.}

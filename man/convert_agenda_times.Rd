@@ -7,7 +7,7 @@
 convert_agenda_times(
   agenda,
   convert_to = c("seconds", "clocktime"),
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   conversion_format = "\%T"
 )
 }
@@ -22,8 +22,10 @@ the times are in clock time format, and vice versa.}
 
 \item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
 format or a POSIXct object. Will be used to convert event times to seconds
-from the start. If \code{NULL}, defaults to the start time of the first element
-in the agenda, with a warning.}
+from the start. Defaults to the \code{minutemaker.event_start_time} option
+(\code{}). If \code{NULL},
+defaults to the start time of the first element in the agenda, with a
+warning.}
 
 \item{conversion_format}{The format to use when converting to clock time.
 E.g., \%T for HH:MM:SS, or \%R for HH:MM, etc... See \code{?strptime} for a list

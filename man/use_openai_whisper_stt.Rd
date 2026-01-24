@@ -9,7 +9,7 @@ use_openai_whisper_stt(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  api_key = getOption("minutemaker_openai_api_key"),
+  api_key = getOption("minutemaker.openai_api_key"),
   max_retries = 3,
   .retry_count = 0
 )
@@ -28,8 +28,9 @@ segment.}
 \item Defaults to 0.
 }}
 
-\item{api_key}{The OpenAI API key. If not provided, it will be retrieved from
-the global options.}
+\item{api_key}{The OpenAI API key. Defaults to the
+\code{minutemaker.openai_api_key} option
+(\code{}).}
 
 \item{max_retries}{Maximum number of retries for temporary errors.}
 

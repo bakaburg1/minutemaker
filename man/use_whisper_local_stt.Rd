@@ -9,7 +9,7 @@ use_whisper_local_stt(
   language = "en",
   initial_prompt = "",
   model = "turbo",
-  whisper_package = getOption("minutemaker_whisper_package", "openai-whisper")
+  whisper_package = getOption("minutemaker.whisper_package")
 )
 }
 \arguments{
@@ -24,8 +24,9 @@ segment.}
 \item{model}{The Whisper model to use. Default is "turbo". Check
 https://github.com/openai/whisper for other available models.}
 
-\item{whisper_package}{The Python package to use for Whisper (default:
-"openai-whisper").}
+\item{whisper_package}{The Python package to use for Whisper. Defaults to the
+\code{minutemaker.whisper_package} option
+(\code{openai-whisper}).}
 }
 \value{
 A list with the full transcript and the transcription by segments.

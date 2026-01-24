@@ -8,10 +8,10 @@ summarise_full_meeting(
   transcript_data,
   agenda,
   method = c("simple", "rolling"),
-  output_file = "event_summary.R",
+  output_file = getOption("minutemaker.summary_tree_output_file"),
   window_size = 15,
   output_length = 3,
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   event_description = NULL,
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -35,8 +35,9 @@ containing such a list.}
 "simple" or "rolling", with the first being faster and the second
 (theoritically) more accurate. See \code{summarise_transcript} for more details.}
 
-\item{output_file}{The file to save the results to as a list. Default is
-"event_summary.R".}
+\item{output_file}{The file to save the results to as a list. Defaults to the
+\code{minutemaker.summary_tree_output_file} option
+(\code{event_summary.R}).}
 
 \item{window_size}{The size of the window in minutes to use when summarising
 the transcript using the "rolling window" method. See
@@ -46,8 +47,10 @@ the transcript using the "rolling window" method. See
 output. See \code{summarise_transcript} for more details.}
 
 \item{event_start_time}{The start time of the event in the HH:MM(:SS)( AM/PM)
-format. Necessary to convert the agenda times to seconds if the first event
-time is not the start time of the event.}
+format. Defaults to the \code{minutemaker.event_start_time} option
+(\code{}). Necessary to
+convert the agenda times to seconds if the first event time is not the
+start time of the event.}
 
 \item{event_description}{The description of the event See
 \code{summarise_transcript} for more details.}

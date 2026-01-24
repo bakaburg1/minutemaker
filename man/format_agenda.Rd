@@ -6,7 +6,7 @@
 \usage{
 format_agenda(
   agenda,
-  event_start_time = getOption("minutemaker_event_start_time")
+  event_start_time = getOption("minutemaker.event_start_time")
 )
 }
 \arguments{
