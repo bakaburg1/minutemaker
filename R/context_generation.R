@@ -7,16 +7,20 @@
 #'
 #' @param material_dir Folder name (relative to the working directory)
 #'   containing documentation materials. Defaults to the
-#'   `minutemaker_context_material_dir` option or `"documentation"`.
+#'   `minutemaker.context_material_dir` option
+#'   (\code{`r minutemaker:::.default_opts()$context_material_dir`}).
 #' @param overwrite Logical value indicating whether existing context files
-#'   should be overwritten. Defaults to the `minutemaker_overwrite_context`
-#'   option or `FALSE`.
-#' @param strategy One of `one_pass` or `agentic`. `one_pass` uses a
-#'   single-agent generation flow that requests all outputs in one LLM call.
-#'   `agentic` runs a multi-agent pipeline that first drafts context from
-#'   documentation materials, then proposes transcript-driven edits in batches,
-#'   and finally consolidates everything into final context files written at the
-#'   end.
+#'   should be overwritten. Defaults to the `minutemaker.overwrite_context`
+#'   option (\code{`r minutemaker:::.default_opts()$overwrite_context`}).
+
+#' @param strategy One of `one_pass` or `agentic`. Defaults to the
+#'   `minutemaker.context_gen_strategy` option
+#'   (\code{`r minutemaker:::.default_opts()$context_gen_strategy`}).
+#'   `one_pass` uses a single-agent generation flow that requests all outputs in
+#'   one LLM call. `agentic` runs a multi-agent pipeline that first drafts
+#'   context from documentation materials, then proposes transcript-driven edits
+#'   in batches, and finally consolidates everything into final context files
+#'   written at the end.
 #' @param generate_expected_agenda Logical value indicating whether to generate
 #'   the expected agenda.
 #' @param generate_event_description Logical value indicating whether to
@@ -39,7 +43,7 @@
 #'
 #' @details By default, the active llmR model (option `llmr_current_model`) is
 #'   used. To force a specific model for context generation, set the option
-#'   `minutemaker_context_gen_llm_model` to a registered llmR model label (e.g.,
+#'   `minutemaker.context_gen_llm_model` to a registered llmR model label (e.g.,
 #'   `"mm_gpt-4.1_azure"`).
 #'
 #' @return A list containing generated context values.
@@ -53,9 +57,9 @@
 #'
 #' @export
 generate_context <- function(
-  material_dir = getOption("minutemaker_context_material_dir", "documentation"),
-  overwrite = getOption("minutemaker_overwrite_context", FALSE),
-  strategy = getOption("minutemaker_context_gen_strategy", "agentic"),
+  material_dir = getOption("minutemaker.context_material_dir"),
+  overwrite = getOption("minutemaker.overwrite_context"),
+  strategy = getOption("minutemaker.context_gen_strategy"),
   generate_expected_agenda = TRUE,
   generate_event_description = TRUE,
   generate_audience = TRUE,
@@ -88,7 +92,7 @@ generate_context <- function(
   # correction.
   # This enables different models for different pipeline stages without global
   # changes.
-  context_model_label <- getOption("minutemaker_context_gen_llm_model")
+  context_model_label <- getOption("minutemaker.context_gen_llm_model")
   if (!is.null(context_model_label)) {
     # Save current model for restoration on exit (cleanup).
     original_active_model <- getOption("llmr_current_model")
@@ -112,7 +116,7 @@ generate_context <- function(
 
   # === PATH SETUP ===
   # Define output directory for context files (cached outputs).
-  context_dir <- getOption("minutemaker_context_dir", "context")
+  context_dir <- getOption("minutemaker.context_dir")
   material_path <- material_dir
 
   # Context field definitions ----
@@ -576,10 +580,7 @@ generate_context <- function(
   # Handles empty responses and transient failures with linear backoff.
   safe_prompt_llm <- function(
     messages,
-    max_retries = getOption(
-      "minutemaker_context_generation_max_retries",
-      3
-    ),
+    max_retries = getOption("minutemaker.context_generation_max_retries"),
     ...
   ) {
     default_retries <- 3L
@@ -591,7 +592,7 @@ generate_context <- function(
         max_retries < 1
     ) {
       cli::cli_warn(
-        "Option `minutemaker_context_generation_max_retries` must be a positive integer; using default {default_retries}."
+        "Option `minutemaker.context_generation_max_retries` must be a positive integer; using default {default_retries}."
       )
       max_retries <- default_retries
     }

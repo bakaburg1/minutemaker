@@ -105,16 +105,16 @@ describe("generate_glove_model", {
   # Ensure that any options set by generate_glove_model for caching
   # are reset after all tests in this describe block are executed.
   withr::defer({
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
   })
 
   # Test case: Verifies that the generated word vector matrix has the specified
   # dimensions.
   it("generates a word vector matrix with specified dimensions", {
     # Ensure a clean state for caching options before this specific test.
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
 
     word_vectors <- generate_glove_model(
       text = sample_text_glove,
@@ -143,8 +143,8 @@ describe("generate_glove_model", {
   # Test case: Checks if the cached model is used on subsequent calls with
   # identical parameters.
   it("utilizes cached model on subsequent calls with identical parameters", {
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
 
     # First call: Should generate and cache the model. Expect a message
     # indicating generation.
@@ -180,8 +180,8 @@ describe("generate_glove_model", {
   # Test case: Ensures model is regenerated if 'overwrite' is TRUE, even if a
   # cache exists.
   it("regenerates model when overwrite is TRUE, even if cache exists", {
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
 
     # First call to populate the cache.
     expect_message(
@@ -208,7 +208,7 @@ describe("generate_glove_model", {
     # While GloVe can be stochastic, the primary check is that the regeneration path was taken (via message).
     # The model stored in options should be the newly generated one.
     expect_false(
-      is.null(getOption("minutemaker_data_merge_model")),
+      is.null(getOption("minutemaker.data_merge_model")),
       info = "A model should be stored in options after overwrite."
     )
   })
@@ -216,8 +216,8 @@ describe("generate_glove_model", {
   # Test case: Checks if the model regenerates when input parameters (e.g.,
   # dimensions) change.
   it("regenerates model if parameters change", {
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
 
     # First call with initial parameters.
     expect_message(
@@ -284,8 +284,8 @@ describe("compute_text_sim", {
 
   # Clean up options set by generate_glove_model after this describe block.
   withr::defer({
-    options(minutemaker_data_merge_hash = NULL)
-    options(minutemaker_data_merge_model = NULL)
+    options(minutemaker.data_merge_hash = NULL)
+    options(minutemaker.data_merge_model = NULL)
   })
 
   # Test case: Validates similarity score calculations for various scenarios.
@@ -434,8 +434,8 @@ describe("compute_text_sim", {
     # interference from the global `embedding_matrix_sim` or its options.
     # Also, manage options locally for this model generation.
     local_options_state <- options(
-      minutemaker_data_merge_hash = NULL,
-      minutemaker_data_merge_model = NULL
+      minutemaker.data_merge_hash = NULL,
+      minutemaker.data_merge_model = NULL
     )
     withr::defer(options(local_options_state)) # Restore original options
 

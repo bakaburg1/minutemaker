@@ -190,7 +190,7 @@ set_prompts <- function(
   # Walk through the names of the default prompts
   purrr::walk(names(defaults), function(prompt_name) {
     # Create the option label
-    opt_label <- paste0("minutemaker_prompt_", prompt_name)
+    opt_label <- paste0("minutemaker.prompt_", prompt_name)
 
     # Get the current prompt. Cannot use get_prompts() since it would give
     # errors if the option is not set yet
@@ -236,8 +236,8 @@ set_prompts <- function(
 get_prompts <- function(which = NULL) {
   # Get the names of the valid options
   valid_options <- names(options()) |>
-    stringr::str_subset("minutemaker_prompt_") |>
-    stringr::str_remove("minutemaker_prompt_")
+    stringr::str_subset("minutemaker\\.prompt_") |>
+    stringr::str_remove("minutemaker\\.prompt_")
 
   # Check if the requested prompts are valid
   if (!is.null(which) && any(!which %in% valid_options)) {
@@ -260,7 +260,7 @@ get_prompts <- function(which = NULL) {
   prompts <- purrr::map(
     which,
     \(prompt_name) {
-      getOption(paste0("minutemaker_prompt_", prompt_name))
+      getOption(paste0("minutemaker.prompt_", prompt_name))
     }
   ) |>
     purrr::set_names(which)

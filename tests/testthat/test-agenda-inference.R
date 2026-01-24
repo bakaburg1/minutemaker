@@ -15,10 +15,10 @@ test_that("pause pruning is robust to removals while iterating", {
 
 test_that("infer_agenda_from_transcript falls back when title regeneration fails", {
   withr::local_options(
-    minutemaker_temp_agenda = NULL,
-    minutemaker_temp_agenda_last_bp = NULL,
-    minutemaker_temp_agenda_hash = NULL,
-    minutemaker_prompts = list()
+    minutemaker.temp_agenda = NULL,
+    minutemaker.temp_agenda_last_bp = NULL,
+    minutemaker.temp_agenda_hash = NULL,
+    minutemaker.prompts = list()
   )
 
   transcript_df <- data.frame(
@@ -89,10 +89,10 @@ test_that("infer_agenda_from_transcript falls back when title regeneration fails
 
 test_that("warns and skips empty agenda start times", {
   withr::local_options(
-    minutemaker_temp_agenda = NULL,
-    minutemaker_temp_agenda_last_bp = NULL,
-    minutemaker_temp_agenda_hash = NULL,
-    minutemaker_prompts = list()
+    minutemaker.temp_agenda = NULL,
+    minutemaker.temp_agenda_last_bp = NULL,
+    minutemaker.temp_agenda_hash = NULL,
+    minutemaker.prompts = list()
   )
 
   transcript_df <- data.frame(
@@ -159,10 +159,10 @@ test_that("warns and skips empty agenda start times", {
 
 test_that("errors on malformed agenda start times", {
   withr::local_options(
-    minutemaker_temp_agenda = NULL,
-    minutemaker_temp_agenda_last_bp = NULL,
-    minutemaker_temp_agenda_hash = NULL,
-    minutemaker_prompts = list()
+    minutemaker.temp_agenda = NULL,
+    minutemaker.temp_agenda_last_bp = NULL,
+    minutemaker.temp_agenda_hash = NULL,
+    minutemaker.prompts = list()
   )
 
   transcript_df <- data.frame(
@@ -210,10 +210,10 @@ test_that("errors on malformed agenda start times", {
 
 test_that("accepts numeric vector agenda start times", {
   withr::local_options(
-    minutemaker_temp_agenda = NULL,
-    minutemaker_temp_agenda_last_bp = NULL,
-    minutemaker_temp_agenda_hash = NULL,
-    minutemaker_prompts = list()
+    minutemaker.temp_agenda = NULL,
+    minutemaker.temp_agenda_last_bp = NULL,
+    minutemaker.temp_agenda_hash = NULL,
+    minutemaker.prompts = list()
   )
 
   transcript_df <- data.frame(

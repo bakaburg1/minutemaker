@@ -1,7 +1,7 @@
 # Helper function to clear minutemaker prompt options
 .clear_minutemaker_prompts <- function() {
   opts <- options()
-  mm_opts_names <- names(opts)[startsWith(names(opts), "minutemaker_prompt_")]
+  mm_opts_names <- names(opts)[startsWith(names(opts), "minutemaker.prompt_")]
   if (length(mm_opts_names) > 0) {
     null_list <- stats::setNames(
       vector("list", length(mm_opts_names)),
@@ -81,7 +81,7 @@ test_that("set_prompts() overwrites prompts when force = TRUE", {
     set_prompts(persona = NULL, force = TRUE),
     regexp = "Overwriting existing prompt for .*persona.* because .*force = TRUE"
   )
-  default_persona <- getOption("minutemaker_prompt_persona") # get default directly
+  default_persona <- getOption("minutemaker.prompt_persona") # get default directly
   current_persona <- get_prompts("persona")
   expect_false(identical(current_persona, "new persona")) # should be default now
 

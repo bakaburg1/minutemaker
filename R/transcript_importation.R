@@ -11,9 +11,11 @@
 #'   should be also formatted as hours-seconds-minutes instead of cumulative
 #'   seconds.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
-#'   format. Will be used to add the actual clock time to the transcript
-#'   segments. If NULL, the clock time will not be added. If NA, metadata from
-#'   transcript JSON files will be ignored.
+#'   format. Defaults to the `minutemaker.event_start_time` option
+#'   (\code{`r minutemaker:::.default_opts()$event_start_time`}). Will be used to
+#'   add the actual clock time to the transcript segments. If NULL, the clock
+#'   time will not be added. If NA, metadata from transcript JSON files will be
+#'   ignored.
 #'
 #' @return A data frame with the text and start and end time of each segment.
 #'
@@ -21,7 +23,7 @@
 parse_transcript_json <- function(
   transcript_json,
   pretty_times = TRUE,
-  event_start_time = getOption("minutemaker_event_start_time")
+  event_start_time = getOption("minutemaker.event_start_time")
 ) {
   json_files <- NA
   file_input <- FALSE
@@ -125,7 +127,7 @@ parse_transcript_json <- function(
   } else if (is.null(event_start_time)) {
     json_start_time <- transcript_list[[1]]$transcript_start_time %||% NULL
     event_start_time <- json_start_time %||%
-      getOption("minutemaker_event_start_time")
+      getOption("minutemaker.event_start_time")
   }
 
   # Initialize full_transcript with the expected schema.
@@ -734,8 +736,9 @@ add_chat_transcript <- function(
 #' @param file Path to the external transcript file.
 #' @param transcription_output_dir Path to the directory where transcript
 #'   intermediate files should be written. Defaults to the
-#'   `minutemaker_transcription_output_dir` option. Relative paths are resolved
-#'   from the working directory.
+#'   `minutemaker.transcription_output_dir` option
+#'   (\code{`r minutemaker:::.default_opts()$transcription_output_dir`}).
+#'   Relative paths are resolved from the working directory.
 #' @param import_diarization A boolean indicating whether the speaker should be
 #'   imported from the transcript, if present.
 #' @param lines_per_json A positive integer indicating how many transcript rows
@@ -748,7 +751,7 @@ add_chat_transcript <- function(
 #' @export
 use_transcript_input <- function(
   file,
-  transcription_output_dir = getOption("minutemaker_transcription_output_dir"),
+  transcription_output_dir = getOption("minutemaker.transcription_output_dir"),
   import_diarization = TRUE,
   lines_per_json = 50,
   overwrite = FALSE
@@ -782,7 +785,7 @@ use_transcript_input <- function(
     transcription_output_dir,
     fail_msg = c(
       "No transcription output directory provided.",
-      "x" = "Set the {.code minutemaker_transcription_output_dir} option or pass {.arg transcription_output_dir}."
+      "x" = "Set the {.code minutemaker.transcription_output_dir} option or pass {.arg transcription_output_dir}."
     )
   )
 

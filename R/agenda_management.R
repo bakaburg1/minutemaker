@@ -39,8 +39,10 @@ build_ids_from_agenda <- function(agenda) {
 #'   the times are in clock time format, and vice versa.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
 #'   format or a POSIXct object. Will be used to convert event times to seconds
-#'   from the start. If `NULL`, defaults to the start time of the first element
-#'   in the agenda, with a warning.
+#'   from the start. Defaults to the `minutemaker.event_start_time` option
+#'   (\code{`r minutemaker:::.default_opts()$event_start_time`}). If `NULL`,
+#'   defaults to the start time of the first element in the agenda, with a
+#'   warning.
 #' @param conversion_format The format to use when converting to clock time.
 #'   E.g., %T for HH:MM:SS, or %R for HH:MM, etc... See `?strptime` for a list
 #'   of supported formats.
@@ -51,7 +53,7 @@ build_ids_from_agenda <- function(agenda) {
 convert_agenda_times <- function(
   agenda,
   convert_to = c("seconds", "clocktime"),
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   conversion_format = "%T"
 ) {
   convert_to <- match.arg(convert_to)
@@ -185,7 +187,9 @@ convert_agenda_times <- function(
 #' @param transcript_data A data frame with transcript segments, containing
 #'   numeric `start` and `end` columns in seconds.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
-#'   format. Used when agenda times are clock-based and need conversion.
+#'   format. Defaults to the `minutemaker.event_start_time` option
+#'   (\code{`r minutemaker:::.default_opts()$event_start_time`}). Used when
+#'   agenda times are clock-based and need conversion.
 #' @param min_rows Minimum number of transcript rows required to keep an agenda
 #'   item. Must be a positive integer.
 #' @param on_empty Action when an agenda item has fewer than `min_rows` rows.
@@ -198,7 +202,7 @@ convert_agenda_times <- function(
 clean_agenda <- function(
   agenda,
   transcript_data,
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   min_rows = 1,
   on_empty = c("drop", "abort")
 ) {

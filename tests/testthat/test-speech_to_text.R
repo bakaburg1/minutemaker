@@ -46,7 +46,7 @@ test_that("perform_speech_to_text processes files and handles overwrite", {
     write_dummy_wav("test.wav")
 
     withr::with_options(
-      list(minutemaker_transcription_output_dir = "transcription_output_data"),
+      list(minutemaker.transcription_output_dir = "transcription_output_data"),
       {
         # First run should call the model once
         perform_speech_to_text("test.wav", model = "whisper_local")
@@ -87,7 +87,7 @@ test_that("perform_speech_to_text uses option-based output dir", {
     write_dummy_wav("test.wav")
 
     withr::with_options(
-      list(minutemaker_transcription_output_dir = "custom_output_dir"),
+      list(minutemaker.transcription_output_dir = "custom_output_dir"),
       {
         perform_speech_to_text("test.wav", model = "whisper_local")
       }

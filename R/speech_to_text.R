@@ -10,13 +10,15 @@
 #' @param audio_path Path to one or more audio files or to a folder of audio
 #'   files. Tested with .mp3 and .wav files.
 #' @param output_dir Path to output directory. Defaults to the
-#'   `minutemaker_transcription_output_dir` option. If the directory doesn't
-#'   exist, it will be created in the working directory when a relative path is
-#'   provided.
-#' @param model Name of the model to use. The models available in the package
-#'   are: "azure_whisper" (online API), "openai_whisper" (online API),
-#'   "whisper_ctranslate2" (offline local model). Users can provide their own
-#'   models.
+#'   `minutemaker.transcription_output_dir` option
+#'   (\code{`r minutemaker:::.default_opts()$transcription_output_dir`}).
+#'   If the directory doesn't exist, it will be created in the working
+#'   directory when a relative path is provided.
+#' @param model Name of the model to use. Defaults to the `minutemaker.stt_model`
+#'   option (\code{`r minutemaker:::.default_opts()$stt_model`}). The models
+#'   available in the package are: "azure_whisper" (online API),
+#'   "openai_whisper" (online API), "whisper_ctranslate2" (offline local model).
+#'   Users can provide their own models.
 #' @param initial_prompt Text to prepend to the beginning of each transcript.
 #'   This is useful for adding hard to parse words like acronyms.
 #' @param overwrite If TRUE, will overwrite existing files. If FALSE, will skip
@@ -34,8 +36,8 @@
 #'
 perform_speech_to_text <- function(
   audio_path,
-  output_dir = getOption("minutemaker_transcription_output_dir"),
-  model = getOption("minutemaker_stt_model", "whisper_local"),
+  output_dir = getOption("minutemaker.transcription_output_dir"),
+  model = getOption("minutemaker.stt_model"),
   initial_prompt = NULL,
   overwrite = FALSE,
   language = "en",
@@ -91,7 +93,7 @@ perform_speech_to_text <- function(
     output_dir,
     fail_msg = c(
       "No transcription output directory provided.",
-      "x" = "Set the {.code minutemaker_transcription_output_dir} option or pass {.arg output_dir}."
+      "x" = "Set the {.code minutemaker.transcription_output_dir} option or pass {.arg output_dir}."
     )
   )
 
@@ -349,10 +351,18 @@ use_whisper_ctranslate2_stt <- function(
 #'   segment.
 #' @param temperature number (optional) The sampling temperature between 0 and
 #'   1. Defaults to 0.
-#' @param resource_name The name of the Azure resource to use.
-#' @param deployment_id The deployment ID of the Azure resource to use.
-#' @param api_key The API key to use for the Azure resource.
-#' @param api_version The API version to use for the Azure resource.
+#' @param resource_name The name of the Azure resource to use. Defaults to the
+#'   `minutemaker.azure_resource_whisper` option
+#'   (\code{`r minutemaker:::.default_opts()$azure_resource_whisper`}).
+#' @param deployment_id The deployment ID of the Azure resource to use. Defaults
+#'   to the `minutemaker.azure_deployment_whisper` option
+#'   (\code{`r minutemaker:::.default_opts()$azure_deployment_whisper`}).
+#' @param api_key The API key to use for the Azure resource. Defaults to the
+#'   `minutemaker.azure_api_key_whisper` option
+#'   (\code{`r minutemaker:::.default_opts()$azure_api_key_whisper`}).
+#' @param api_version The API version to use for the Azure resource. Defaults to
+#'   the `minutemaker.azure_api_version` option
+#'   (\code{`r minutemaker:::.default_opts()$azure_api_version`}).
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
@@ -361,10 +371,10 @@ use_azure_whisper_stt <- function(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  resource_name = getOption("minutemaker_azure_resource_whisper"),
-  deployment_id = getOption("minutemaker_azure_deployment_whisper"),
-  api_key = getOption("minutemaker_azure_api_key_whisper"),
-  api_version = getOption("minutemaker_azure_api_version")
+  resource_name = getOption("minutemaker.azure_resource_whisper"),
+  deployment_id = getOption("minutemaker.azure_deployment_whisper"),
+  api_key = getOption("minutemaker.azure_api_key_whisper"),
+  api_version = getOption("minutemaker.azure_api_version")
 ) {
   if (
     is.null(resource_name) ||
@@ -376,10 +386,10 @@ use_azure_whisper_stt <- function(
       c(
         "Resource name, deployment name, API key, or API version are not set. ",
         i = "Use the following options to set them:
-          {.field minutemaker_azure_resource_whisper},
-          {.field minutemaker_azure_deployment_whisper},
-          {.field minutemaker_azure_api_key_whisper},
-          {.field minutemaker_azure_api_version}."
+          {.field minutemaker.azure_resource_whisper},
+          {.field minutemaker.azure_deployment_whisper},
+          {.field minutemaker.azure_api_key_whisper},
+          {.field minutemaker.azure_api_version}."
       )
     )
   }
@@ -468,8 +478,9 @@ use_azure_whisper_stt <- function(
 #'   segment.
 #' @param temperature number (optional) The sampling temperature between 0 and
 #'   1. Defaults to 0.
-#' @param api_key The OpenAI API key. If not provided, it will be retrieved from
-#'   the global options.
+#' @param api_key The OpenAI API key. Defaults to the
+#'   `minutemaker.openai_api_key` option
+#'   (\code{`r minutemaker:::.default_opts()$openai_api_key`}).
 #' @param max_retries Maximum number of retries for temporary errors.
 #' @param .retry_count Internal counter for tracking retry attempts.
 #'
@@ -480,7 +491,7 @@ use_openai_whisper_stt <- function(
   language = "en",
   initial_prompt = "",
   temperature = 0,
-  api_key = getOption("minutemaker_openai_api_key"),
+  api_key = getOption("minutemaker.openai_api_key"),
   max_retries = 3,
   .retry_count = 0
 ) {
@@ -559,8 +570,9 @@ use_openai_whisper_stt <- function(
 #'   segment.
 #' @param model The Whisper model to use. Default is "turbo". Check
 #'   https://github.com/openai/whisper for other available models.
-#' @param whisper_package The Python package to use for Whisper (default:
-#'   "openai-whisper").
+#' @param whisper_package The Python package to use for Whisper. Defaults to the
+#'   `minutemaker.whisper_package` option
+#'   (\code{`r minutemaker:::.default_opts()$whisper_package`}).
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
@@ -570,10 +582,7 @@ use_whisper_local_stt <- function(
   language = "en",
   initial_prompt = "",
   model = "turbo",
-  whisper_package = getOption(
-    "minutemaker_whisper_package",
-    "openai-whisper"
-  )
+  whisper_package = getOption("minutemaker.whisper_package")
 ) {
   # Check if reticulate is installed
   if (!rlang::is_installed("reticulate")) {
@@ -666,8 +675,9 @@ use_whisper_local_stt <- function(
 #'   segment.
 #' @param model The MLX Whisper model to use. Default is
 #'   "mlx-community/whisper-large-v3-turbo".
-#' @param whisper_package The Python package to use for MLX Whisper (default:
-#'   "mlx_whisper").
+#' @param whisper_package The Python package to use for MLX Whisper. Defaults to
+#'   the `minutemaker.mlx_whisper_package` option
+#'   (\code{`r minutemaker:::.default_opts()$mlx_whisper_package`}).
 #'
 #' @return A list with the full transcript and the transcription by segments.
 #'
@@ -677,7 +687,7 @@ use_mlx_whisper_local_stt <- function(
   language = "en",
   initial_prompt = "",
   model = "mlx-community/distil-whisper-large-v3",
-  whisper_package = getOption("minutemaker_whisper_package", "mlx_whisper")
+  whisper_package = getOption("minutemaker.mlx_whisper_package")
 ) {
   # Check if reticulate is installed
   if (!rlang::is_installed("reticulate")) {

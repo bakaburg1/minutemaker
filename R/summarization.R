@@ -387,16 +387,19 @@ summarise_transcript <- function(
 #' @param method The method to use to summarise the transcript. Can be either
 #'   "simple" or "rolling", with the first being faster and the second
 #'   (theoritically) more accurate. See `summarise_transcript` for more details.
-#' @param output_file The file to save the results to as a list. Default is
-#'   "event_summary.R".
+#' @param output_file The file to save the results to as a list. Defaults to the
+#'   `minutemaker.summary_tree_output_file` option
+#'   (\code{`r minutemaker:::.default_opts()$summary_tree_output_file`}).
 #' @param window_size The size of the window in minutes to use when summarising
 #'   the transcript using the "rolling window" method. See
 #'   `summarise_transcript` for more details.
 #' @param output_length An indication to the LLM regarding the length of the
 #'   output. See `summarise_transcript` for more details.
 #' @param event_start_time The start time of the event in the HH:MM(:SS)( AM/PM)
-#'   format. Necessary to convert the agenda times to seconds if the first event
-#'   time is not the start time of the event.
+#'   format. Defaults to the `minutemaker.event_start_time` option
+#'   (\code{`r minutemaker:::.default_opts()$event_start_time`}). Necessary to
+#'   convert the agenda times to seconds if the first event time is not the
+#'   start time of the event.
 #' @param event_description The description of the event See
 #'   `summarise_transcript` for more details.
 #' @param audience The audience of the event See `summarise_transcript` for more
@@ -422,12 +425,12 @@ summarise_full_meeting <- function(
   transcript_data,
   agenda,
   method = c("simple", "rolling"),
-  output_file = "event_summary.R",
+  output_file = getOption("minutemaker.summary_tree_output_file"),
 
   window_size = 15,
   output_length = 3,
 
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   event_description = NULL,
   audience = "An audience with understanding of the topic",
   vocabulary = NULL,
@@ -771,21 +774,19 @@ infer_agenda_from_transcript <- function(
   )
 
   # Reset the temporary agenda if the arguments have changed
-  if (is.null(getOption("minutemaker_temp_agenda"))) {
+  if (is.null(getOption("minutemaker.temp_agenda"))) {
     options(
-      "minutemaker_temp_agenda" = list(),
-      "minutemaker_temp_agenda_last_bp" = NULL
+      "minutemaker.temp_agenda" = list(),
+      "minutemaker.temp_agenda_last_bp" = NULL
     )
-  } else if (getOption("minutemaker_temp_agenda_hash", "") != arg_hash) {
+  } else if (getOption("minutemaker.temp_agenda_hash") != arg_hash) {
     options(
-      "minutemaker_temp_agenda" = list(),
-      "minutemaker_temp_agenda_last_bp" = NULL
+      "minutemaker.temp_agenda" = list(),
+      "minutemaker.temp_agenda_last_bp" = NULL
     )
-  } else {
-    cli::cli_inform("A temporary agenda was found. Resuming the inference.")
   }
 
-  options("minutemaker_temp_agenda_hash" = arg_hash)
+  options("minutemaker.temp_agenda_hash" = arg_hash)
 
   # Validate agenda start times for agenda inference:
   # return numeric(0) with a warning when empty, abort on non-atomic or
@@ -834,11 +835,11 @@ infer_agenda_from_transcript <- function(
     }
 
     cur_agenda <- c(
-      getOption("minutemaker_temp_agenda", list()),
+      getOption("minutemaker.temp_agenda"),
       agenda_elements |> sort()
     )
 
-    options("minutemaker_temp_agenda" = cur_agenda)
+    options("minutemaker.temp_agenda" = cur_agenda)
   }
 
   cli::cli_alert("- Inferring the agenda from the transcript")
@@ -853,7 +854,8 @@ infer_agenda_from_transcript <- function(
     }
 
     # Check if the current segment was already processed
-    if (cur_bp <= getOption("minutemaker_temp_agenda_last_bp", 0)) {
+    last_bp <- getOption("minutemaker.temp_agenda_last_bp") %||% 0
+    if (cur_bp <= last_bp) {
       if (cur_bp == length(breakpoints)) {
         stop <- TRUE
       }
@@ -987,7 +989,7 @@ infer_agenda_from_transcript <- function(
 
     json_error <- FALSE
 
-    options("minutemaker_temp_agenda_last_bp" = cur_bp)
+    options("minutemaker.temp_agenda_last_bp" = cur_bp)
 
     if (cur_bp == length(breakpoints)) {
       stop <- TRUE
@@ -996,7 +998,7 @@ infer_agenda_from_transcript <- function(
     cur_bp <- cur_bp + 1
   }
 
-  agenda_times <- getOption("minutemaker_temp_agenda", list())
+  agenda_times <- getOption("minutemaker.temp_agenda")
 
   if (length(agenda_times) == 0) {
     cli::cli_warn("No agenda was inferred from the transcript.")
@@ -1167,9 +1169,9 @@ infer_agenda_from_transcript <- function(
   }
 
   options(
-    minutemaker_temp_agenda_last_bp = NULL,
-    minutemaker_temp_agenda = NULL,
-    minutemaker_temp_agenda_hash = NULL
+    minutemaker.temp_agenda_last_bp = NULL,
+    minutemaker.temp_agenda = NULL,
+    minutemaker.temp_agenda_hash = NULL
   )
 
   agenda

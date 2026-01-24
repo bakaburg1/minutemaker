@@ -186,7 +186,7 @@ test_that("parallel timeout does not stop external daemons", {
 
   withr::with_tempdir({
     withr::local_options(
-      list(minutemaker_split_audio_parallel_timeout = 0)
+      list(minutemaker.split_audio_parallel_timeout = 0)
     )
 
     file.create("fake.wav")
@@ -238,7 +238,7 @@ test_that("parallel timeout shuts down started daemons once", {
 
   withr::with_tempdir({
     withr::local_options(
-      list(minutemaker_split_audio_parallel_timeout = 0)
+      list(minutemaker.split_audio_parallel_timeout = 0)
     )
 
     file.create("fake.wav")
@@ -920,7 +920,7 @@ test_that("split_audio parallel mode checks for corrupted source on failure", {
     file.create("dummy.mp3")
 
     rlang::local_options(cli.default_handler = function(...) invisible(NULL))
-    withr::local_options(minutemaker_split_audio_parallel_timeout = 120)
+    withr::local_options(minutemaker.split_audio_parallel_timeout = 120)
     cli::cli_alert_info(
       "Expect worker failure messages below; this test simulates a crash with corrupted source."
     )
@@ -977,7 +977,7 @@ test_that("split_audio marks processed flags after timeout fallback", {
     file.create("dummy.wav")
 
     # Force a very short timeout so the loop falls back to sequential processing
-    withr::local_options(minutemaker_split_audio_parallel_timeout = 0.01)
+    withr::local_options(minutemaker.split_audio_parallel_timeout = 0.01)
 
     # Keep mirai tasks unresolved so timeout triggers
     local_mocked_bindings(

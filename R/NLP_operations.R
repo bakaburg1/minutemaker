@@ -77,8 +77,8 @@ generate_glove_model <- function(
     iterations
   ))
 
-  previous_hash <- getOption("minutemaker_data_merge_hash")
-  previous_model <- getOption("minutemaker_data_merge_model")
+  previous_hash <- getOption("minutemaker.data_merge_hash")
+  previous_model <- getOption("minutemaker.data_merge_model")
 
   # Check if the model has already been generated and if so, return it
   if (!overwrite && !is.null(previous_hash) && !is.null(previous_model)) {
@@ -95,7 +95,7 @@ generate_glove_model <- function(
   cli::cli_alert("Generating the GloVe model...")
 
   # Store the hash of the data and the model parameters
-  options(minutemaker_data_merge_hash = data_hash)
+  options(minutemaker.data_merge_hash = data_hash)
 
   # Tokenize the text
   tokens <- tokenize_text(text)
@@ -124,7 +124,7 @@ generate_glove_model <- function(
   word_vectors = wv_main + t(wv_context)
 
   # Store the model
-  options(minutemaker_data_merge_model = word_vectors)
+  options(minutemaker.data_merge_model = word_vectors)
 
   return(word_vectors)
 }

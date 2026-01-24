@@ -10,8 +10,10 @@
 #'   speakers, moderators, start and ending times. Agenda sessions/titles must
 #'   be consistent with those in the `summary_tree` object.
 #' @param event_start_time If agenda timings are in seconds, the starting time
-#'   is needed to convert them to actual clock time. If `NULL` it will use the
-#'   timing as reported in the agenda.
+#'   is needed to convert them to actual clock time. Defaults to the
+#'   `minutemaker.event_start_time` option
+#'   (\code{`r minutemaker:::.default_opts()$event_start_time`}). If `NULL` it
+#'   will use the timing as reported in the agenda.
 #' @param output_file A string with the path to the output file. If NULL, the
 #'   output is returned invisibly and not written to a file.
 #'
@@ -22,7 +24,7 @@
 format_summary_tree <- function(
   summary_tree,
   agenda,
-  event_start_time = getOption("minutemaker_event_start_time"),
+  event_start_time = getOption("minutemaker.event_start_time"),
   output_file = NULL
 ) {
   # If summary_tree is a file path, load the data from the file
@@ -125,7 +127,7 @@ format_summary_tree <- function(
 #' @export
 format_agenda <- function(
   agenda,
-  event_start_time = getOption("minutemaker_event_start_time")
+  event_start_time = getOption("minutemaker.event_start_time")
 ) {
   # Import agenda from file
   if (rlang::is_string(agenda)) {

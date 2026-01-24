@@ -232,8 +232,8 @@ test_that("workflow bypasses STT when external_transcript is provided", {
     result <- withr::with_options(
       list(
         llmr_llm_provider = "mock",
-        minutemaker_event_start_time = NULL,
-        minutemaker_transcription_output_dir = "transcription_output_data"
+        minutemaker.event_start_time = NULL,
+        minutemaker.transcription_output_dir = "transcription_output_data"
       ),
       {
         speech_to_summary_workflow(

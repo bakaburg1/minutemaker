@@ -390,7 +390,7 @@ sample_transcript_df_long <- data.frame(
 # Test cases start here
 
 test_that("summarise_transcript simple method works with character input", {
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = mock_prompt_llm,
       .package = "llmR"
@@ -412,7 +412,7 @@ test_that("summarise_transcript simple method works with character input", {
 })
 
 test_that("summarise_transcript simple method works with data.frame input", {
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = mock_prompt_llm,
       .package = "llmR"
@@ -434,7 +434,7 @@ test_that("summarise_transcript simple method works with data.frame input", {
 })
 
 test_that("prompt_only = TRUE returns prompt for simple method", {
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       set_prompts = mock_set_prompts,
       get_prompts = mock_get_prompts,
@@ -474,7 +474,7 @@ test_that("consider_diarization influences transcript processing", {
     return(mock_extract_text_from_transcript(transcript_df, import_diarization))
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = mock_prompt_llm,
       .package = "llmR"
@@ -543,7 +543,7 @@ test_that("summarise_transcript rolling method works with long data.frame", {
     invisible(NULL)
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = capturing_mock_prompt_llm,
       .package = "llmR"
@@ -586,7 +586,7 @@ test_that("rolling method reverts to simple if transcript too short", {
     invisible(NULL)
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = mock_prompt_llm,
       .package = "llmR"
@@ -622,7 +622,7 @@ test_that("prompt_only = TRUE returns list of prompts for rolling method", {
     invisible(NULL)
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       set_prompts = mock_set_prompts,
       get_prompts = mock_get_prompts,
@@ -658,7 +658,7 @@ test_that("summarise_transcript error handling for invalid inputs", {
   invalid_df_rolling <- data.frame(text = "test", some_other_col = 10)
   withr::with_options(
     list(
-      minutemaker_prompts = list(
+      minutemaker.prompts = list(
         summary_structure = "Mocked summary structure for this specific error test."
       )
     ),
@@ -727,7 +727,7 @@ test_that("arguments are correctly passed to generate_summarisation_prompt", {
     ))
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       set_prompts = mock_set_prompts,
       get_prompts = mock_get_prompts,
@@ -792,7 +792,7 @@ test_that("arguments are correctly passed for rolling method (to aggregation)", 
     invisible(NULL)
   }
 
-  withr::with_options(list(minutemaker_prompts = list()), {
+  withr::with_options(list(minutemaker.prompts = list()), {
     testthat::local_mocked_bindings(
       prompt_llm = mock_prompt_llm,
       .package = "llmR"

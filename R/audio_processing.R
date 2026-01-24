@@ -115,9 +115,13 @@ extract_audio_segment <- function(
 #' @param segment_duration The duration of each splitted audio file in minutes.
 #'   20 minutes equate to more or less 7-8 MB.
 #' @param output_folder The path to the folder where to save the segments in.
+#'   Defaults to the `minutemaker.split_audio_output_dir` option
+#'   (\code{`r minutemaker:::.default_opts()$split_audio_output_dir`}) within the
+#'   directory of `audio_file`.
 #' @param parallel A logical value indicating whether to process segments in
-#'   parallel. Defaults to `getOption("minutemaker_split_audio_parallel",
-#'   FALSE)`. Parallel processing requires the `mirai` package.
+#'   parallel. Defaults to the `minutemaker.split_audio_parallel` option
+#'   (\code{`r minutemaker:::.default_opts()$split_audio_parallel`}). Parallel
+#'   processing requires the `mirai` package.
 #'
 #' @return Nothing, but saves the segments to files.
 #'
@@ -126,8 +130,11 @@ extract_audio_segment <- function(
 split_audio <- function(
   audio_file,
   segment_duration = 40,
-  output_folder = file.path(dirname(audio_file), "recording_parts"),
-  parallel = getOption("minutemaker_split_audio_parallel", FALSE)
+  output_folder = file.path(
+    dirname(audio_file),
+    getOption("minutemaker.split_audio_output_dir")
+  ),
+  parallel = getOption("minutemaker.split_audio_parallel")
 ) {
   audio_file <- path_exists(
     audio_file,
@@ -183,10 +190,7 @@ split_audio <- function(
     ## PARALLEL EXECUTION ----
     rlang::check_installed("mirai", reason = "for parallel processing.")
 
-    max_parallel_wait <- getOption(
-      "minutemaker_split_audio_parallel_timeout",
-      120
-    )
+    max_parallel_wait <- getOption("minutemaker.split_audio_parallel_timeout")
     parallel_start_time <- Sys.time()
 
     # Track whether this invocation owns the lifecycle of minutemaker daemons

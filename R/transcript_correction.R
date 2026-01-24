@@ -5,7 +5,7 @@
 #' correct errors based on provided terms/names and general context. The
 #' corrected transcript is then written back to the original file path. The LLM
 #' model used for correction is determined by the R option
-#' `getOption("minutemaker_correction_llm_model")`.
+#' `minutemaker.correction_llm_model`.
 #'
 #' @param input_path Path to a single transcript JSON file or a directory
 #'   containing transcript JSON files.
@@ -14,8 +14,8 @@
 #' @param include_reasoning Logical, if `TRUE`, the LLM will be asked to
 #'   provide its reasoning before the JSON output. This approach improves
 #'   quality with non-reasoning models. This reasoning will be messaged to the
-#'   console. Defaults to `getOption("minutemaker_include_llm_reasoning",
-#'   TRUE)`.
+#'   console. Defaults to the `minutemaker.include_llm_reasoning` option
+#'   (\code{`r minutemaker:::.default_opts()$include_llm_reasoning`}).
 #' @param overwrite Logical, if `TRUE`, existing files will be overwritten
 #'   with the corrected transcript. Defaults to `FALSE`.
 #' @param max_retries Integer, maximum number of times to retry the LLM call
@@ -34,7 +34,7 @@
 apply_llm_correction <- function(
   input_path,
   terms = NULL,
-  include_reasoning = getOption("minutemaker_include_llm_reasoning", TRUE),
+  include_reasoning = getOption("minutemaker.include_llm_reasoning"),
   overwrite = FALSE,
   max_retries = 2,
   ...
@@ -171,12 +171,14 @@ apply_llm_correction <- function(
 
   # Determine which files to process based on input_path
   files_to_process <- character()
-  if (!isFALSE(path_exists(
-    input_path,
-    type = "dir",
-    stop_on_error = FALSE,
-    fail_msg = FALSE
-  ))) {
+  if (
+    !isFALSE(path_exists(
+      input_path,
+      type = "dir",
+      stop_on_error = FALSE,
+      fail_msg = FALSE
+    ))
+  ) {
     files_to_process <- list.files(
       input_path,
       pattern = "\\.json$",
@@ -558,16 +560,16 @@ correct_transcription_errors <- function(
   }
 
   # Get the correction model from options from
-  # "minutemaker_correction_llm_model", defaulting to "llmr_current_model" if
+  # "minutemaker.correction_llm_model", defaulting to "llmr_current_model" if
   # not set.
-  correction_model_label <- getOption("minutemaker_correction_llm_model")
+  correction_model_label <- getOption("minutemaker.correction_llm_model")
 
   if (is.null(correction_model_label)) {
     cli::cli_inform(
       c(
         "!" = "Model for correction not specified, reverting to general model:
           {.val {getOption('llmr_current_model')}}",
-        "i" = "Consider setting {.val minutemaker_correction_llm_model}
+        "i" = "Consider setting {.val minutemaker.correction_llm_model}
           for more consistent results."
       )
     )
@@ -587,7 +589,7 @@ correct_transcription_errors <- function(
     cli::cli_abort(
       c(
         "LLM model for correction not set.",
-        "x" = "Neither {.val minutemaker_correction_llm_model} nor
+        "x" = "Neither {.val minutemaker.correction_llm_model} nor
           {.val llmr_current_model} are set."
       )
     )

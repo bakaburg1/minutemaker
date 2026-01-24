@@ -243,9 +243,9 @@ test_that("adds clock times when event_start_time is provided", {
     speaker = NA_character_ # Speaker column is now always present
   )
 
-  # Test with minutemaker_event_start_time option
+  # Test with minutemaker.event_start_time option
   withr::with_options(
-    list(minutemaker_event_start_time = "10:00:00"),
+    list(minutemaker.event_start_time = "10:00:00"),
     {
       result_opt <- parse_transcript_json(normalized_path, pretty_times = FALSE)
       expected_opt <- base_expected |>
@@ -295,7 +295,7 @@ test_that("handles invalid event_start_time gracefully", {
     expect_warning("All formats failed to parse")
 
   withr::with_options(
-    list(minutemaker_event_start_time = "bad-time"),
+    list(minutemaker.event_start_time = "bad-time"),
     parse_transcript_json(normalized_path) |>
       expect_error("Event start time .* is not interpretable") |>
       expect_warning("All formats failed to parse")
@@ -319,7 +319,7 @@ test_that("parse_transcript_json uses metadata unless event_start_time is NA", {
   )
 
   withr::with_options(
-    list(minutemaker_event_start_time = NULL),
+    list(minutemaker.event_start_time = NULL),
     {
       parsed_with_metadata <- parse_transcript_json(temp_dir)
       expect_true("start_clock" %in% names(parsed_with_metadata))

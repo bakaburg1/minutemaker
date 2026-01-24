@@ -325,7 +325,7 @@ test_that("generate_context respects max retries option", {
     )
 
     withr::with_options(
-      list(minutemaker_context_generation_max_retries = 1),
+      list(minutemaker.context_generation_max_retries = 1),
       {
         generate_context(
           material_dir = "documentation",
@@ -407,7 +407,7 @@ test_that("generate_context skips generation when context files exist", {
   })
 })
 
-test_that("generate_context uses minutemaker_context_gen_llm_model and restores the original model", {
+test_that("generate_context uses minutemaker.context_gen_llm_model and restores the original model", {
   withr::with_tempdir({
     material_dir <- file.path(getwd(), "documentation")
     dir.create(material_dir)
@@ -430,7 +430,7 @@ test_that("generate_context uses minutemaker_context_gen_llm_model and restores 
     context <- NULL
     withr::with_options(
       list(
-        minutemaker_context_gen_llm_model = "mm_gpt-4.1_azure",
+        minutemaker.context_gen_llm_model = "mm_gpt-4.1_azure",
         llmr_current_model = "orig_model"
       ),
       {

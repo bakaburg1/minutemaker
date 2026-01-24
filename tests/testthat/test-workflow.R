@@ -44,10 +44,10 @@ test_that("workflow runs end-to-end with extensive mocking and minimal options",
     # Call the workflow with minimal and controlled arguments
     result <- withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL,
-        minutemaker_include_llm_reasoning = FALSE
+        minutemaker.event_start_time = NULL,
+        minutemaker.include_llm_reasoning = FALSE
       ),
       {
         expect_no_error({
@@ -117,10 +117,10 @@ test_that("workflow creates output directories for formatted output", {
 
     withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL,
-        minutemaker_include_llm_reasoning = FALSE
+        minutemaker.event_start_time = NULL,
+        minutemaker.include_llm_reasoning = FALSE
       ),
       {
         speech_to_summary_workflow(
@@ -189,8 +189,8 @@ test_that("workflow passes transcription output dir to external transcript impor
     result <- withr::with_options(
       list(
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL,
-        minutemaker_transcription_output_dir = custom_dir
+        minutemaker.event_start_time = NULL,
+        minutemaker.transcription_output_dir = custom_dir
       ),
       {
         speech_to_summary_workflow(
@@ -219,7 +219,7 @@ test_that("workflow errors clearly when neither audio nor transcript are availab
     expect_error(
       withr::with_options(
         list(
-          minutemaker_stt_model = "mock_stt_model",
+          minutemaker.stt_model = "mock_stt_model",
           llmr_llm_provider = "mock_provider"
         ),
         speech_to_summary_workflow(
@@ -303,10 +303,10 @@ test_that("workflow forwards overwrite to LLM correction", {
 
     withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL,
-        minutemaker_include_llm_reasoning = FALSE
+        minutemaker.event_start_time = NULL,
+        minutemaker.include_llm_reasoning = FALSE
       ),
       {
         speech_to_summary_workflow(
@@ -370,10 +370,10 @@ test_that("workflow warns when using deprecated stt_output_dir", {
 
     withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL,
-        minutemaker_include_llm_reasoning = FALSE
+        minutemaker.event_start_time = NULL,
+        minutemaker.include_llm_reasoning = FALSE
       ),
       {
         expect_warning(
@@ -452,9 +452,9 @@ test_that("workflow sets generate_initial_prompt correctly based on external tra
     # Test 1: No external transcript -> generate_initial_prompt should be TRUE
     withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL
+        minutemaker.event_start_time = NULL
       ),
       {
         generate_context_calls <- list()
@@ -490,9 +490,9 @@ test_that("workflow sets generate_initial_prompt correctly based on external tra
     # Test 2: External transcript exists -> generate_initial_prompt should be FALSE
     withr::with_options(
       list(
-        minutemaker_stt_model = "mock_stt_model",
+        minutemaker.stt_model = "mock_stt_model",
         llmr_llm_provider = "mock_provider",
-        minutemaker_event_start_time = NULL
+        minutemaker.event_start_time = NULL
       ),
       {
         generate_context_calls <- list()

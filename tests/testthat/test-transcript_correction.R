@@ -76,7 +76,7 @@ mock_llm_response_success <- function(correction_json_str) {
 no_changes_signal_response <- "<json_corrections_output>NO_CHANGES_NEEDED</json_corrections_output>"
 
 test_that("correct_transcription_errors handles no text input", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
@@ -97,7 +97,7 @@ test_that("correct_transcription_errors handles LLM call failure", {
     set_llmr_model = function(...) invisible(NULL),
     .package = "llmR"
   )
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     expect_warning(
       res <- correct_transcription_errors("Some text", terms = NULL),
       regexp = "LLM call failed"
@@ -109,7 +109,7 @@ test_that("correct_transcription_errors handles LLM call failure", {
 })
 
 test_that("correct_transcription_errors handles empty/NULL LLM response", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) NULL,
       set_llmr_model = function(...) invisible(NULL),
@@ -119,7 +119,7 @@ test_that("correct_transcription_errors handles empty/NULL LLM response", {
     expect_identical(res_null$status, "llm_call_failed")
   })
 
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) "   ",
       set_llmr_model = function(...) invisible(NULL),
@@ -131,7 +131,7 @@ test_that("correct_transcription_errors handles empty/NULL LLM response", {
 })
 
 test_that("correct_transcription_errors handles malformed XML tags", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     # Test incomplete opening tag
     testthat::local_mocked_bindings(
       prompt_llm = function(...) "<json_corrections_output{\"key\": \"value\"}",
@@ -176,7 +176,7 @@ test_that("correct_transcription_errors handles malformed XML tags", {
 })
 
 test_that("correct_transcription_errors handles NO_CHANGES_NEEDED signal", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) no_changes_signal_response,
       set_llmr_model = function(...) invisible(NULL),
@@ -191,7 +191,7 @@ test_that("correct_transcription_errors handles NO_CHANGES_NEEDED signal", {
 
 test_that("correct_transcription_errors handles valid JSON corrections", {
   corrections_json <- "{\"Hllo\": \"Hello\", \"wrld\": \"world\"}"
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success(corrections_json),
       set_llmr_model = function(...) invisible(NULL),
@@ -208,7 +208,7 @@ test_that("correct_transcription_errors handles valid JSON corrections", {
 
 test_that("correct_transcription_errors warns on unmatched correction keys", {
   corrections_json <- "{\"NotInText\": \"Fixed\"}"
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success(corrections_json),
       set_llmr_model = function(...) invisible(NULL),
@@ -223,7 +223,7 @@ test_that("correct_transcription_errors warns on unmatched correction keys", {
 })
 
 test_that("correct_transcription_errors handles empty JSON object {} as no changes", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success("{}"),
       set_llmr_model = function(...) invisible(NULL),
@@ -240,7 +240,7 @@ test_that("correct_transcription_errors handles empty JSON object {} as no chang
 
 test_that("correct_transcription_errors handles syntactically invalid JSON", {
   invalid_json <- "{\"key\": \"value\",,}"
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success(invalid_json),
       set_llmr_model = function(...) invisible(NULL),
@@ -261,7 +261,7 @@ test_that("correct_transcription_errors handles syntactically invalid JSON", {
 
 test_that("correct_transcription_errors handles JSON that is not a JSON object (array/scalar)", {
   array_json <- "[\"item1\", \"item2\"]"
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success(array_json),
       set_llmr_model = function(...) invisible(NULL),
@@ -280,7 +280,7 @@ test_that("correct_transcription_errors handles JSON that is not a JSON object (
   })
 
   scalar_json <- "\"just a string\""
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       prompt_llm = function(...) mock_llm_response_success(scalar_json),
       set_llmr_model = function(...) invisible(NULL),
@@ -302,7 +302,7 @@ test_that("correct_transcription_errors handles JSON that is not a JSON object (
 test_that("correct_transcription_errors model selection logic", {
   withr::with_options(
     list(
-      minutemaker_correction_llm_model = "specific_correction_model",
+      minutemaker.correction_llm_model = "specific_correction_model",
       llmr_current_model = "general_model"
     ),
     {
@@ -324,7 +324,7 @@ test_that("correct_transcription_errors model selection logic", {
 
   withr::with_options(
     list(
-      minutemaker_correction_llm_model = NULL,
+      minutemaker.correction_llm_model = NULL,
       llmr_current_model = "general_fallback_model"
     ),
     {
@@ -350,7 +350,7 @@ test_that("correct_transcription_errors model selection logic", {
   )
 
   withr::with_options(
-    list(minutemaker_correction_llm_model = NULL, llmr_current_model = NULL),
+    list(minutemaker.correction_llm_model = NULL, llmr_current_model = NULL),
     {
       # No set_llmr_model mock here as it should error before trying to set
       # model if none are configured.
@@ -363,7 +363,7 @@ test_that("correct_transcription_errors model selection logic", {
 })
 
 test_that("correct_transcription_errors input validation for include_reasoning", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     testthat::local_mocked_bindings(
       set_llmr_model = function(...) invisible(NULL),
       .package = "llmR"
@@ -791,7 +791,7 @@ test_that("apply_llm_correction processes files in a directory", {
 })
 
 test_that("correct_transcription_errors handles mixed XML content", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     # Test content before XML tags
     testthat::local_mocked_bindings(
       prompt_llm = function(...) {
@@ -846,7 +846,7 @@ test_that("correct_transcription_errors handles mixed XML content", {
 })
 
 test_that("correct_transcription_errors handles invalid JSON values", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     # Test non-string values
     testthat::local_mocked_bindings(
       prompt_llm = function(...) {
@@ -909,7 +909,7 @@ test_that("correct_transcription_errors handles invalid JSON values", {
 })
 
 test_that("correct_transcription_errors handles Unicode and special characters", {
-  withr::with_options(list(minutemaker_correction_llm_model = "mock_model"), {
+  withr::with_options(list(minutemaker.correction_llm_model = "mock_model"), {
     # Test Unicode escapes
     testthat::local_mocked_bindings(
       prompt_llm = function(...) {
@@ -1055,7 +1055,7 @@ test_that("apply_llm_correction properly handles corrections_applied field", {
 test_that("correct_transcription_errors uses temperature for non-reasoning models even when include_reasoning=TRUE", {
   withr::with_options(
     list(
-      minutemaker_correction_llm_model = "mm_gpt-4.1_azure",
+      minutemaker.correction_llm_model = "mm_gpt-4.1_azure",
       llmr_current_model = "mm_gpt-4.1_azure"
     ),
     {
@@ -1095,7 +1095,7 @@ test_that("correct_transcription_errors uses temperature for non-reasoning model
 test_that("correct_transcription_errors uses reasoning_effort when include_reasoning=FALSE and omits temperature", {
   withr::with_options(
     list(
-      minutemaker_correction_llm_model = "mm_any_reasoning_model",
+      minutemaker.correction_llm_model = "mm_any_reasoning_model",
       llmr_current_model = "mm_any_reasoning_model"
     ),
     {
