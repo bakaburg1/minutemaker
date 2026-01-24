@@ -1,0 +1,33 @@
+version: 1
+thread:
+  id: "T_tooling_renv"
+  slug: "renv-segfault-recovery"
+  scope: "Resolve segfaults during R CMD check when renv autoload is active"
+  status: "done"
+  language: "R"
+  files_owned: ["renv.lock"]
+updated_utc: "2026-01-24T17:35:00Z"
+semantic_gist: "renv project library corruption caused dyn.load segfaults"
+goal_orientation:
+  primary: "Restore stable checks under renv"
+  success_criteria:
+    - "devtools::check() passes with renv::activate()"
+constraints:
+  - id: L1
+    text: "Use renv::restore(rebuild = TRUE) after moving aside project library"
+    source: "session"
+focal_entities:
+  - type: "tooling"
+    name: "renv"
+    identifiers: ["renv::restore", "renv::activate", "devtools::check"]
+relational_map:
+  - "Segfault occurs during tools:::.check_packages_used() when renv autoload is active"
+episodic_trace:
+  last_milestone: "Moved renv project library aside, rebuilt with renv::restore(rebuild = TRUE), checks pass"
+  committed_decisions:
+    - "Rebuild renv project library when dyn.load segfault appears"
+  rejected_inputs: []
+predictive_cue:
+  next_step: "If segfault returns, clear renv cache and rebuild"
+uncertainty_signal:
+  open_questions: []

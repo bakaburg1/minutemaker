@@ -101,6 +101,9 @@ current_project:
     description: Remove `target_dir` from workflows; relative paths are resolved from the working directory, and users should set it with `setwd()` or `withr::with_dir()`.
     scope: workflow/paths
 general:
+  - name: renv segfault recovery
+    description: If R CMD check segfaults during tools:::.check_packages_used() or tests only when renv autoload is active, the likely cause is a corrupted or mismatched compiled binary in the renv project library/cache. Fix by moving aside the project library and running renv::restore(rebuild = TRUE). After rebuild, devtools::check() should pass with explicit renv::activate().
+    scope: tooling/renv
   - name: cli alert level conventions
     description: Use cli_alert for action logs, cli_alert_info for supplemental details, cli_warn for runtime logical issues that would have used warning(), and cli_alert_warning for non-code cautions when results need careful interpretation (e.g., low-quality input, incomplete data).
     scope: logging/messages

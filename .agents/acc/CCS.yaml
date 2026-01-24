@@ -1,0 +1,29 @@
+version: 1
+updated_utc: "2026-01-24T17:35:00Z"
+semantic_gist: "minutemaker package maintenance and debugging"
+goal_orientation:
+  primary: "Keep project tooling stable and checks reproducible"
+  success_criteria:
+    - "R CMD check runs cleanly under renv activation"
+constraints:
+  - id: G1
+    text: "For tooling issues, prefer reproducing in clean Rscript sessions"
+    source: "repo"
+threads_index:
+  - id: "T_tooling_renv"
+    slug: "renv-segfault-recovery"
+    status: "done"
+    last_updated_utc: "2026-01-24T17:35:00Z"
+    scope: "Investigate and fix renv-driven segfaults during checks"
+    tags: ["renv", "tooling", "segfault"]
+    language: "R"
+    files_owned: ["renv.lock"]
+    owner_hint: "assistant"
+current_focus:
+  thread_id: "T_tooling_renv"
+integration_checkpoints:
+  - "Run devtools::check() after renv changes"
+merge_hazards:
+  - "renv library rebuilds can invalidate cached binaries"
+uncertainty_signal:
+  open_questions: []
