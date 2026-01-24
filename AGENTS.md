@@ -37,11 +37,13 @@ Examples:
 2. Use the ACC skill in UPDATE/WRITE mode when important changes or milestones are reached (e.g. refactoring a function, adding/removing a function, or when the user corrects the model).
 3. Avoid calling the ACC skill for small refactors, style-only changes, or small documentation updates (especially inline edits).
 
-### Initial context discovery
+### Package discovery
 
-At the start of every conversation: (1) list files in `R/`, (2) list utility function signatures using the `list-r-functions` skill and call `list_r_functions()`. Inspect other R files on demand using `list_r_functions("regex")`.
+At the beginning, and only if you think you'll need to write code in the package, follow the following steps: (1) list files in `R/`, (2) list utility function signatures using the `list-r-functions` skill and call `list_r_functions()`. Inspect other R files on demand using `list_r_functions("regex")`.
 
 To inspect a function body in this repo, load the package with `devtools::load_all()` and run `print(function_name)`; the function code will print to the console so reading the file is not required.
+
+Avoid following these instructions if you think you'll only be just writing documentation, do small edits, or support with other chore tasks unrelated to writing code in the package.
 
 ### Track learning points
 
